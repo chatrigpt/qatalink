@@ -6,6 +6,7 @@ import './credits-qr.css';
 import './theme-fonts.css';
 import './dashboard-v2.css';
 import './public-theme.css';
+import './public-catalog-v2.css';
 import './qatalink-v3.css';
 import './pwa.css';
 import { Plus_Jakarta_Sans, Playfair_Display } from 'next/font/google';
