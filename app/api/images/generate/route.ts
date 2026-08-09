@@ -48,8 +48,6 @@ export async function POST(req:NextRequest){
     if(!ids.length)return NextResponse.json({success:false,error:'item_id or item_ids required'},{status:400});
 
     const jobs:any[]=[];
-    const appUrl=process.env.NEXT_PUBLIC_APP_URL||new URL(req.url).origin;
-
     for(const itemId of ids){
       const {data:item,error:itemError}=await supabase.from('items').select('id,name,description,short_description,metadata,catalog_id,category_id').eq('id',itemId).single();
       if(itemError||!item){jobs.push({item_id:itemId,error:itemError?.message||'Item not found'});continue;}
@@ -62,7 +60,7 @@ export async function POST(req:NextRequest){
       const provider=await fetch('https://api.poyo.ai/api/generate/submit',{
         method:'POST',
         headers:{Authorization:`Bearer ${poyoKey}`,'Content-Type':'application/json'},
-        body:JSON.stringify({model:'gpt-image-2',callback_url:`${appUrl}/api/images/callback`,input:{prompt,quality:'low',size:'1:1'}}),
+        body:JSON.stringify({model:'gpt-image-2',input:{prompt,quality:'low',size:'1:1'}}),
         cache:'no-store'
       });
       const providerData=await provider.json().catch(()=>null);
