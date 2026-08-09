@@ -1,6 +1,6 @@
 'use client';
 
-import {Minus,Plus,ShoppingBag,X,ZoomIn} from 'lucide-react';
+import {Minus,Plus,ShoppingBag,Trash2,X,ZoomIn} from 'lucide-react';
 import {useMemo,useState} from 'react';
 
 type AnyItem={id:string;name:string;description?:string|null;price_minor?:number|null;promo_price_minor?:number|null;promo_starts_at?:string|null;promo_ends_at?:string|null;image_url?:string|null};
@@ -17,6 +17,7 @@ export function PublicCatalogV2({data}:{data:any}){
   const [cart,setCart]=useState<Record<string,number>>({});
   const [activeCategory,setActiveCategory]=useState<string>(data?.categories?.[0]?.id||'');
   const [zoom,setZoom]=useState<{url:string;name:string}|null>(null);
+  const [cartOpen,setCartOpen]=useState(false);
   const plan=String(data?.plan_code||'');
   const interactive=['trial','interactive','linkhub'].includes(plan);
   const categories=Array.isArray(data?.categories)?data.categories:[];
@@ -30,6 +31,7 @@ export function PublicCatalogV2({data}:{data:any}){
   const bgGradient=theme.background_gradient||'';
   const bgImage=theme.background_image_url||'';
   const overlay=Math.max(0,Math.min(0.85,Number(theme.background_image_overlay??0.18)));
+  const blur=Math.max(0,Math.min(40,Number(theme.background_image_blur??0)));
   const textColor=theme.text_color||'#171719';
   const headingFont=theme.heading_font||'Plus Jakarta Sans';
   const bodyFont=theme.body_font||'Plus Jakarta Sans';
@@ -45,16 +47,22 @@ export function PublicCatalogV2({data}:{data:any}){
   const selected=allItems.filter((i:any)=>(cart[i.id]||0)>0);
   const unit=(i:AnyItem)=>promoActive(i)?Number(i.promo_price_minor||0):Number(i.price_minor||0);
   const total=selected.reduce((sum:number,i:any)=>sum+unit(i)*(cart[i.id]||0),0);
+  const itemCount=selected.reduce((s:number,i:any)=>s+(cart[i.id]||0),0);
   const phone=String(data?.business?.whatsapp_number||'').replace(/\D/g,'');
   const message=useMemo(()=>{
     if(interactive&&selected.length){
-      const lines=selected.map((i:any)=>`• ${cart[i.id]} × ${i.name}${showPrices?` — ${format(unit(i)*(cart[i.id]||0))}`:''}`);
+      const lines=selected.map((i:any)=>{
+        const qty=cart[i.id]||0;
+        const unitPrice=unit(i);
+        return `• ${qty} × ${i.name}${showPrices?` — ${format(unitPrice)} l’unité`:''}`;
+      });
       return `Bonjour ${data?.business?.name||''}, je souhaite commander depuis votre Qatalink :\n\n${lines.join('\n')}${showPrices?`\n\nTotal : ${format(total)}`:''}`;
     }
     return `Bonjour ${data?.business?.name||''}, je vous contacte depuis votre catalogue Qatalink.`;
   },[cart,selected,total,interactive,showPrices,data?.business?.name]);
   const whatsapp=phone?`https://wa.me/${phone}?text=${encodeURIComponent(message)}`:'#';
   const change=(id:string,delta:number)=>setCart(prev=>({...prev,[id]:Math.max(0,(prev[id]||0)+delta)}));
+  const remove=(id:string)=>setCart(prev=>({...prev,[id]:0}));
   const jump=(id:string)=>{setActiveCategory(id);document.getElementById(`cat-${id}`)?.scrollIntoView({behavior:'smooth',block:'start'});};
 
   const headingStyle:React.CSSProperties={
@@ -71,12 +79,11 @@ export function PublicCatalogV2({data}:{data:any}){
     textDecoration:theme.body_underline?'underline':'none',
     textTransform:(theme.body_case||'none') as any
   };
-  const pageBackground=bgImage
-    ?`linear-gradient(rgba(0,0,0,${overlay}),rgba(0,0,0,${overlay})),url(${bgImage}) center/cover fixed`
-    :(bgMode==='gradient'&&bgGradient?bgGradient:bg);
-  const cssVars={'--catalog-primary':primary,'--catalog-secondary':secondary,'--catalog-bg':bg,'--catalog-text':textColor,'--catalog-radius':radius} as React.CSSProperties;
+  const baseBackground=bgMode==='gradient'&&bgGradient?bgGradient:bg;
+  const cssVars={'--catalog-primary':primary,'--catalog-secondary':secondary,'--catalog-bg':bg,'--catalog-text':textColor,'--catalog-radius':radius,'--catalog-bg-blur':`${blur}px`} as React.CSSProperties;
 
-  return <main className={`public-v2 layout-${layout} ${isMenu?'menu-mode':'catalog-mode'}`} style={{...cssVars,...bodyStyle,background:pageBackground,color:textColor}}>
+  return <main className={`public-v2 layout-${layout} ${isMenu?'menu-mode':'catalog-mode'} ${bgImage?'has-background-image':''}`} style={{...cssVars,...bodyStyle,background:baseBackground,color:textColor}}>
+    {bgImage&&<div className="public-v2-bg-layer" aria-hidden="true" style={{backgroundImage:`linear-gradient(rgba(0,0,0,${overlay}),rgba(0,0,0,${overlay})),url("${bgImage}")`}}/>}
     <header className="public-v2-hero" style={data?.business?.cover_url?{backgroundImage:`linear-gradient(180deg,rgba(0,0,0,.08),rgba(0,0,0,.58)),url(${data.business.cover_url})`}:undefined}>
       <div className="public-v2-brand" style={{textAlign:align as any,justifyContent:align==='center'?'center':align==='right'?'flex-end':'flex-start'}}>
         {showLogo&&data?.business?.logo_url&&<div className={`public-v2-logo ${logoShape}`}><img src={data.business.logo_url} alt={`Logo ${data?.business?.name||''}`}/></div>}
@@ -87,7 +94,7 @@ export function PublicCatalogV2({data}:{data:any}){
     {categories.length>1&&<nav className="public-v2-tabs">{categories.map((cat:any)=><button key={cat.id} className={activeCategory===cat.id?'active':''} onClick={()=>jump(cat.id)}>{cat.name}</button>)}</nav>}
 
     <div className="public-v2-inner">
-      <div className="public-v2-title"><div><span className="public-v2-kicker">{isMenu?'MENU':'CATALOGUE'}</span><h2 style={headingStyle}>{data?.catalog?.title}</h2></div>{interactive&&<div className="public-v2-cart-count"><ShoppingBag size={17}/>{selected.reduce((s:number,i:any)=>s+(cart[i.id]||0),0)}</div>}</div>
+      <div className="public-v2-title"><div><span className="public-v2-kicker">{isMenu?'MENU':'CATALOGUE'}</span><h2 style={headingStyle}>{data?.catalog?.title}</h2></div>{interactive&&<button className="public-v2-cart-count" onClick={()=>setCartOpen(true)} aria-label="Voir mon panier"><ShoppingBag size={17}/>{itemCount}</button>}</div>
       {categories.map((cat:any)=><section id={`cat-${cat.id}`} className="public-v2-category" key={cat.id}>
         <div className="public-v2-category-head"><h3 style={headingStyle}>{cat.name}</h3>{cat.description&&<p>{cat.description}</p>}</div>
         <div className="public-v2-items">{(cat.items||[]).map((item:AnyItem)=>{
@@ -101,6 +108,13 @@ export function PublicCatalogV2({data}:{data:any}){
     </div>
 
     <div className="public-v2-whatsapp"><a href={whatsapp} target="_blank" rel="noreferrer">{interactive&&selected.length?(showPrices?`Commander · ${format(total)}`:'Envoyer ma sélection'):'Contacter sur WhatsApp'}</a></div>
+
+    {cartOpen&&<div className="public-v2-cart-backdrop" onClick={()=>setCartOpen(false)}><section className="public-v2-cart" onClick={e=>e.stopPropagation()}>
+      <header><div><span className="public-v2-kicker">MON PANIER</span><h3 style={headingStyle}>{itemCount?`${itemCount} article${itemCount>1?'s':''}`:'Votre panier est vide'}</h3></div><button onClick={()=>setCartOpen(false)} aria-label="Fermer"><X/></button></header>
+      <div className="public-v2-cart-lines">{selected.length?selected.map((item:AnyItem)=>{const qty=cart[item.id]||0;return <div className="public-v2-cart-line" key={item.id}>{item.image_url&&<img src={item.image_url} alt=""/>}<div className="public-v2-cart-copy"><b>{item.name}</b><small>{showPrices?`${format(unit(item))} l’unité`:''}</small><div className="public-v2-cart-qty"><button onClick={()=>change(item.id,-1)}><Minus size={14}/></button><span>{qty}</span><button onClick={()=>change(item.id,1)}><Plus size={14}/></button></div></div><div className="public-v2-cart-side">{showPrices&&<strong>{format(unit(item)*qty)}</strong>}<button className="public-v2-remove" onClick={()=>remove(item.id)} aria-label={`Supprimer ${item.name}`}><Trash2 size={15}/></button></div></div>}):<div className="public-v2-cart-empty"><ShoppingBag size={28}/><p>Ajoutez des articles depuis le catalogue pour les retrouver ici.</p></div>}</div>
+      {selected.length>0&&<footer><div><span>Total</span>{showPrices&&<strong>{format(total)}</strong>}</div><a href={whatsapp} target="_blank" rel="noreferrer">Commander sur WhatsApp</a></footer>}
+    </section></div>}
+
     {zoom&&<div className="public-v2-lightbox" onClick={()=>setZoom(null)}><button onClick={()=>setZoom(null)} aria-label="Fermer"><X/></button><img src={zoom.url} alt={zoom.name}/><strong>{zoom.name}</strong></div>}
   </main>;
 }
