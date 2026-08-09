@@ -16,19 +16,19 @@ export default function Home(){return <>
     <section className="hero container">
       <div className="pill"><Sparkles size={14}/> Essai complet gratuit pendant 24 h</div>
       <h1>Le moyen le plus simple de créer un <span className="gradient-text">menu interactif</span></h1>
-      <p>Importez une photo ou un texte, personnalisez votre catalogue, publiez votre QR code et recevez les sélections de vos clients directement sur WhatsApp.</p>
+      <p>Importez une photo ou un texte, choisissez un modèle Restaurant, Hôtel, Spa, Immobilier ou Boutique, personnalisez chaque détail puis partagez votre QR permanent.</p>
       <div className="hero-cta"><Link href="/create" className="btn btn-primary">Créer gratuitement <ArrowRight size={17}/></Link><a href="#how" className="btn btn-ghost">Comment ça marche</a></div>
     </section>
 
     <section className="marquee" id="demo"><div className="track">{[...demos,...demos].map((d,i)=><div className="phone" key={i}><video src={demo} autoPlay muted loop playsInline/><div className="phone-label"><strong>{d[0]}</strong><span>{d[1]}</span></div></div>)}</div></section>
 
-    <section className="section alt" id="features"><div className="container"><div className="section-head"><div className="eyebrow">Tout-en-un</div><h2>Votre catalogue devient un vrai outil commercial</h2><p>Qatalink transforme une carte papier, une image ou un texte en expérience mobile modifiable, partageable et prête pour WhatsApp.</p></div><div className="grid-3">
+    <section className="section alt" id="features"><div className="container"><div className="section-head"><div className="eyebrow">Tout-en-un</div><h2>Votre catalogue devient un vrai outil commercial</h2><p>Qatalink transforme une carte papier, une image ou un texte en expérience mobile totalement modifiable, partageable et prête pour WhatsApp.</p></div><div className="grid-3">
       <div className="card"><div className="iconbox"><ImageIcon/></div><h3>Image → menu</h3><p>L’analyse visuelle structure automatiquement catégories, articles, descriptions et prix puis vous laisse tout corriger.</p></div>
-      <div className="card"><div className="iconbox"><Palette/></div><h3>Personnalisation</h3><p>Couleurs, typographies, thèmes, images, catégories et mise en page restent modifiables après génération.</p></div>
+      <div className="card"><div className="iconbox"><Palette/></div><h3>Personnalisation complète</h3><p>Fond, couleur du texte, couleur principale, polices des titres et du corps, arrondis, cartes, boutons, grille ou liste : vous gardez le contrôle.</p></div>
       <div className="card"><div className="iconbox"><MessageCircle/></div><h3>Commande WhatsApp</h3><p>Le client sélectionne plusieurs articles et Qatalink prépare automatiquement le récapitulatif à envoyer.</p></div>
-      <div className="card"><div className="iconbox"><QrCode/></div><h3>QR permanent</h3><p>Changez vos prix et produits sans réimprimer votre QR code. Le lien reste identique.</p></div>
-      <div className="card"><div className="iconbox"><Smartphone/></div><h3>Mobile-first</h3><p>Une expérience rapide et élégante sur téléphone, tablette et ordinateur.</p></div>
-      <div className="card"><div className="iconbox"><Sparkles/></div><h3>Illustrations IA</h3><p>Générez une image pour un article ou lancez toutes les illustrations manquantes en une seule fois.</p></div>
+      <div className="card"><div className="iconbox"><QrCode/></div><h3>QR permanent</h3><p>Changez prix, photos, catégories, textes ou thème sans réimprimer votre QR code. Le lien reste identique.</p></div>
+      <div className="card"><div className="iconbox"><Smartphone/></div><h3>Presets métier</h3><p>Restaurant, Hôtel, Spa & Beauté, Immobilier et Boutique chargent automatiquement une structure et un style de départ adaptés.</p></div>
+      <div className="card"><div className="iconbox"><Sparkles/></div><h3>Illustrations IA à crédits</h3><p>Une image coûte 5 crédits. Générez une image ou lancez toutes les illustrations manquantes en groupe.</p></div>
     </div></div></section>
 
     <section className="section how-section" id="how"><div className="container">
@@ -40,23 +40,23 @@ export default function Home(){return <>
           <div className="how-video-caption"><strong>Voyez le parcours côté client</strong><span>Cette vidéo est provisoire. Elle pourra être remplacée sans modifier la mise en page.</span></div>
         </div>
         <div className="how-copy">
-          <div className="how-mini-step"><span>01</span><div><b>Importez ou partez de zéro</b><p>Une photo de menu, un texte massif ou un catalogue vide.</p></div></div>
-          <div className="how-mini-step"><span>02</span><div><b>Qatalink structure</b><p>Catégories, articles, prix et descriptions deviennent modifiables.</p></div></div>
-          <div className="how-mini-step"><span>03</span><div><b>Personnalisez</b><p>Images, ordre des éléments et informations business restent sous votre contrôle.</p></div></div>
-          <div className="how-mini-step"><span>04</span><div><b>Publiez</b><p>Votre lien reste stable, même lorsque le catalogue évolue.</p></div></div>
+          <div className="how-mini-step"><span>01</span><div><b>Choisissez votre secteur</b><p>Restaurant, Hôtel, Spa, Immobilier, Boutique ou une base libre.</p></div></div>
+          <div className="how-mini-step"><span>02</span><div><b>Importez ou partez de zéro</b><p>Photo, texte massif ou catalogue vide avec catégories préchargées.</p></div></div>
+          <div className="how-mini-step"><span>03</span><div><b>Personnalisez tout</b><p>Nom de l’entreprise, couleurs, polices, catégories, prix, images et disposition.</p></div></div>
+          <div className="how-mini-step"><span>04</span><div><b>Publiez</b><p>Le QR reste stable même lorsque le catalogue évolue.</p></div></div>
           <Link href="/create" className="btn btn-primary how-main-cta">Créer mon Qatalink <ArrowRight size={17}/></Link>
         </div>
       </div>
-      <div className="steps how-steps"><div className="card"><div className="step-num">01 — IMPORTER</div><h3>Photo, texte ou vide</h3><p>Importez votre carte existante ou construisez votre catalogue manuellement.</p></div><div className="card"><div className="step-num">02 — PERSONNALISER</div><h3>Vérifiez et adaptez</h3><p>Corrigez les prix, ajoutez des catégories et générez ou importez les illustrations.</p></div><div className="card"><div className="step-num">03 — PUBLIER</div><h3>Lien + WhatsApp</h3><p>Publiez votre catalogue et utilisez son lien public permanent auprès de vos clients.</p></div></div>
+      <div className="steps how-steps"><div className="card"><div className="step-num">01 — IMPORTER</div><h3>Photo, texte ou vide</h3><p>Importez votre carte existante ou construisez votre catalogue manuellement.</p></div><div className="card"><div className="step-num">02 — PERSONNALISER</div><h3>Identité + design</h3><p>Nom de l’entreprise, logo, couleurs, typographies, prix, catégories et illustrations.</p></div><div className="card"><div className="step-num">03 — PUBLIER</div><h3>QR + WhatsApp</h3><p>Publiez votre catalogue et modifiez-le à volonté sans changer son QR permanent.</p></div></div>
     </div></section>
 
-    <section className="section alt" id="pricing"><div className="container"><div className="section-head"><div className="eyebrow">Tarifs simples</div><h2>24 h pour tout tester. Puis choisissez votre formule.</h2><p>Les offres annuelles incluent l’équivalent d’un mois offert.</p></div><div className="pricing">
-      <Price name="Basic" price="3 500" annual="38 500" oldAnnual="42 000" features={['Catalogue/menu responsive','QR code permanent','Design sélectionnable','Catégories et articles modifiables','Bouton WhatsApp général']} />
-      <Price name="Interactif" price="5 000" annual="55 000" oldAnnual="60 000" featured features={['Tout Basic','Sélection de plusieurs articles','Panier détaillé','Redirection WhatsApp contextualisée','Options & catégories interactives']} />
-      <Price name="Vitrine" price="7 500" annual="82 500" oldAnnual="90 000" features={['Tout Interactif','Page type Linktree','Réseaux sociaux','Lien Google Maps','Menu/catalogue en bouton principal']} />
-    </div></div></section>
+    <section className="section alt" id="pricing"><div className="container"><div className="section-head"><div className="eyebrow">Tarifs simples</div><h2>24 h pour tout tester. Puis choisissez votre formule.</h2><p>Une génération d’image coûte 5 crédits. Les offres annuelles incluent un mois offert.</p></div><div className="pricing">
+      <Price name="Basic" price="3 500" annual="38 500" oldAnnual="42 000" features={['Catalogue/menu responsive','QR code permanent','Personnalisation du thème','Catégories et articles modifiables','50 crédits image inclus','Bouton WhatsApp général']} />
+      <Price name="Interactif" price="5 000" annual="55 000" oldAnnual="60 000" featured features={['Tout Basic','Sélection de plusieurs articles','Panier détaillé','Redirection WhatsApp contextualisée','150 crédits image inclus']} />
+      <Price name="Vitrine" price="7 500" annual="82 500" oldAnnual="90 000" features={['Tout Interactif','Page type Linktree','Réseaux sociaux','Lien Google Maps','250 crédits image inclus','Menu/catalogue en bouton principal']} />
+    </div><p style={{textAlign:'center',marginTop:18,color:'var(--muted)'}}>Besoin de plus d’illustrations ? Pack de 100 crédits à 2 000 F CFA pour les abonnés.</p></div></section>
 
-    <section className="section" id="faq"><div className="container"><div className="section-head"><div className="eyebrow">FAQ</div><h2>Les questions les plus fréquentes</h2></div><div className="faq"><details><summary>Dois-je refaire mon QR quand je modifie le menu ?</summary><p>Non. Le QR pointe vers votre lien Qatalink permanent. Vous pouvez modifier prix, photos et produits sans changer ce lien.</p></details><details><summary>Puis-je créer mon menu à partir d’une photo ?</summary><p>Oui. Qatalink analyse l’image, structure le contenu puis vous laisse corriger chaque catégorie, article et prix avant publication.</p></details><details><summary>Est-ce réservé aux restaurants ?</summary><p>Non. Les mêmes briques servent aux hôtels, spas, salons, boutiques, immobilier et autres activités avec catalogue ou services.</p></details></div></div></section>
+    <section className="section" id="faq"><div className="container"><div className="section-head"><div className="eyebrow">FAQ</div><h2>Les questions les plus fréquentes</h2></div><div className="faq"><details><summary>Dois-je refaire mon QR quand je modifie le menu ?</summary><p>Non. Le QR pointe vers votre lien Qatalink permanent. Vous pouvez modifier prix, photos, catégories, couleurs et produits sans changer ce lien.</p></details><details><summary>Puis-je créer mon menu à partir d’une photo ?</summary><p>Oui. Qatalink analyse l’image, structure le contenu puis vous laisse corriger chaque catégorie, article et prix avant publication.</p></details><details><summary>Est-ce réservé aux restaurants ?</summary><p>Non. Qatalink propose des configurations pré-enregistrées pour Restaurant, Hôtel, Spa & Beauté, Immobilier et Boutique, puis chaque réglage reste personnalisable.</p></details></div></div></section>
   </main>
   <footer className="footer"><div className="container" style={{display:'flex',justifyContent:'space-between',gap:20,flexWrap:'wrap'}}><div className="brand"><Image src="/qatalink-logo.png" width={32} height={32} alt="Qatalink"/>qatalink</div><div>© 2026 Qatalink. Menus & catalogues interactifs.</div></div></footer>
 </>}
