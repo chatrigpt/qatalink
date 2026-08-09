@@ -44,7 +44,7 @@ export async function POST(req:NextRequest){
     const sub=subs?.[0];
     const hasAccess=!!sub&&(!sub.current_period_end||new Date(sub.current_period_end).getTime()>Date.now());
     if(!hasAccess)return NextResponse.json({success:false,error:'SUBSCRIPTION_REQUIRED'},{status:402});
-    if(!['trial','interactive','linkhub'].includes(String(sub.plan_code)))return NextResponse.json({success:false,error:'IMAGE_GENERATION_NOT_INCLUDED',message:'La génération d’images est disponible avec Interactif ou Vitrine.'},{status:403});
+    if(!['trial','static','interactive','linkhub'].includes(String(sub.plan_code)))return NextResponse.json({success:false,error:'IMAGE_GENERATION_NOT_INCLUDED',message:'La génération d’images n’est pas disponible sur cette formule.'},{status:403});
 
     const body=await req.json();
     const ids=(Array.isArray(body?.item_ids)?body.item_ids:[body?.item_id]).filter(Boolean).slice(0,50);
@@ -68,7 +68,7 @@ export async function POST(req:NextRequest){
       const prompt=buildPrompt({businessName:business?.name||'',businessType:business?.business_type||'',catalogTitle:catalog.title||'',categoryName:category?.name||'',itemName:item.name,description:item.description||item.short_description||'',seedPrompt:item.metadata?.image_prompt||''});
 
       const {data:job,error:jobError}=await supabase.from('item_image_generation_jobs').insert({business_id:catalog.business_id,item_id:item.id,prompt,status:'pending',provider:'poyo:gpt-image-2',credit_cost:IMAGE_CREDIT_COST}).select('id').single();
-      if(jobError||!job){jobs.push({item_id:itemId,error:jobError?.message||'Could not save generation job'});continue;}
+      if(jobError||!job){jobs.push({item_id:itemId,error:itemError?.message||jobError?.message||'Could not save generation job'});continue;}
 
       const {data:balanceAfter,error:creditError}=await supabase.rpc('consume_image_credits',{p_business_id:catalog.business_id,p_job_id:job.id,p_cost:IMAGE_CREDIT_COST});
       if(creditError){
