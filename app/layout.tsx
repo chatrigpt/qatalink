@@ -7,6 +7,7 @@ import './theme-fonts.css';
 import './dashboard-v2.css';
 import './dashboard-extras.css';
 import './advanced-studio.css';
+import './vitrine-media.css';
 import './public-theme.css';
 import './public-catalog-v2.css';
 import './multipage.css';
@@ -17,6 +18,7 @@ import './landing-extras.css';
 import { Plus_Jakarta_Sans, Playfair_Display } from 'next/font/google';
 import { ThemeProvider } from '@/components/theme-provider';
 import { PwaInstallButton } from '@/components/pwa-install-button';
+import { MetaPixel } from '@/components/meta-pixel';
 
 const jakarta=Plus_Jakarta_Sans({subsets:['latin'],variable:'--font-jakarta'});
 const playfair=Playfair_Display({subsets:['latin'],style:['normal','italic'],variable:'--font-playfair'});
@@ -31,5 +33,5 @@ export const metadata={
 };
 
 export default function RootLayout({children}:{children:React.ReactNode}){
-  return <html lang="fr" suppressHydrationWarning><body className={`${jakarta.variable} ${playfair.variable}`}><ThemeProvider>{children}<PwaInstallButton/></ThemeProvider></body></html>;
+  return <html lang="fr" suppressHydrationWarning><body className={`${jakarta.variable} ${playfair.variable}`}><ThemeProvider>{children}<PwaInstallButton/><MetaPixel/></ThemeProvider></body></html>;
 }
