@@ -61,19 +61,21 @@ export async function POST(req:NextRequest){
     const body=await req.json();
     const inputType=body?.input_type==='text'?'text':'image';
     const context=body?.business_context||{};
+    const preset=body?.preset||{};
+    const presetContext=`Selected Qatalink preset: ${preset?.label||preset?.id||'none'}. Preferred category vocabulary when appropriate: ${Array.isArray(preset?.categories)?preset.categories.join(', '):'none'}. Treat this as business-sector context, but never discard explicit source categories or invent products/services that are not in the source.`;
     let userContent:any;
 
     if(inputType==='image'){
       const imageUrl=body?.source?.image_url||body?.image_url;
       if(!imageUrl)return NextResponse.json({success:false,error:'image_url required'},{status:400});
       userContent=[
-        {type:'text',text:`Analyse cette image de menu/catalogue et transforme-la dans le schéma Qatalink. Contexte éventuel: ${JSON.stringify(context)}. ${schemaInstruction}`},
+        {type:'text',text:`Analyse cette image de menu/catalogue et transforme-la dans le schéma Qatalink. Contexte entreprise: ${JSON.stringify(context)}. ${presetContext} ${schemaInstruction}`},
         {type:'image_url',image_url:imageUrl}
       ];
     }else{
       const text=String(body?.source?.text||body?.text||'').trim();
       if(!text)return NextResponse.json({success:false,error:'text required'},{status:400});
-      userContent=`Structure ce texte massif de menu/catalogue dans le schéma Qatalink. Contexte éventuel: ${JSON.stringify(context)}.\n\nSOURCE:\n${text}\n\n${schemaInstruction}`;
+      userContent=`Structure ce texte massif de menu/catalogue dans le schéma Qatalink. Contexte entreprise: ${JSON.stringify(context)}. ${presetContext}\n\nSOURCE:\n${text}\n\n${schemaInstruction}`;
     }
 
     const provider=await fetch(FAL_OPENAI_URL,{
@@ -83,7 +85,7 @@ export async function POST(req:NextRequest){
         model:'google/gemini-2.5-flash',
         temperature:0.15,
         messages:[
-          {role:'system',content:`You are a precise OCR and catalogue structuring engine. ${schemaInstruction}`},
+          {role:'system',content:`You are a precise OCR and catalogue structuring engine. Respect the selected business-sector preset while preserving the source faithfully. ${schemaInstruction}`},
           {role:'user',content:userContent}
         ]
       }),
