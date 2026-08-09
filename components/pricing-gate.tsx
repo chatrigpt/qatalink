@@ -10,13 +10,23 @@ type Props = {
   title?: string;
 };
 
-const plans = [
+type Plan = {
+  id: 'basic' | 'interactive' | 'vitrine';
+  name: string;
+  price: string;
+  description: string;
+  features: string[];
+  featured: boolean;
+};
+
+const plans: Plan[] = [
   {
     id: 'basic',
     name: 'Basic',
     price: '3 500 F',
     description: 'Catalogue ou menu responsive en consultation.',
     features: ['QR code permanent', 'Menu/catalogue modifiable', 'Thèmes au choix', 'Bouton WhatsApp général'],
+    featured: false,
   },
   {
     id: 'interactive',
@@ -32,8 +42,9 @@ const plans = [
     price: '7 500 F',
     description: 'Votre mini-site complet avec catalogue en premier bouton.',
     features: ['Tout Interactif', 'Page type Linktree', 'Réseaux sociaux', 'Adresse / Google Maps'],
+    featured: false,
   },
-] as const;
+];
 
 export function PricingGate({ open, onClose, title = 'Choisissez votre formule pour commencer' }: Props) {
   const [loading, setLoading] = useState<string | null>(null);
