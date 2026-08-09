@@ -4,7 +4,7 @@ import { createClient } from '@supabase/supabase-js';
 const SUPABASE_URL=process.env.NEXT_PUBLIC_SUPABASE_URL||'https://rifjsvbbhsnpifgooenl.supabase.co';
 const SUPABASE_KEY=process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY||'sb_publishable_5A_EpEK4Jrwh-3-NT43RxA_0iIP9Tdl';
 
-function addOneMonth(base:Date){const d=new Date(base);d.setMonth(d.getMonth()+1);return d;}
+function addMonths(base:Date,months:number){const d=new Date(base);d.setMonth(d.getMonth()+months);return d;}
 
 export async function POST(req:NextRequest){
   const key=process.env.MAKETOU_API_KEY;
@@ -35,10 +35,11 @@ export async function POST(req:NextRequest){
     if(amount!==Number(payment.amount_minor))return NextResponse.json({error:'Payment amount mismatch'},{status:409});
 
     const now=new Date();
+    const periodMonths=Number(payment.period_months||((payment.billing_period==='annual')?12:1));
     const {data:existing}=await supabase.from('subscriptions').select('*').eq('business_id',payment.business_id).order('created_at',{ascending:false}).limit(1);
     const current=existing?.[0];
     const extensionBase=current?.current_period_end&&new Date(current.current_period_end)>now?new Date(current.current_period_end):now;
-    const end=addOneMonth(extensionBase).toISOString();
+    const end=addMonths(extensionBase,periodMonths).toISOString();
 
     if(current){
       const {error:subError}=await supabase.from('subscriptions').update({plan_code:payment.plan_code,provider:'maketou',status:'active',renewal_mode:'manual',current_period_start:now.toISOString(),current_period_end:end,updated_at:now.toISOString()}).eq('id',current.id);
@@ -51,6 +52,6 @@ export async function POST(req:NextRequest){
     const {error:updateError}=await supabase.from('payments').update({status:'completed',completed_at:now.toISOString(),raw_provider_response:data}).eq('id',payment.id).eq('status','pending');
     if(updateError)return NextResponse.json({error:updateError.message},{status:500});
 
-    return NextResponse.json({status:'completed',plan_code:payment.plan_code,current_period_end:end});
+    return NextResponse.json({status:'completed',plan_code:payment.plan_code,billing_period:payment.billing_period||'monthly',current_period_end:end});
   }catch(e:any){return NextResponse.json({error:e.message},{status:500})}
 }
