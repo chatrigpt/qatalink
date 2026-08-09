@@ -4,6 +4,7 @@ import { useMemo, useState } from 'react';
 
 export function PublicCatalog({data}:{data:any}){
   const [cart,setCart]=useState<Record<string,number>>({});
+  const [activeCategory,setActiveCategory]=useState<string>(data?.categories?.[0]?.id||'');
   const interactive=['interactive','linkhub'].includes(String(data?.plan_code||''));
   const categories=Array.isArray(data?.categories)?data.categories:[];
   const allItems=categories.flatMap((c:any)=>Array.isArray(c.items)?c.items:[]);
@@ -12,15 +13,19 @@ export function PublicCatalog({data}:{data:any}){
   const primary=theme.primary_color||'#B5122B';
   const secondary=theme.secondary_color||'#F7E8EA';
   const background=theme.background_color||'#FFFFFF';
+  const backgroundMode=theme.background_mode||'solid';
+  const backgroundGradient=theme.background_gradient||'';
   const textColor=theme.text_color||'#171719';
   const headingFont=theme.heading_font||'Plus Jakarta Sans';
   const bodyFont=theme.body_font||'Plus Jakarta Sans';
   const radius=theme.border_radius||'18px';
-  const layout=theme.layout_style||'cards';
   const showName=theme.show_business_name!==false;
   const showLogo=theme.show_logo!==false;
   const showPrices=theme.show_prices!==false;
   const align=theme.header_alignment||'left';
+  const logoShape=theme.logo_shape||'rounded';
+  const isMenu=String(data?.catalog?.type||'menu')==='menu';
+  const pageBackground=backgroundMode==='gradient'&&backgroundGradient?backgroundGradient:background;
   const format=(v:number)=>currency==='XOF'?`${new Intl.NumberFormat('fr-FR').format(v).replace(/\u202f/g,' ')} F`:new Intl.NumberFormat('fr-FR',{style:'currency',currency}).format(v);
   const selected=allItems.filter((i:any)=>(cart[i.id]||0)>0);
   const total=selected.reduce((sum:number,i:any)=>sum+(Number(i.price_minor||0)*(cart[i.id]||0)),0);
@@ -31,36 +36,37 @@ export function PublicCatalog({data}:{data:any}){
       return `Bonjour ${data?.business?.name||''}, je souhaite commander depuis votre Qatalink :\n\n${lines.join('\n')}${showPrices?`\n\nTotal : ${format(total)}`:''}`;
     }
     return `Bonjour ${data?.business?.name||''}, je vous contacte depuis votre catalogue Qatalink.`;
-  },[cart,selected,total,interactive,showPrices]);
+  },[cart,selected,total,interactive,showPrices,data?.business?.name]);
   const whatsapp=phone?`https://wa.me/${phone}?text=${encodeURIComponent(message)}`:'#';
   const change=(id:string,delta:number)=>setCart(prev=>({...prev,[id]:Math.max(0,(prev[id]||0)+delta)}));
+  const jump=(id:string)=>{setActiveCategory(id);document.getElementById(`cat-${id}`)?.scrollIntoView({behavior:'smooth',block:'start'});};
 
   const style={
-    '--red':primary,
-    '--catalog-primary':primary,
-    '--catalog-secondary':secondary,
-    '--bg':background,
-    '--surface':background,
-    '--surface-2':secondary,
-    '--text':textColor,
-    '--catalog-radius':radius,
-    '--catalog-heading':headingFont,
-    '--catalog-body':bodyFont,
-    background,
-    color:textColor,
-    fontFamily:`${bodyFont}, sans-serif`
+    '--red':primary,'--catalog-primary':primary,'--catalog-secondary':secondary,'--bg':background,'--surface':background,'--surface-2':secondary,'--text':textColor,'--catalog-radius':radius,'--catalog-heading':headingFont,'--catalog-body':bodyFont,
+    background:pageBackground,color:textColor,fontFamily:`${bodyFont}, sans-serif`
   } as React.CSSProperties;
 
-  return <main className={`public-catalog-page public-themed public-layout-${layout} public-card-${theme.card_style||'soft'} public-button-${theme.button_style||'rounded'}`} style={style}>
+  return <main className={`public-catalog-page public-themed ${isMenu?'public-menu-mode':'public-catalog-mode'} public-card-${theme.card_style||'soft'} public-button-${theme.button_style||'rounded'}`} style={style}>
     <header className="public-cover" style={data?.business?.cover_url?{backgroundImage:`linear-gradient(180deg,transparent,rgba(0,0,0,.58)),url(${data.business.cover_url})`}:undefined}>
       <div className="public-business-head" style={{textAlign:align as any,justifyContent:align==='center'?'center':align==='right'?'flex-end':'flex-start'}}>
-        {showLogo&&data?.business?.logo_url&&<img src={data.business.logo_url} alt=""/>}
+        {showLogo&&data?.business?.logo_url&&<div className={`public-logo-frame public-logo-${logoShape}`}><img src={data.business.logo_url} alt={`Logo ${data?.business?.name||''}`}/></div>}
         <div><span>QATALINK</span>{showName&&<h1 style={{fontFamily:`${headingFont}, sans-serif`}}>{data?.business?.name||data?.catalog?.title}</h1>}<p>{data?.business?.description||data?.catalog?.title}</p></div>
       </div>
     </header>
+
+    {categories.length>1&&<nav className="public-category-tabs" aria-label="Catégories">{categories.map((cat:any)=><button key={cat.id} className={activeCategory===cat.id?'active':''} onClick={()=>jump(cat.id)}>{cat.name}</button>)}</nav>}
+
     <div className="public-catalog-inner">
-      <div className="public-title-row"><div><span className="eyebrow">{data?.catalog?.type==='menu'?'MENU':'CATALOGUE'}</span><h2 style={{fontFamily:`${headingFont}, sans-serif`}}>{data?.catalog?.title}</h2></div>{interactive&&<div className="public-cart-count"><ShoppingBag size={17}/>{selected.reduce((s:number,i:any)=>s+(cart[i.id]||0),0)}</div>}</div>
-      {categories.map((cat:any)=><section className="public-category" key={cat.id}><div className="public-category-head"><h3 style={{fontFamily:`${headingFont}, sans-serif`}}>{cat.name}</h3>{cat.description&&<p>{cat.description}</p>}</div><div className="public-items-grid">{(cat.items||[]).map((item:any)=><article className="public-item-card" key={item.id}>{item.image_url?<img className="public-item-image" src={item.image_url} alt={item.name}/>:<div className="public-item-image public-item-placeholder"/>}<div className="public-item-content"><h4 style={{fontFamily:`${headingFont}, sans-serif`}}>{item.name}</h4><p>{item.description||' '}</p><div className="public-item-bottom">{showPrices&&<strong>{format(Number(item.price_minor||0))}</strong>}{interactive&&<div className="qty-control">{(cart[item.id]||0)>0&&<><button onClick={()=>change(item.id,-1)}><Minus size={15}/></button><span>{cart[item.id]}</span></>}<button onClick={()=>change(item.id,1)}><Plus size={15}/></button></div>}</div></div></article>)}</div></section>)}
+      <div className="public-title-row"><div><span className="eyebrow">{isMenu?'MENU':'CATALOGUE'}</span><h2 style={{fontFamily:`${headingFont}, sans-serif`}}>{data?.catalog?.title}</h2></div>{interactive&&<div className="public-cart-count"><ShoppingBag size={17}/>{selected.reduce((s:number,i:any)=>s+(cart[i.id]||0),0)}</div>}</div>
+
+      {categories.map((cat:any)=><section className="public-category" id={`cat-${cat.id}`} key={cat.id}>
+        <div className="public-category-head"><h3 style={{fontFamily:`${headingFont}, sans-serif`}}>{cat.name}</h3>{cat.description&&<p>{cat.description}</p>}</div>
+        {isMenu?<div className="public-menu-list">{(cat.items||[]).map((item:any)=><article className="public-menu-row" key={item.id}>
+          <div className="public-menu-copy"><div className="public-menu-name-price"><h4 style={{fontFamily:`${headingFont}, sans-serif`}}>{item.name}</h4>{showPrices&&<strong>{format(Number(item.price_minor||0))}</strong>}</div>{item.description&&<p>{item.description}</p>}</div>
+          {interactive&&<div className="qty-control">{(cart[item.id]||0)>0&&<><button onClick={()=>change(item.id,-1)} aria-label={`Retirer ${item.name}`}><Minus size={15}/></button><span>{cart[item.id]}</span></>}<button onClick={()=>change(item.id,1)} aria-label={`Ajouter ${item.name}`}><Plus size={15}/></button></div>}
+        </article>)}</div>:
+        <div className="public-items-grid">{(cat.items||[]).map((item:any)=><article className="public-item-card" key={item.id}>{item.image_url&&<img className="public-item-image" src={item.image_url} alt={item.name}/>}<div className="public-item-content"><h4 style={{fontFamily:`${headingFont}, sans-serif`}}>{item.name}</h4>{item.description&&<p>{item.description}</p>}<div className="public-item-bottom">{showPrices&&<strong>{format(Number(item.price_minor||0))}</strong>}{interactive&&<div className="qty-control">{(cart[item.id]||0)>0&&<><button onClick={()=>change(item.id,-1)}><Minus size={15}/></button><span>{cart[item.id]}</span></>}<button onClick={()=>change(item.id,1)}><Plus size={15}/></button></div>}</div></div></article>)}</div>}
+      </section>)}
     </div>
     <div className="public-whatsapp-bar"><a className="btn btn-primary" href={whatsapp} target="_blank" rel="noreferrer">{interactive&&selected.length?(showPrices?`Commander · ${format(total)}`:'Envoyer ma sélection'):'Contacter sur WhatsApp'}</a></div>
   </main>
