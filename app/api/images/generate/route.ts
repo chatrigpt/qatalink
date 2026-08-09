@@ -4,10 +4,20 @@ import { createClient } from '@supabase/supabase-js';
 export const runtime='nodejs';
 
 const SUPABASE_URL=process.env.NEXT_PUBLIC_SUPABASE_URL||'https://rifjsvbbhsnpifgooenl.supabase.co';
-const SUPABASE_KEY=process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY||'sb_publishable_5A_EpEK4Jrwh-3-NT43RxA_0iIP9Tdl';
+const SUPABASE_KEY=process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY||'';
 const IMAGE_CREDIT_COST=5;
 
 function buildPrompt(input:{businessName:string;businessType:string;catalogTitle:string;categoryName:string;itemName:string;description:string;seedPrompt:string}){
+  const localHint=input.businessType==='restaurant'
+    ?'The visual should feel credible for a premium business in Côte d’Ivoire / Abidjan. For Ivorian dishes, respect local presentation and ingredients.'
+    :input.businessType==='hotel'||input.businessType==='spa_beauty'
+      ?'Use people with Black African features when a person is relevant, and an aesthetic credible for a premium business in Abidjan, Côte d’Ivoire.'
+      :input.businessType==='real_estate'
+        ?'Use architecture and landscaping credible for Abidjan and Côte d’Ivoire; avoid obviously European or American suburban cues.'
+        :input.businessType==='retail'
+          ?'Use styling and models credible for a contemporary premium brand serving Côte d’Ivoire; when a person is relevant, use Black African features.'
+          :'Keep the visual commercially credible for Côte d’Ivoire.';
+
   return `Create a square 1:1 premium commercial illustration for a Qatalink digital menu/catalogue item.
 Business: ${input.businessName || 'Business'}
 Sector: ${input.businessType || 'general retail/service'}
@@ -16,15 +26,14 @@ Category: ${input.categoryName || 'General'}
 Item: ${input.itemName}
 Description: ${input.description || 'No additional description'}
 Existing visual hint: ${input.seedPrompt || 'None'}
+Local market: Côte d’Ivoire. ${localHint}
 
 Requirements:
 - Represent the exact item clearly and faithfully.
 - Adapt the visual language to the sector: appetizing restaurant photography for food, clean studio product photography for retail, elegant service/lifestyle visualization for spa or hotel, realistic property presentation for real estate.
-- Premium commercial quality, clean composition, realistic lighting, subject easy to recognize at small mobile-card size.
-- Single hero subject or coherent serving when appropriate.
-- No text, no letters, no price labels, no watermark, no logos unless the item itself inherently contains packaging branding described by the user.
+- Premium commercial quality, realistic lighting, subject easy to recognize at small mobile-card size.
+- No text, no letters, no price labels, no watermark.
 - No unrelated props that could confuse the product identity.
-- Neutral or softly contextual background, strong separation of subject from background.
 - Square 1:1 composition.`;
 }
 
@@ -40,17 +49,28 @@ export async function POST(req:NextRequest){
     const {data:{user},error:userError}=await supabase.auth.getUser(token);
     if(userError||!user)return NextResponse.json({success:false,error:'Unauthorized'},{status:401});
 
-    const {data:subs}=await supabase.from('subscriptions').select('plan_code,status,current_period_end,business_id').in('status',['active','trialing']).order('created_at',{ascending:false}).limit(1);
+    const body=await req.json();
+    const ids=[...new Set((Array.isArray(body?.item_ids)?body.item_ids:[body?.item_id]).filter(Boolean))].slice(0,50) as string[];
+    if(!ids.length)return NextResponse.json({success:false,error:'item_id or item_ids required'},{status:400});
+
+    const {data:requestedItems,error:requestedError}=await supabase.from('items').select('id,catalog_id').in('id',ids);
+    if(requestedError||!requestedItems?.length)return NextResponse.json({success:false,error:requestedError?.message||'Items not found'},{status:404});
+    if(requestedItems.length!==ids.length)return NextResponse.json({success:false,error:'Some items are unavailable or not accessible'},{status:403});
+
+    const catalogIds=[...new Set(requestedItems.map((i:any)=>i.catalog_id))];
+    const {data:requestedCatalogs,error:catalogError}=await supabase.from('catalogs').select('id,business_id').in('id',catalogIds);
+    if(catalogError||!requestedCatalogs?.length)return NextResponse.json({success:false,error:catalogError?.message||'Catalog not found'},{status:404});
+    const businessIds=[...new Set(requestedCatalogs.map((c:any)=>c.business_id))];
+    if(businessIds.length!==1)return NextResponse.json({success:false,error:'ONE_BUSINESS_PER_BATCH',message:'Générez les images d’une entreprise à la fois.'},{status:400});
+    const businessId=String(businessIds[0]);
+
+    const {data:subs}=await supabase.from('subscriptions').select('plan_code,status,current_period_end,business_id').eq('business_id',businessId).in('status',['active','trialing']).order('created_at',{ascending:false}).limit(1);
     const sub=subs?.[0];
     const hasAccess=!!sub&&(!sub.current_period_end||new Date(sub.current_period_end).getTime()>Date.now());
     if(!hasAccess)return NextResponse.json({success:false,error:'SUBSCRIPTION_REQUIRED'},{status:402});
-    if(!['trial','static','interactive','linkhub'].includes(String(sub.plan_code)))return NextResponse.json({success:false,error:'IMAGE_GENERATION_NOT_INCLUDED',message:'La génération d’images n’est pas disponible sur cette formule.'},{status:403});
+    if(!['trial','static','interactive','linkhub'].includes(String(sub.plan_code)))return NextResponse.json({success:false,error:'IMAGE_GENERATION_NOT_INCLUDED'},{status:403});
 
-    const body=await req.json();
-    const ids=(Array.isArray(body?.item_ids)?body.item_ids:[body?.item_id]).filter(Boolean).slice(0,50);
-    if(!ids.length)return NextResponse.json({success:false,error:'item_id or item_ids required'},{status:400});
-
-    const {data:wallet}=await supabase.from('credit_wallets').select('balance').eq('business_id',sub.business_id).maybeSingle();
+    const {data:wallet}=await supabase.from('credit_wallets').select('balance').eq('business_id',businessId).maybeSingle();
     const required=ids.length*IMAGE_CREDIT_COST;
     const currentBalance=Number(wallet?.balance||0);
     if(currentBalance<required)return NextResponse.json({success:false,error:'INSUFFICIENT_CREDITS',message:`Il faut ${required} crédits pour générer ${ids.length} image(s).`,balance:currentBalance,required},{status:402});
@@ -60,35 +80,33 @@ export async function POST(req:NextRequest){
 
     for(const itemId of ids){
       const {data:item,error:itemError}=await supabase.from('items').select('id,name,description,short_description,metadata,catalog_id,category_id').eq('id',itemId).single();
-      if(itemError||!item){jobs.push({item_id:itemId,error:(itemError as any)?.message||'Item not found'});continue;}
+      if(itemError||!item){jobs.push({item_id:itemId,error:itemError?.message||'Item not found'});continue;}
       const {data:catalog}=await supabase.from('catalogs').select('id,title,business_id').eq('id',item.catalog_id).single();
-      if(!catalog){jobs.push({item_id:itemId,error:'Catalog not found'});continue;}
-      const {data:business}=await supabase.from('businesses').select('name,business_type').eq('id',catalog.business_id).single();
+      if(!catalog||catalog.business_id!==businessId){jobs.push({item_id:itemId,error:'Item does not belong to selected business'});continue;}
+      const {data:business}=await supabase.from('businesses').select('name,business_type').eq('id',businessId).single();
       const {data:category}=item.category_id?await supabase.from('categories').select('name').eq('id',item.category_id).maybeSingle():{data:null};
       const prompt=buildPrompt({businessName:business?.name||'',businessType:business?.business_type||'',catalogTitle:catalog.title||'',categoryName:category?.name||'',itemName:item.name,description:item.description||item.short_description||'',seedPrompt:item.metadata?.image_prompt||''});
 
-      const {data:job,error:jobError}=await supabase.from('item_image_generation_jobs').insert({business_id:catalog.business_id,item_id:item.id,prompt,status:'pending',provider:'poyo:gpt-image-2',credit_cost:IMAGE_CREDIT_COST}).select('id').single();
-      if(jobError||!job){jobs.push({item_id:itemId,error:(jobError as any)?.message||'Could not save generation job'});continue;}
+      const {data:job,error:jobError}=await supabase.from('item_image_generation_jobs').insert({business_id:businessId,item_id:item.id,prompt,status:'pending',provider:'poyo:gpt-image-2',credit_cost:IMAGE_CREDIT_COST}).select('id').single();
+      if(jobError||!job){jobs.push({item_id:itemId,error:jobError?.message||'Could not save generation job'});continue;}
 
-      const {data:balanceAfter,error:creditError}=await supabase.rpc('consume_image_credits',{p_business_id:catalog.business_id,p_job_id:job.id,p_cost:IMAGE_CREDIT_COST});
+      const {data:balanceAfter,error:creditError}=await supabase.rpc('consume_image_credits',{p_business_id:businessId,p_job_id:job.id,p_cost:IMAGE_CREDIT_COST});
       if(creditError){
-        await supabase.from('item_image_generation_jobs').update({status:'failed',error_message:(creditError as any).message,completed_at:new Date().toISOString()}).eq('id',job.id);
-        jobs.push({item_id:itemId,job_id:job.id,error:(creditError as any).message});
+        await supabase.from('item_image_generation_jobs').update({status:'failed',error_message:creditError.message,completed_at:new Date().toISOString()}).eq('id',job.id);
+        jobs.push({item_id:itemId,job_id:job.id,error:creditError.message});
         continue;
       }
       lastBalance=Number(balanceAfter??lastBalance-IMAGE_CREDIT_COST);
 
       const provider=await fetch('https://api.poyo.ai/api/generate/submit',{
-        method:'POST',
-        headers:{Authorization:`Bearer ${poyoKey}`,'Content-Type':'application/json'},
-        body:JSON.stringify({model:'gpt-image-2',input:{prompt,quality:'low',size:'1:1'}}),
-        cache:'no-store'
+        method:'POST',headers:{Authorization:`Bearer ${poyoKey}`,'Content-Type':'application/json'},
+        body:JSON.stringify({model:'gpt-image-2',input:{prompt,quality:'low',size:'1:1'}}),cache:'no-store'
       });
       const providerData:any=await provider.json().catch(()=>null);
       if(!provider.ok){
         const providerError=providerData?.error?.message||providerData?.error||'PoYo submit failed';
         await supabase.from('item_image_generation_jobs').update({status:'failed',error_message:providerError,provider_payload:providerData||{},completed_at:new Date().toISOString()}).eq('id',job.id);
-        const {data:refunded}=await supabase.rpc('refund_failed_image_credits',{p_business_id:catalog.business_id,p_job_id:job.id});
+        const {data:refunded}=await supabase.rpc('refund_failed_image_credits',{p_business_id:businessId,p_job_id:job.id});
         if(refunded!==null)lastBalance=Number(refunded);
         jobs.push({item_id:itemId,job_id:job.id,error:providerError,refunded:true});
         continue;
@@ -96,17 +114,16 @@ export async function POST(req:NextRequest){
       const taskId=providerData?.data?.task_id;
       if(!taskId){
         await supabase.from('item_image_generation_jobs').update({status:'failed',error_message:'PoYo did not return task_id',provider_payload:providerData||{},completed_at:new Date().toISOString()}).eq('id',job.id);
-        const {data:refunded}=await supabase.rpc('refund_failed_image_credits',{p_business_id:catalog.business_id,p_job_id:job.id});
+        const {data:refunded}=await supabase.rpc('refund_failed_image_credits',{p_business_id:businessId,p_job_id:job.id});
         if(refunded!==null)lastBalance=Number(refunded);
         jobs.push({item_id:itemId,job_id:job.id,error:'PoYo did not return task_id',refunded:true});
         continue;
       }
 
-      const {error:updateError}=await supabase.from('item_image_generation_jobs').update({status:'processing',provider_task_id:taskId,provider_payload:providerData}).eq('id',job.id);
-      if(updateError){jobs.push({item_id:itemId,job_id:job.id,error:(updateError as any).message});continue;}
+      await supabase.from('item_image_generation_jobs').update({status:'processing',provider_task_id:taskId,provider_payload:providerData}).eq('id',job.id);
       jobs.push({item_id:itemId,job_id:job.id,task_id:taskId,status:'processing',credit_cost:IMAGE_CREDIT_COST,balance:lastBalance});
     }
 
-    return NextResponse.json({success:true,jobs,credit_cost_per_image:IMAGE_CREDIT_COST,balance:lastBalance});
+    return NextResponse.json({success:true,jobs,credit_cost_per_image:IMAGE_CREDIT_COST,balance:lastBalance,business_id:businessId});
   }catch(e:any){return NextResponse.json({success:false,error:e?.message||'Generation submit failed'},{status:500})}
 }
