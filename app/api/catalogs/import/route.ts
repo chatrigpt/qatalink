@@ -33,40 +33,76 @@ export async function POST(req:NextRequest){
     const body=await req.json();
     const sourceType=body?.source_type==='text'?'text_import':body?.source_type==='image'?'ocr_import':'manual';
     const payload=body?.catalog||{};
+    const presetId=String(body?.preset_id||'').trim();
+    const requestedBusinessName=String(body?.business_name||payload?.business?.name||'').trim();
+
+    let preset:any=null;
+    if(presetId){
+      const {data:presetRow}=await supabase.from('sector_presets').select('*').eq('id',presetId).maybeSingle();
+      preset=presetRow||null;
+    }
 
     let businessId:string|undefined;
-    const {data:owned,error:ownedError}=await supabase.from('businesses').select('id,name').eq('owner_user_id',user.id).order('created_at',{ascending:true}).limit(1);
+    let businessName=requestedBusinessName||'Mon entreprise';
+    const {data:owned,error:ownedError}=await supabase.from('businesses').select('id,name,business_type').eq('owner_user_id',user.id).order('created_at',{ascending:true}).limit(1);
     if(ownedError)return NextResponse.json({success:false,error:ownedError.message},{status:500});
     businessId=owned?.[0]?.id;
+    if(!requestedBusinessName&&owned?.[0]?.name)businessName=owned[0].name;
+
+    const businessPatch:any={};
+    if(businessName)businessPatch.name=businessName;
+    if(preset?.business_type)businessPatch.business_type=preset.business_type;
+    else if(payload?.business?.business_type)businessPatch.business_type=payload.business.business_type;
+    if(payload?.business?.description)businessPatch.description=payload.business.description;
+    if(payload?.business?.phone_whatsapp)businessPatch.whatsapp_number=payload.business.phone_whatsapp;
+    if(payload?.business?.currency_code)businessPatch.currency_code=payload.business.currency_code;
 
     if(!businessId){
       const suffix=user.id.replace(/-/g,'').slice(0,8);
-      const businessName=String(payload?.business?.name||'Mon entreprise').trim()||'Mon entreprise';
-      const {data:created,error:createError}=await supabase.from('businesses').insert({owner_user_id:user.id,name:businessName,slug:`${slugify(businessName)}-${suffix}`,business_type:'other',currency_code:payload?.business?.currency_code||'XOF',country_code:payload?.business?.country_code||'CI',description:payload?.business?.description||null,whatsapp_number:payload?.business?.phone_whatsapp||null}).select('id').single();
+      const {data:created,error:createError}=await supabase.from('businesses').insert({owner_user_id:user.id,name:businessName,slug:`${slugify(businessName)}-${suffix}`,business_type:preset?.business_type||payload?.business?.business_type||'other',currency_code:payload?.business?.currency_code||'XOF',country_code:payload?.business?.country_code||'CI',description:payload?.business?.description||null,whatsapp_number:payload?.business?.phone_whatsapp||null,theme_preset:presetId||null}).select('id').single();
       if(createError||!created)return NextResponse.json({success:false,error:createError?.message||'Impossible de créer l’entreprise.'},{status:500});
       businessId=created.id;
-    }else if(payload?.business){
-      const patch:any={};
-      if(payload.business.name)patch.name=payload.business.name;
-      if(payload.business.description)patch.description=payload.business.description;
-      if(payload.business.phone_whatsapp)patch.whatsapp_number=payload.business.phone_whatsapp;
-      if(Object.keys(patch).length)await supabase.from('businesses').update(patch).eq('id',businessId);
+    }else{
+      if(presetId)businessPatch.theme_preset=presetId;
+      if(Object.keys(businessPatch).length)await supabase.from('businesses').update(businessPatch).eq('id',businessId);
     }
 
-    const title=String(payload?.catalog?.title||payload?.title||'Nouveau catalogue').trim()||'Nouveau catalogue';
-    const catalogType=payload?.catalog?.type==='catalog'?'catalog':'menu';
-    const publicSlug=`${slugify(title)}-${crypto.randomUUID().slice(0,8)}`;
+    const requestedTitle=String(payload?.catalog?.title||payload?.title||body?.catalog_title||'').trim();
+    const title=requestedTitle||businessName||preset?.default_catalog_title||'Nouveau catalogue';
+    const catalogType=(payload?.catalog?.type==='catalog'||preset?.catalog_type==='catalog')?'catalog':'menu';
+    const publicSlug=`${slugify(businessName||title)}-${crypto.randomUUID().slice(0,8)}`;
     const {data:catalogRow,error:catalogError}=await supabase.from('catalogs').insert({business_id:businessId,title,catalog_type:catalogType,public_slug:publicSlug,source:sourceType,is_default:false,is_active:true}).select('id,public_slug').single();
     if(catalogError||!catalogRow)return NextResponse.json({success:false,error:catalogError?.message||'Impossible de créer le catalogue.'},{status:500});
 
-    const categories=Array.isArray(payload?.categories)?payload.categories:[];
-    const itemIds:string[]=[];
+    const theme={...(preset?.default_theme||{}),...(body?.theme_overrides||{})};
+    const {error:themeError}=await supabase.from('catalog_theme_settings').insert({
+      catalog_id:catalogRow.id,
+      preset_id:presetId||null,
+      primary_color:theme.primary_color||'#B5122B',
+      secondary_color:theme.secondary_color||'#F7E8EA',
+      background_color:theme.background_color||'#FFFFFF',
+      text_color:theme.text_color||'#171719',
+      heading_font:theme.heading_font||'Plus Jakarta Sans',
+      body_font:theme.body_font||'Plus Jakarta Sans',
+      border_radius:theme.border_radius||'18px',
+      card_style:theme.card_style||'soft',
+      button_style:theme.button_style||'rounded',
+      layout_style:theme.layout_style||'cards',
+      hero_style:theme.hero_style||'minimal',
+      show_business_name:true,
+      show_logo:true,
+      show_prices:true,
+      header_alignment:'left'
+    });
+    if(themeError)return NextResponse.json({success:false,error:themeError.message},{status:500});
 
-    if(!categories.length && sourceType==='manual'){
-      const {error}=await supabase.from('categories').insert({catalog_id:catalogRow.id,name:'Catégorie 1',sort_order:1,is_visible:true});
-      if(error)return NextResponse.json({success:false,error:error.message},{status:500});
+    let categories=Array.isArray(payload?.categories)?payload.categories:[];
+    if(!categories.length&&Array.isArray(preset?.default_categories)){
+      categories=preset.default_categories.map((name:string,index:number)=>({name,sort_order:index+1,items:[]}));
     }
+    if(!categories.length&&sourceType==='manual')categories=[{name:'Catégorie 1',sort_order:1,items:[]}];
 
+    const itemIds:string[]=[];
     for(let ci=0;ci<categories.length;ci++){
       const category=categories[ci]||{};
       const {data:catRow,error:catError}=await supabase.from('categories').insert({catalog_id:catalogRow.id,name:String(category.name||`Catégorie ${ci+1}`),description:category.description||null,sort_order:Number(category.sort_order||ci+1),is_visible:true}).select('id').single();
@@ -82,7 +118,7 @@ export async function POST(req:NextRequest){
       }
     }
 
-    return NextResponse.json({success:true,catalog_id:catalogRow.id,public_slug:catalogRow.public_slug,item_ids:itemIds});
+    return NextResponse.json({success:true,catalog_id:catalogRow.id,public_slug:catalogRow.public_slug,item_ids:itemIds,preset_id:presetId||null});
   }catch(e:any){
     return NextResponse.json({success:false,error:e?.message||'Import failed'},{status:500});
   }
