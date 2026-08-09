@@ -1,19 +1,21 @@
 'use client';
 
-import { Check, X } from 'lucide-react';
-import { useState } from 'react';
+import { Check, Clock3, X } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
 import { createSupabaseBrowserClient } from '@/lib/supabase';
 
 type Props = {
   open: boolean;
   onClose?: () => void;
   title?: string;
+  trialExpiresAt?: string | null;
+  trialActive?: boolean;
 };
 
 type Plan = {
   id: 'basic' | 'interactive' | 'vitrine';
   name: string;
-  price: string;
+  monthlyPrice: number;
   description: string;
   features: string[];
   featured: boolean;
@@ -23,7 +25,7 @@ const plans: Plan[] = [
   {
     id: 'basic',
     name: 'Basic',
-    price: '3 500 F',
+    monthlyPrice: 3500,
     description: 'Catalogue ou menu responsive en consultation.',
     features: ['QR code permanent', 'Menu/catalogue modifiable', 'Thèmes au choix', 'Bouton WhatsApp général'],
     featured: false,
@@ -31,7 +33,7 @@ const plans: Plan[] = [
   {
     id: 'interactive',
     name: 'Interactif',
-    price: '5 000 F',
+    monthlyPrice: 5000,
     description: 'La formule idéale pour recevoir des commandes détaillées.',
     features: ['Tout Basic', 'Sélection multi-articles', 'Quantités et catégories', 'Commande détaillée vers WhatsApp'],
     featured: true,
@@ -39,16 +41,37 @@ const plans: Plan[] = [
   {
     id: 'vitrine',
     name: 'Vitrine',
-    price: '7 500 F',
+    monthlyPrice: 7500,
     description: 'Votre mini-site complet avec catalogue en premier bouton.',
     features: ['Tout Interactif', 'Page type Linktree', 'Réseaux sociaux', 'Adresse / Google Maps'],
     featured: false,
   },
 ];
 
-export function PricingGate({ open, onClose, title = 'Choisissez votre formule pour commencer' }: Props) {
+function formatXof(value:number){return new Intl.NumberFormat('fr-FR').format(value).replace(/\u202f/g,' ')+' F';}
+function formatRemaining(ms:number){
+  if(ms<=0)return '00 h 00 min 00 s';
+  const total=Math.floor(ms/1000);
+  const h=Math.floor(total/3600);
+  const m=Math.floor((total%3600)/60);
+  const s=total%60;
+  return `${String(h).padStart(2,'0')} h ${String(m).padStart(2,'0')} min ${String(s).padStart(2,'0')} s`;
+}
+
+export function PricingGate({ open, onClose, title = 'Choisissez votre formule pour continuer', trialExpiresAt=null, trialActive=false }: Props) {
   const [loading, setLoading] = useState<string | null>(null);
   const [error, setError] = useState('');
+  const [billingPeriod,setBillingPeriod]=useState<'monthly'|'annual'>('monthly');
+  const [now,setNow]=useState(Date.now());
+
+  useEffect(()=>{
+    if(!open || !trialExpiresAt)return;
+    setNow(Date.now());
+    const timer=setInterval(()=>setNow(Date.now()),1000);
+    return()=>clearInterval(timer);
+  },[open,trialExpiresAt]);
+
+  const remaining=useMemo(()=>trialExpiresAt?Math.max(0,new Date(trialExpiresAt).getTime()-now):0,[trialExpiresAt,now]);
 
   if (!open) return null;
 
@@ -75,7 +98,7 @@ export function PricingGate({ open, onClose, title = 'Choisissez votre formule p
           'Content-Type': 'application/json',
           Authorization: `Bearer ${session.access_token}`,
         },
-        body: JSON.stringify({ plan, firstName, lastName }),
+        body: JSON.stringify({ plan, firstName, lastName, billingPeriod }),
       });
       const data = await r.json();
       if (!r.ok) throw new Error(data.error || data.message || 'Impossible de lancer le paiement.');
@@ -97,14 +120,23 @@ export function PricingGate({ open, onClose, title = 'Choisissez votre formule p
         <div className="paywall-head">
           <div className="eyebrow">ABONNEMENT QATALINK</div>
           <h2>{title}</h2>
-          <p>Votre compte reste gratuit. L’abonnement est nécessaire uniquement pour créer et publier vos menus ou catalogues.</p>
+          {trialActive && trialExpiresAt ? <>
+            <div className="trial-danger"><Clock3 size={20}/><div><b>Votre catalogue sera mis hors ligne dans</b><strong>{formatRemaining(remaining)}</strong></div></div>
+            <p>Votre essai donne accès à toutes les fonctionnalités pendant 24 h. Sans abonnement actif avant la fin du compteur, votre catalogue public deviendra indisponible jusqu’à l’activation d’une formule.</p>
+          </> : <p>Choisissez une formule pour conserver votre catalogue en ligne et continuer à utiliser les fonctions Qatalink.</p>}
+          <div className="billing-toggle" role="tablist" aria-label="Période de facturation">
+            <button className={billingPeriod==='monthly'?'active':''} onClick={()=>setBillingPeriod('monthly')}>Mensuel</button>
+            <button className={billingPeriod==='annual'?'active':''} onClick={()=>setBillingPeriod('annual')}>Annuel · 12 mois</button>
+          </div>
         </div>
         <div className="paywall-plans">
-          {plans.map((plan) => (
-            <article className={`price-card ${plan.featured ? 'featured' : ''}`} key={plan.id}>
+          {plans.map((plan) => {
+            const amount=billingPeriod==='annual'?plan.monthlyPrice*12:plan.monthlyPrice;
+            return <article className={`price-card ${plan.featured ? 'featured' : ''}`} key={plan.id}>
               {plan.featured && <span className="popular">POPULAIRE</span>}
               <h3>{plan.name}</h3>
-              <div className="price">{plan.price}<small>/mois</small></div>
+              <div className="price">{formatXof(amount)}<small>{billingPeriod==='annual'?'/ an':'/ mois'}</small></div>
+              {billingPeriod==='annual'&&<div className="annual-equivalent">Soit {formatXof(plan.monthlyPrice)} / mois · payé en une fois</div>}
               <p>{plan.description}</p>
               <div className="features">
                 {plan.features.map((feature) => <div className="feature" key={feature}><Check size={16} />{feature}</div>)}
@@ -113,8 +145,9 @@ export function PricingGate({ open, onClose, title = 'Choisissez votre formule p
                 {loading === plan.id ? 'Redirection…' : `Choisir ${plan.name}`}
               </button>
             </article>
-          ))}
+          })}
         </div>
+        {trialActive&&onClose&&<button className="trial-continue" onClick={onClose}>Continuer mon essai</button>}
         {error && <div className="error" style={{ textAlign: 'center', marginTop: 14 }}>{error}</div>}
       </div>
     </div>
