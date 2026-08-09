@@ -1,12 +1,49 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 
-const OCR_WEBHOOK='https://digitaladn225.app.n8n.cloud/webhook/qatalink-ocr';
+export const runtime='nodejs';
+
 const SUPABASE_URL=process.env.NEXT_PUBLIC_SUPABASE_URL||'https://rifjsvbbhsnpifgooenl.supabase.co';
 const SUPABASE_KEY=process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY||'sb_publishable_5A_EpEK4Jrwh-3-NT43RxA_0iIP9Tdl';
+const FAL_OPENAI_URL='https://fal.run/openrouter/router/openai/v1/chat/completions';
+
+const schemaInstruction=`Return ONLY valid JSON. No markdown, no code fences, no commentary.
+Use exactly this structure:
+{
+  "schema":"qatalink_catalog_v2",
+  "source_type":"image|text",
+  "business":{"name":"","description":"","phone_whatsapp":"","address":"","maps_url":"","currency_code":"XOF","country_code":"CI","language":"fr"},
+  "catalog":{"title":"Menu principal","type":"menu|catalog","cover_image_url":"","notes":""},
+  "categories":[{"name":"","description":"","sort_order":1,"items":[{"name":"","description":"","price":0,"currency_code":"XOF","image_url":"","image_prompt":"","sku":"","available":true,"sort_order":1}]}],
+  "uncategorized_items":[],
+  "raw_text":"",
+  "warnings":[],
+  "confidence":0.0
+}
+Rules:
+- Preserve every readable item and price; never silently omit an item.
+- Prices must be numbers only, without currency symbols or separators.
+- If the source uses FCFA/CFA, use XOF.
+- Keep descriptions empty when not present instead of inventing facts.
+- Group items into the source categories; only infer categories when necessary.
+- Generate one concise image_prompt for every item. It must describe a clean premium commercial illustration/photo of that exact item, square 1:1, no text, no watermark, adapted to the detected sector and catalogue style.
+- Put uncertain OCR readings in warnings and lower confidence.
+- For non-food catalogues, adapt image_prompt to the real product/service/property rather than food photography.`;
+
+function parseModelJson(value:string){
+  const cleaned=value.trim().replace(/^```(?:json)?\s*/i,'').replace(/\s*```$/,'').trim();
+  try{return JSON.parse(cleaned)}catch{}
+  const start=cleaned.indexOf('{');
+  const end=cleaned.lastIndexOf('}');
+  if(start>=0&&end>start)return JSON.parse(cleaned.slice(start,end+1));
+  throw new Error('Le modèle n’a pas renvoyé un JSON exploitable.');
+}
 
 export async function POST(req:NextRequest){
   try{
+    const falKey=process.env.FAL_KEY;
+    if(!falKey)return NextResponse.json({success:false,error:'FAL_KEY missing'},{status:503});
+
     const auth=req.headers.get('authorization')||'';
     const token=auth.startsWith('Bearer ')?auth.slice(7):'';
     if(!token)return NextResponse.json({success:false,error:'Unauthorized'},{status:401});
@@ -22,10 +59,48 @@ export async function POST(req:NextRequest){
     if(!valid)return NextResponse.json({success:false,error:'SUBSCRIPTION_REQUIRED'},{status:402});
 
     const body=await req.json();
-    const payload={job_id:crypto.randomUUID(),schema_target:'qatalink_catalog_v1',...body,options:{extract_prices:true,extract_descriptions:true,group_into_categories:true,generate_item_image_prompts:true,normalize_spelling:true,preserve_raw_text:true,...body.options}};
-    const r=await fetch(OCR_WEBHOOK,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload),cache:'no-store'});
-    const text=await r.text();
-    let data:any;try{data=JSON.parse(text)}catch{data={success:false,status:'invalid_json',raw:text}}
-    return NextResponse.json(data,{status:r.ok?200:r.status});
-  }catch(e:any){return NextResponse.json({success:false,error:e.message},{status:500})}
+    const inputType=body?.input_type==='text'?'text':'image';
+    const context=body?.business_context||{};
+    let userContent:any;
+
+    if(inputType==='image'){
+      const imageUrl=body?.source?.image_url||body?.image_url;
+      if(!imageUrl)return NextResponse.json({success:false,error:'image_url required'},{status:400});
+      userContent=[
+        {type:'text',text:`Analyse cette image de menu/catalogue et transforme-la dans le schéma Qatalink. Contexte éventuel: ${JSON.stringify(context)}. ${schemaInstruction}`},
+        {type:'image_url',image_url:imageUrl}
+      ];
+    }else{
+      const text=String(body?.source?.text||body?.text||'').trim();
+      if(!text)return NextResponse.json({success:false,error:'text required'},{status:400});
+      userContent=`Structure ce texte massif de menu/catalogue dans le schéma Qatalink. Contexte éventuel: ${JSON.stringify(context)}.\n\nSOURCE:\n${text}\n\n${schemaInstruction}`;
+    }
+
+    const provider=await fetch(FAL_OPENAI_URL,{
+      method:'POST',
+      headers:{'Content-Type':'application/json',Authorization:`Key ${falKey}`},
+      body:JSON.stringify({
+        model:'google/gemini-2.5-flash',
+        temperature:0.15,
+        messages:[
+          {role:'system',content:`You are a precise OCR and catalogue structuring engine. ${schemaInstruction}`},
+          {role:'user',content:userContent}
+        ]
+      }),
+      cache:'no-store'
+    });
+
+    const providerData=await provider.json().catch(()=>null);
+    if(!provider.ok)return NextResponse.json({success:false,error:providerData?.error?.message||providerData?.error||'Fal vision request failed',provider:providerData},{status:provider.status});
+    const raw=providerData?.choices?.[0]?.message?.content;
+    if(!raw)return NextResponse.json({success:false,error:'Fal returned an empty response',provider:providerData},{status:502});
+
+    const catalog=parseModelJson(String(raw));
+    catalog.schema='qatalink_catalog_v2';
+    catalog.source_type=inputType;
+
+    return NextResponse.json({success:true,catalog,usage:providerData?.usage||null});
+  }catch(e:any){
+    return NextResponse.json({success:false,error:e?.message||'OCR failed'},{status:500});
+  }
 }
