@@ -24,8 +24,8 @@ type Plan = {
 
 const plans: Plan[] = [
   {id:'basic',name:'Basic',monthlyPrice:3500,annualPrice:38500,description:'Catalogue ou menu responsive en consultation.',features:['QR code permanent','Menu/catalogue modifiable','Thèmes au choix','Bouton WhatsApp général'],featured:false},
-  {id:'interactive',name:'Interactif',monthlyPrice:5000,annualPrice:55000,description:'La formule idéale pour recevoir des commandes détaillées.',features:['Tout Basic','Sélection multi-articles','Quantités et catégories','Commande détaillée vers WhatsApp'],featured:true},
-  {id:'vitrine',name:'Vitrine',monthlyPrice:7500,annualPrice:82500,description:'Votre mini-site complet avec catalogue en premier bouton.',features:['Tout Interactif','Page type Linktree','Réseaux sociaux','Adresse / Google Maps'],featured:false},
+  {id:'interactive',name:'Interactif',monthlyPrice:5000,annualPrice:55000,description:'La formule idéale pour recevoir des commandes détaillées.',features:['Tout Basic','Sélection multi-articles','Quantités et catégories','Commande détaillée vers WhatsApp','150 crédits image à chaque activation/renouvellement'],featured:true},
+  {id:'vitrine',name:'Vitrine',monthlyPrice:7500,annualPrice:82500,description:'Votre mini-site complet avec catalogue en premier bouton.',features:['Tout Interactif','Page type Linktree','Réseaux sociaux','Adresse / Google Maps','250 crédits image à chaque activation/renouvellement'],featured:false},
 ];
 
 function formatXof(value:number){return new Intl.NumberFormat('fr-FR').format(value).replace(/\u202f/g,' ')+' F';}
@@ -87,8 +87,8 @@ export function PricingGate({ open, onClose, title = 'Choisissez votre formule p
       <h2>{title}</h2>
       {trialActive && trialExpiresAt ? <>
         <div className="trial-danger"><Clock3 size={20}/><div><b>Votre catalogue sera mis hors ligne dans</b><strong>{formatRemaining(remaining)}</strong></div></div>
-        <p>Votre essai donne accès à toutes les fonctionnalités pendant 24 h. Sans abonnement actif avant la fin du compteur, votre catalogue public deviendra indisponible jusqu’à l’activation d’une formule.</p>
-      </> : <p>Choisissez une formule pour conserver votre catalogue en ligne et continuer à utiliser les fonctions Qatalink.</p>}
+        <p>Votre essai donne accès à toutes les fonctionnalités pendant 24 h, avec 5 crédits image pour tester une génération. Sans abonnement actif avant la fin du compteur, votre catalogue public deviendra indisponible jusqu’à l’activation d’une formule.</p>
+      </> : <p>Choisissez une formule pour conserver votre catalogue en ligne. Une génération d’image coûte 5 crédits.</p>}
       <div className="billing-toggle" role="tablist" aria-label="Période de facturation">
         <button className={billingPeriod==='monthly'?'active':''} onClick={()=>setBillingPeriod('monthly')}>Mensuel</button>
         <button className={billingPeriod==='annual'?'active':''} onClick={()=>setBillingPeriod('annual')}>Annuel <span className="annual-badge">1 mois offert</span></button>
