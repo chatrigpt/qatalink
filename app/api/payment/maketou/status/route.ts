@@ -24,7 +24,10 @@ export async function POST(req:NextRequest){
     if(paymentError)return NextResponse.json({error:paymentError.message},{status:500});
     if(!payment)return NextResponse.json({error:'Payment not found'},{status:404});
 
-    if(payment.status==='completed')return NextResponse.json({status:'completed',payment_id:payment.id});
+    if(payment.status==='completed'){
+      const {data:wallet}=await supabase.from('credit_wallets').select('balance').eq('business_id',payment.business_id).maybeSingle();
+      return NextResponse.json({status:'completed',payment_id:payment.id,purchase_type:payment.purchase_type||'subscription',credits_added:Number(payment.credits_amount||0),credit_balance:Number(wallet?.balance||0)});
+    }
 
     const r=await fetch(`https://api.maketou.net/api/v1/stores/cart/${encodeURIComponent(cart_id)}`,{headers:{Authorization:`Bearer ${key}`},cache:'no-store'});
     const data=await r.json();
@@ -35,6 +38,14 @@ export async function POST(req:NextRequest){
     if(amount!==Number(payment.amount_minor))return NextResponse.json({error:'Payment amount mismatch'},{status:409});
 
     const now=new Date();
+
+    if(payment.purchase_type==='credits'){
+      const {error:updateError}=await supabase.from('payments').update({status:'completed',completed_at:now.toISOString(),raw_provider_response:data}).eq('id',payment.id).eq('status','pending');
+      if(updateError)return NextResponse.json({error:updateError.message},{status:500});
+      const {data:wallet}=await supabase.from('credit_wallets').select('balance').eq('business_id',payment.business_id).maybeSingle();
+      return NextResponse.json({status:'completed',purchase_type:'credits',credits_added:Number(payment.credits_amount||0),credit_balance:Number(wallet?.balance||0)});
+    }
+
     const periodMonths=Number(payment.period_months||((payment.billing_period==='annual')?12:1));
     const {data:existing}=await supabase.from('subscriptions').select('*').eq('business_id',payment.business_id).order('created_at',{ascending:false}).limit(1);
     const current=existing?.[0];
@@ -52,6 +63,7 @@ export async function POST(req:NextRequest){
     const {error:updateError}=await supabase.from('payments').update({status:'completed',completed_at:now.toISOString(),raw_provider_response:data}).eq('id',payment.id).eq('status','pending');
     if(updateError)return NextResponse.json({error:updateError.message},{status:500});
 
-    return NextResponse.json({status:'completed',plan_code:payment.plan_code,billing_period:payment.billing_period||'monthly',current_period_end:end});
+    const {data:wallet}=await supabase.from('credit_wallets').select('balance').eq('business_id',payment.business_id).maybeSingle();
+    return NextResponse.json({status:'completed',purchase_type:'subscription',plan_code:payment.plan_code,billing_period:payment.billing_period||'monthly',current_period_end:end,credit_balance:Number(wallet?.balance||0)});
   }catch(e:any){return NextResponse.json({error:e.message},{status:500})}
 }
