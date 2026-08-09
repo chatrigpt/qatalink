@@ -6,6 +6,7 @@ import './credits-qr.css';
 import './theme-fonts.css';
 import './dashboard-v2.css';
 import './dashboard-extras.css';
+import './advanced-studio.css';
 import './public-theme.css';
 import './public-catalog-v2.css';
 import './qatalink-v3.css';
