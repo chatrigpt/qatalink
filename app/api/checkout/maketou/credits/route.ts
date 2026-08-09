@@ -26,7 +26,7 @@ export async function POST(req:NextRequest){
     const {data:subs}=await supabase.from('subscriptions').select('plan_code,status,current_period_end').eq('business_id',businessId).in('status',['active']).order('created_at',{ascending:false}).limit(1);
     const sub=subs?.[0];
     const valid=!!sub&&(!sub.current_period_end||new Date(sub.current_period_end).getTime()>Date.now());
-    if(!valid||!['interactive','linkhub'].includes(String(sub?.plan_code)))return NextResponse.json({error:'CREDIT_PACK_REQUIRES_PAID_PLAN',message:'Les packs de crédits sont réservés aux abonnés Interactif et Vitrine.'},{status:403});
+    if(!valid||!['static','interactive','linkhub'].includes(String(sub?.plan_code)))return NextResponse.json({error:'CREDIT_PACK_REQUIRES_PAID_PLAN',message:'Les packs de crédits sont réservés aux abonnés Basic, Interactif et Vitrine.'},{status:403});
 
     const body=await req.json().catch(()=>({}));
     const fullName=String(user.user_metadata?.full_name||'').trim();
