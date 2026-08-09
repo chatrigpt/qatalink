@@ -1,4 +1,72 @@
 'use client';
-import Link from 'next/link';import Image from 'next/image';import { useState } from 'react';import { createSupabaseBrowserClient } from '@/lib/supabase';
-export default function Create(){const [mode,setMode]=useState<'image'|'text'>('image');const [email,setEmail]=useState('');const [password,setPassword]=useState('');const [text,setText]=useState('');const [file,setFile]=useState<File|null>(null);const [msg,setMsg]=useState('');const [loading,setLoading]=useState(false);const supabase=createSupabaseBrowserClient();async function start(e:React.FormEvent){e.preventDefault();setLoading(true);setMsg('');let {data:{user}}=await supabase.auth.getUser();if(!user){const {data,error}=await supabase.auth.signUp({email,password});if(error){setMsg(error.message);setLoading(false);return;}user=data.user;}try{let payload:any={input_type:mode,business_context:{currency_code:'XOF',country_code:'CI',language:'fr'}};if(mode==='text'){payload.source={text};}else{if(!file)throw new Error('Ajoutez une image.');const path=`${user!.id}/${Date.now()}-${file.name.replace(/\s+/g,'-')}`;const up=await supabase.storage.from('ocr-source').upload(path,file,{upsert:false});if(up.error) throw up.error;const {data:urlData}=supabase.storage.from('ocr-source').getPublicUrl(path);payload.source={image_url:urlData.publicUrl,file_name:file.name,mime_type:file.type};}
-const r=await fetch('/api/ocr',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});const data=await r.json();localStorage.setItem('qatalink_import_preview',JSON.stringify(data));window.location.href='/dashboard';}catch(err:any){setMsg(err.message||'Erreur');setLoading(false)}}return <div className="auth-wrap"><div className="auth-card" style={{width:'min(600px,100%)'}}><Link href="/" className="brand"><Image src="/qatalink-logo.png" width={34} height={34} alt="Qatalink"/>qatalink</Link><h1>Créez votre premier catalogue</h1><p style={{color:'var(--muted)'}}>Une image ou du texte suffit. Vous pourrez tout modifier ensuite.</p><div style={{display:'flex',gap:8,margin:'18px 0'}}><button className={'btn '+(mode==='image'?'btn-primary':'btn-ghost')} onClick={()=>setMode('image')}>Depuis une image</button><button className={'btn '+(mode==='text'?'btn-primary':'btn-ghost')} onClick={()=>setMode('text')}>Depuis un texte</button></div><form className="form" onSubmit={start}><div className="field"><label>Email</label><input className="input" type="email" value={email} onChange={e=>setEmail(e.target.value)} required/></div><div className="field"><label>Mot de passe</label><input className="input" type="password" value={password} onChange={e=>setPassword(e.target.value)} required minLength={6}/></div>{mode==='image'?<div className="upload"><input type="file" accept="image/*" onChange={e=>setFile(e.target.files?.[0]||null)}/><p style={{color:'var(--muted)',fontSize:13}}>Photo ou capture de votre menu/catalogue.</p></div>:<textarea className="input" rows={8} placeholder="Ex : Entrées — Salade avocat 2500 F..." value={text} onChange={e=>setText(e.target.value)}/>} {msg&&<div className="error">{msg}</div>}<button className="btn btn-primary" disabled={loading}>{loading?'Génération...':'Générer mon Qatalink'}</button></form></div></div>}
+import Link from 'next/link';
+import Image from 'next/image';
+import { useEffect, useState } from 'react';
+import { createSupabaseBrowserClient } from '@/lib/supabase';
+import { PricingGate } from '@/components/pricing-gate';
+
+export default function Create(){
+  const [mode,setMode]=useState<'image'|'text'>('image');
+  const [text,setText]=useState('');
+  const [file,setFile]=useState<File|null>(null);
+  const [msg,setMsg]=useState('');
+  const [loading,setLoading]=useState(false);
+  const [ready,setReady]=useState(false);
+  const [hasPlan,setHasPlan]=useState(false);
+  const [gate,setGate]=useState(false);
+  const supabase=createSupabaseBrowserClient();
+
+  useEffect(()=>{
+    (async()=>{
+      const {data:{session}}=await supabase.auth.getSession();
+      if(!session){window.location.href='/login';return;}
+      const {data}=await supabase.from('subscriptions').select('status,current_period_end').in('status',['active','trialing']).order('created_at',{ascending:false}).limit(1);
+      const candidate=data?.[0];
+      const valid=!!candidate && (!candidate.current_period_end || new Date(candidate.current_period_end).getTime()>Date.now());
+      setHasPlan(valid);setReady(true);if(!valid)setGate(true);
+    })();
+  },[]);
+
+  async function start(e:React.FormEvent){
+    e.preventDefault();
+    if(!hasPlan){setGate(true);return;}
+    setLoading(true);setMsg('');
+    try{
+      const {data:{session}}=await supabase.auth.getSession();
+      if(!session){window.location.href='/login';return;}
+      const user=session.user;
+      let payload:any={input_type:mode,business_context:{currency_code:'XOF',country_code:'CI',language:'fr'}};
+      if(mode==='text'){
+        if(!text.trim())throw new Error('Ajoutez le contenu de votre menu ou catalogue.');
+        payload.source={text};
+      }else{
+        if(!file)throw new Error('Ajoutez une image.');
+        const path=`${user.id}/${Date.now()}-${file.name.replace(/\s+/g,'-')}`;
+        const up=await supabase.storage.from('ocr-source').upload(path,file,{upsert:false});
+        if(up.error)throw up.error;
+        const {data:urlData}=supabase.storage.from('ocr-source').getPublicUrl(path);
+        payload.source={image_url:urlData.publicUrl,file_name:file.name,mime_type:file.type};
+      }
+      const r=await fetch('/api/ocr',{method:'POST',headers:{'Content-Type':'application/json',Authorization:`Bearer ${session.access_token}`},body:JSON.stringify(payload)});
+      const data=await r.json();
+      if(r.status===402){setHasPlan(false);setGate(true);throw new Error('Un abonnement actif est requis.');}
+      if(!r.ok)throw new Error(data.error||data.message||'Erreur pendant la génération.');
+      localStorage.setItem('qatalink_import_preview',JSON.stringify(data));
+      window.location.href='/dashboard';
+    }catch(err:any){setMsg(err.message||'Erreur');setLoading(false)}
+  }
+
+  if(!ready)return <div className="auth-wrap"><div className="auth-card"><b>Chargement de votre espace…</b></div></div>;
+
+  return <div className="auth-wrap"><div className="auth-card" style={{width:'min(700px,100%)'}}>
+    <Link href="/dashboard" className="brand"><Image src="/qatalink-logo.png" width={34} height={34} alt="Qatalink"/>qatalink</Link>
+    <h1>Créez votre catalogue</h1>
+    <p style={{color:'var(--muted)'}}>Une image ou du texte suffit. Vous pourrez tout modifier ensuite.</p>
+    <div style={{display:'flex',gap:8,margin:'18px 0'}}><button className={'btn '+(mode==='image'?'btn-primary':'btn-ghost')} onClick={()=>setMode('image')}>Depuis une image</button><button className={'btn '+(mode==='text'?'btn-primary':'btn-ghost')} onClick={()=>setMode('text')}>Depuis un texte</button></div>
+    <form className="form" onSubmit={start}>
+      {mode==='image'?<div className="upload"><input type="file" accept="image/*" onChange={e=>setFile(e.target.files?.[0]||null)}/><p style={{color:'var(--muted)',fontSize:13}}>Photo ou capture de votre menu/catalogue.</p></div>:<textarea className="input" rows={10} placeholder="Ex : Entrées — Salade avocat 2500 F..." value={text} onChange={e=>setText(e.target.value)}/>} 
+      {msg&&<div className="error">{msg}</div>}
+      <button className="btn btn-primary" disabled={loading}>{loading?'Génération...':'Générer mon Qatalink'}</button>
+    </form>
+  </div><PricingGate open={gate} onClose={()=>window.location.href='/dashboard'} title="Un abonnement est nécessaire pour lancer la création"/></div>
+}
