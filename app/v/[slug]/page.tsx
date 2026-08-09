@@ -46,9 +46,9 @@ export default async function VitrinePage({params}:{params:Promise<{slug:string}
 
       <div className="vitrine-links">
         {catalog&&<a className="vitrine-main-link" href={`/c/${encodeURIComponent(catalog.public_slug)}`}><BookOpen size={21}/><span><b>Voir {catalog.type==='menu'?'le menu':'le catalogue'}</b><small>{catalog.title}</small></span><ExternalLink size={17}/></a>}
-        {phone&&<a className="vitrine-link" href={`https://wa.me/${phone}`} target="_blank" rel="noreferrer"><MessageCircle size={19}/><span>WhatsApp</span><ExternalLink size={15}/></a>}
-        {links.map((l:any)=><a className="vitrine-link" key={`${l.kind}-${l.label}-${l.sort_order}`} href={l.url} target="_blank" rel="noreferrer"><Icon kind={l.kind}/><span>{l.label}</span><ExternalLink size={15}/></a>)}
-        {data.location?.maps_url&&<a className="vitrine-link" href={data.location.maps_url} target="_blank" rel="noreferrer"><MapPin size={19}/><span>{data.location.label||data.location.address_text||'Nous trouver'}</span><ExternalLink size={15}/></a>}
+        {phone&&<a className="vitrine-link platform-whatsapp" href={`https://wa.me/${phone}`} target="_blank" rel="noreferrer"><MessageCircle size={19}/><span>WhatsApp</span><ExternalLink size={15}/></a>}
+        {links.map((l:any)=><a className={`vitrine-link platform-${l.kind}`} key={`${l.kind}-${l.label}-${l.sort_order}`} href={l.url} target="_blank" rel="noreferrer"><Icon kind={l.kind}/><span>{l.label}</span><ExternalLink size={15}/></a>)}
+        {data.location?.maps_url&&<a className="vitrine-link platform-maps" href={data.location.maps_url} target="_blank" rel="noreferrer"><MapPin size={19}/><span>{data.location.label||data.location.address_text||'Nous trouver'}</span><ExternalLink size={15}/></a>}
       </div>
 
       <footer className="vitrine-footer">Propulsé par <b>Qatalink</b></footer>
