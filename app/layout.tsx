@@ -1,5 +1,6 @@
 import './globals.css';
 import './enhancements.css';
+import './trial-mobile.css';
 import { Plus_Jakarta_Sans } from 'next/font/google';
 import { ThemeProvider } from '@/components/theme-provider';
 const jakarta = Plus_Jakarta_Sans({ subsets: ['latin'], variable: '--font-jakarta' });
