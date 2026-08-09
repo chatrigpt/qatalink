@@ -1,0 +1,39 @@
+/* Trial countdown + billing */
+.trial-strip{display:grid;grid-template-columns:auto 1fr auto auto;gap:14px;align-items:center;padding:14px 16px;margin-bottom:16px;border:1px solid color-mix(in srgb,var(--red) 34%,var(--line));border-radius:18px;background:linear-gradient(90deg,color-mix(in srgb,var(--red) 10%,var(--surface)),var(--surface));box-shadow:0 10px 28px rgba(199,25,47,.08)}
+.trial-strip-icon{width:42px;height:42px;border-radius:13px;display:grid;place-items:center;background:var(--red);color:#fff}.trial-strip div:nth-child(2){display:grid;gap:3px}.trial-strip span{font-size:12px;color:var(--muted);line-height:1.4}.trial-strip>strong{font-variant-numeric:tabular-nums;font-size:15px;color:var(--red);white-space:nowrap}.trial-danger{display:flex;align-items:center;justify-content:center;gap:12px;padding:14px 16px;margin:14px auto;border-radius:16px;background:rgba(199,25,47,.1);border:1px solid rgba(199,25,47,.28);color:var(--text);max-width:620px}.trial-danger svg{color:var(--red);flex:0 0 auto}.trial-danger div{display:grid;gap:3px;text-align:left}.trial-danger b{font-size:12px}.trial-danger strong{font-size:24px;color:var(--red);font-variant-numeric:tabular-nums;letter-spacing:-.03em}.billing-toggle{display:inline-grid;grid-template-columns:1fr 1fr;padding:4px;background:var(--surface-2);border:1px solid var(--line);border-radius:14px;margin-top:10px}.billing-toggle button{border:0;background:transparent;color:var(--muted);padding:9px 14px;border-radius:10px;font-weight:800;cursor:pointer}.billing-toggle button.active{background:var(--surface);color:var(--text);box-shadow:0 4px 14px rgba(0,0,0,.08)}.annual-equivalent{font-size:11px;color:var(--muted);margin-top:-2px}.trial-continue{display:block;margin:16px auto 0;border:0;background:transparent;color:var(--muted);font-weight:800;text-decoration:underline;cursor:pointer}
+
+/* Mobile dashboard */
+@media(max-width:700px){
+  html,body{max-width:100%;overflow-x:hidden}
+  .dashboard-shell{display:block;min-height:100dvh;width:100%}
+  .sidebar{display:none!important}
+  .dash-main{width:100%;padding:12px 12px 96px!important;overflow-x:hidden}
+  .dash-top{display:flex;flex-direction:column;align-items:stretch!important;gap:12px;margin-bottom:10px}
+  .dash-top h1{font-size:22px;line-height:1.08;letter-spacing:-.035em}
+  .dash-top .actions{width:100%;display:grid;grid-template-columns:44px 1fr;gap:8px;align-items:center}
+  .dash-top .actions .btn{width:100%;min-height:44px;padding:10px 13px}
+  .mobile-dashboard-nav{display:flex!important;position:sticky;top:0;z-index:30;margin:0 -12px 12px;padding:9px 12px 10px;gap:8px;overflow-x:auto;background:color-mix(in srgb,var(--bg) 92%,transparent);backdrop-filter:blur(16px);border-bottom:1px solid var(--line);scroll-snap-type:x proximity}
+  .mobile-dashboard-tab{min-width:max-content;min-height:40px;padding:9px 11px!important;font-size:11px!important;scroll-snap-align:start}
+  .metric-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:9px!important}
+  .metric{padding:14px!important;border-radius:15px!important}.metric b{font-size:21px!important}.metric span{font-size:10px!important;line-height:1.3}
+  .panel-grid,.builder,.catalog-grid,.theme-grid,.settings-grid{grid-template-columns:1fr!important;gap:10px!important}
+  .card{padding:16px!important;border-radius:18px!important}.card h3{font-size:17px}.card p{font-size:12px}
+  .section-stack{gap:10px!important}.section-toolbar{gap:10px!important}.section-toolbar h3{font-size:18px}.section-toolbar p{font-size:12px!important}.section-toolbar .btn{min-height:43px}
+  .mobile-preview{width:100%!important;max-width:330px;min-height:520px!important;border-width:6px!important;border-radius:30px!important}
+  .preview-cover{height:100px!important}.preview-item{grid-template-columns:58px 1fr!important}.preview-img{height:56px!important}
+  .list-row{grid-template-columns:46px 1fr auto!important;gap:9px!important;padding:10px 0!important}.thumb{width:46px!important;height:46px!important}
+  .free-banner,.trial-strip,.payment-banner{margin-bottom:10px!important}
+  .trial-strip{grid-template-columns:auto 1fr;gap:10px;padding:12px;border-radius:16px}.trial-strip-icon{width:36px;height:36px}.trial-strip>strong{grid-column:1/-1;font-size:22px;text-align:center;padding:9px 0 2px}.trial-strip .btn{grid-column:1/-1;width:100%;min-height:42px}.trial-strip span{font-size:11px}
+  .subscription-hero h2{font-size:28px!important}.chart-placeholder{height:190px!important;padding:12px!important;gap:6px!important}.qr-placeholder{width:160px!important;height:160px!important}.qr-placeholder svg{width:105px;height:105px}
+  .share-option{align-items:flex-start}.share-option span{max-width:52%}
+  .paywall-backdrop{align-items:end!important;padding:0!important}
+  .paywall-modal{width:100%!important;max-height:92dvh!important;border-radius:24px 24px 0 0!important;padding:20px 14px 18px!important;border-bottom:0!important}
+  .paywall-head{margin-bottom:16px!important;padding:0 4px}.paywall-head h2{font-size:27px!important;line-height:1.05;margin:7px 28px 8px!important}.paywall-head p{font-size:12px;line-height:1.45}.paywall-close{top:10px!important;right:10px!important}
+  .trial-danger{padding:11px 12px;margin:11px 0}.trial-danger strong{font-size:20px}.billing-toggle{display:grid;width:100%;margin-top:8px}.billing-toggle button{padding:9px 8px;font-size:12px}
+  .paywall-plans{grid-template-columns:1fr!important;gap:10px!important}.paywall-plans .price-card{padding:17px!important;border-radius:19px!important}.paywall-plans .price-card h3{margin:0 0 6px!important}.paywall-plans .price{font-size:31px!important;margin:8px 0 2px!important}.paywall-plans .features{gap:7px!important;margin:14px 0!important}.paywall-plans .feature{font-size:12px!important}
+  .auth-wrap{padding:12px!important;align-items:start!important}.auth-card{padding:19px!important;border-radius:20px!important;margin-top:8px}
+}
+
+@media(max-width:420px){
+  .dash-main{padding-left:10px!important;padding-right:10px!important}.mobile-dashboard-nav{margin-left:-10px;margin-right:-10px;padding-left:10px;padding-right:10px}.metric-grid{gap:8px!important}.metric{padding:12px!important}.metric b{font-size:19px!important}.mobile-dashboard-tab{font-size:10px!important;padding:8px 10px!important}.trial-strip>strong{font-size:19px}.paywall-head h2{font-size:24px!important}.price-card .popular{top:11px!important;right:11px!important}
+}
