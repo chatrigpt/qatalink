@@ -9,6 +9,7 @@ import './dashboard-extras.css';
 import './advanced-studio.css';
 import './public-theme.css';
 import './public-catalog-v2.css';
+import './vitrine.css';
 import './qatalink-v3.css';
 import './pwa.css';
 import './landing-extras.css';
