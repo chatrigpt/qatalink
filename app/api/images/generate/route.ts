@@ -60,7 +60,7 @@ export async function POST(req:NextRequest){
 
     for(const itemId of ids){
       const {data:item,error:itemError}=await supabase.from('items').select('id,name,description,short_description,metadata,catalog_id,category_id').eq('id',itemId).single();
-      if(itemError||!item){jobs.push({item_id:itemId,error:itemError?.message||'Item not found'});continue;}
+      if(itemError||!item){jobs.push({item_id:itemId,error:(itemError as any)?.message||'Item not found'});continue;}
       const {data:catalog}=await supabase.from('catalogs').select('id,title,business_id').eq('id',item.catalog_id).single();
       if(!catalog){jobs.push({item_id:itemId,error:'Catalog not found'});continue;}
       const {data:business}=await supabase.from('businesses').select('name,business_type').eq('id',catalog.business_id).single();
@@ -68,12 +68,12 @@ export async function POST(req:NextRequest){
       const prompt=buildPrompt({businessName:business?.name||'',businessType:business?.business_type||'',catalogTitle:catalog.title||'',categoryName:category?.name||'',itemName:item.name,description:item.description||item.short_description||'',seedPrompt:item.metadata?.image_prompt||''});
 
       const {data:job,error:jobError}=await supabase.from('item_image_generation_jobs').insert({business_id:catalog.business_id,item_id:item.id,prompt,status:'pending',provider:'poyo:gpt-image-2',credit_cost:IMAGE_CREDIT_COST}).select('id').single();
-      if(jobError||!job){jobs.push({item_id:itemId,error:itemError?.message||jobError?.message||'Could not save generation job'});continue;}
+      if(jobError||!job){jobs.push({item_id:itemId,error:(jobError as any)?.message||'Could not save generation job'});continue;}
 
       const {data:balanceAfter,error:creditError}=await supabase.rpc('consume_image_credits',{p_business_id:catalog.business_id,p_job_id:job.id,p_cost:IMAGE_CREDIT_COST});
       if(creditError){
-        await supabase.from('item_image_generation_jobs').update({status:'failed',error_message:creditError.message,completed_at:new Date().toISOString()}).eq('id',job.id);
-        jobs.push({item_id:itemId,job_id:job.id,error:creditError.message});
+        await supabase.from('item_image_generation_jobs').update({status:'failed',error_message:(creditError as any).message,completed_at:new Date().toISOString()}).eq('id',job.id);
+        jobs.push({item_id:itemId,job_id:job.id,error:(creditError as any).message});
         continue;
       }
       lastBalance=Number(balanceAfter??lastBalance-IMAGE_CREDIT_COST);
@@ -84,12 +84,13 @@ export async function POST(req:NextRequest){
         body:JSON.stringify({model:'gpt-image-2',input:{prompt,quality:'low',size:'1:1'}}),
         cache:'no-store'
       });
-      const providerData=await provider.json().catch(()=>null);
+      const providerData:any=await provider.json().catch(()=>null);
       if(!provider.ok){
-        await supabase.from('item_image_generation_jobs').update({status:'failed',error_message:providerData?.error?.message||providerData?.error||'PoYo submit failed',provider_payload:providerData||{},completed_at:new Date().toISOString()}).eq('id',job.id);
+        const providerError=providerData?.error?.message||providerData?.error||'PoYo submit failed';
+        await supabase.from('item_image_generation_jobs').update({status:'failed',error_message:providerError,provider_payload:providerData||{},completed_at:new Date().toISOString()}).eq('id',job.id);
         const {data:refunded}=await supabase.rpc('refund_failed_image_credits',{p_business_id:catalog.business_id,p_job_id:job.id});
         if(refunded!==null)lastBalance=Number(refunded);
-        jobs.push({item_id:itemId,job_id:job.id,error:providerData?.error?.message||providerData?.error||'PoYo submit failed',refunded:true});
+        jobs.push({item_id:itemId,job_id:job.id,error:providerError,refunded:true});
         continue;
       }
       const taskId=providerData?.data?.task_id;
@@ -102,7 +103,7 @@ export async function POST(req:NextRequest){
       }
 
       const {error:updateError}=await supabase.from('item_image_generation_jobs').update({status:'processing',provider_task_id:taskId,provider_payload:providerData}).eq('id',job.id);
-      if(updateError){jobs.push({item_id:itemId,job_id:job.id,error:updateError.message});continue;}
+      if(updateError){jobs.push({item_id:itemId,job_id:job.id,error:(updateError as any).message});continue;}
       jobs.push({item_id:itemId,job_id:job.id,task_id:taskId,status:'processing',credit_cost:IMAGE_CREDIT_COST,balance:lastBalance});
     }
 
