@@ -5,6 +5,7 @@ import './editor.css';
 import './credits-qr.css';
 import './theme-fonts.css';
 import './dashboard-v2.css';
+import './public-theme.css';
 import { Plus_Jakarta_Sans } from 'next/font/google';
 import { ThemeProvider } from '@/components/theme-provider';
 const jakarta = Plus_Jakarta_Sans({ subsets: ['latin'], variable: '--font-jakarta' });
