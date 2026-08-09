@@ -1,7 +1,5 @@
 import type { MetadataRoute } from 'next';
 
-const LOGO='https://monadia-bucket.sfo3.cdn.digitaloceanspaces.com/QATALINK%20LOGO%20(1).png';
-
 export default function manifest():MetadataRoute.Manifest{
   return {
     name:'Qatalink',
@@ -11,11 +9,11 @@ export default function manifest():MetadataRoute.Manifest{
     display:'standalone',
     background_color:'#ffffff',
     theme_color:'#c7192f',
-    orientation:'portrait-primary',
+    orientation:'any',
     icons:[
-      {src:LOGO,sizes:'192x192',type:'image/png'},
-      {src:LOGO,sizes:'512x512',type:'image/png',purpose:'any'},
-      {src:LOGO,sizes:'512x512',type:'image/png',purpose:'maskable'}
+      {src:'/qatalink-icon.svg',sizes:'192x192',type:'image/svg+xml'},
+      {src:'/qatalink-icon.svg',sizes:'512x512',type:'image/svg+xml',purpose:'any'},
+      {src:'/qatalink-icon.svg',sizes:'512x512',type:'image/svg+xml',purpose:'maskable'}
     ]
   };
 }
