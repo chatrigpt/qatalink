@@ -23,7 +23,7 @@ type Plan = {
 };
 
 const plans: Plan[] = [
-  {id:'basic',name:'Basic',monthlyPrice:3500,annualPrice:38500,description:'Catalogue ou menu responsive en consultation.',features:['QR code permanent','Menu/catalogue modifiable','Thèmes au choix','Bouton WhatsApp général'],featured:false},
+  {id:'basic',name:'Basic',monthlyPrice:3500,annualPrice:38500,description:'Catalogue ou menu responsive en consultation.',features:['QR code permanent','Menu/catalogue modifiable','Thèmes au choix','Bouton WhatsApp général','50 crédits image à chaque activation/renouvellement'],featured:false},
   {id:'interactive',name:'Interactif',monthlyPrice:5000,annualPrice:55000,description:'La formule idéale pour recevoir des commandes détaillées.',features:['Tout Basic','Sélection multi-articles','Quantités et catégories','Commande détaillée vers WhatsApp','150 crédits image à chaque activation/renouvellement'],featured:true},
   {id:'vitrine',name:'Vitrine',monthlyPrice:7500,annualPrice:82500,description:'Votre mini-site complet avec catalogue en premier bouton.',features:['Tout Interactif','Page type Linktree','Réseaux sociaux','Adresse / Google Maps','250 crédits image à chaque activation/renouvellement'],featured:false},
 ];
