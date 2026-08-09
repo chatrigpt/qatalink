@@ -42,8 +42,8 @@ export function PublicCatalog({data}:{data:any}){
   const jump=(id:string)=>{setActiveCategory(id);document.getElementById(`cat-${id}`)?.scrollIntoView({behavior:'smooth',block:'start'});};
 
   const style={
-    '--red':primary,'--catalog-primary':primary,'--catalog-secondary':secondary,'--bg':background,'--surface':background,'--surface-2':secondary,'--text':textColor,'--catalog-radius':radius,'--catalog-heading':headingFont,'--catalog-body':bodyFont,
-    background:pageBackground,color:textColor,fontFamily:`${bodyFont}, sans-serif`
+    '--red':primary,'--catalog-primary':primary,'--catalog-secondary':secondary,'--catalog-page-bg':pageBackground,'--bg':background,'--surface':background,'--surface-2':secondary,'--text':textColor,'--catalog-radius':radius,'--catalog-heading':headingFont,'--catalog-body':bodyFont,
+    color:textColor,fontFamily:`${bodyFont}, sans-serif`
   } as React.CSSProperties;
 
   return <main className={`public-catalog-page public-themed ${isMenu?'public-menu-mode':'public-catalog-mode'} public-card-${theme.card_style||'soft'} public-button-${theme.button_style||'rounded'}`} style={style}>
