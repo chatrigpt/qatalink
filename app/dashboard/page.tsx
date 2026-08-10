@@ -4,7 +4,8 @@ import { DashboardAdvancedControls } from '@/components/dashboard-advanced-contr
 import { DashboardVitrineMedia } from '@/components/dashboard-vitrine-media';
 import { DashboardSidebarTools } from '@/components/dashboard-sidebar-tools';
 import { DashboardCustomerFlow } from '@/components/dashboard-customer-flow';
+import { DashboardAnalytics } from '@/components/dashboard-analytics';
 
 export default function DashboardPage(){
-  return <><DashboardAppV3/><DashboardAdvancedControls/><DashboardVitrineMedia/><DashboardCustomerFlow/><DashboardSidebarTools/><DashboardLogoutButton/></>;
+  return <><DashboardAppV3/><DashboardAnalytics/><DashboardAdvancedControls/><DashboardVitrineMedia/><DashboardCustomerFlow/><DashboardSidebarTools/><DashboardLogoutButton/></>;
 }
