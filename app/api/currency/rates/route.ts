@@ -2,6 +2,19 @@ import {NextResponse} from 'next/server';
 
 export const revalidate=3600;
 
+function csvLine(line:string){
+  const out:string[]=[];let cur='';let quoted=false;
+  for(let i=0;i<line.length;i++){
+    const ch=line[i];
+    if(ch==='"'){
+      if(quoted&&line[i+1]==='"'){cur+='"';i++;}
+      else quoted=!quoted;
+    }else if(ch===','&&!quoted){out.push(cur);cur='';}
+    else cur+=ch;
+  }
+  out.push(cur);return out;
+}
+
 export async function GET(){
   const xofPerEur=655.957;
   try{
@@ -11,10 +24,10 @@ export async function GET(){
     const csv=await r.text();
     const lines=csv.trim().split(/\r?\n/).filter(Boolean);
     if(lines.length<2)throw new Error('empty rate');
-    const headers=lines[0].split(',');
-    const idx=headers.findIndex(h=>h.replace(/^"|"$/g,'').trim()==='OBS_VALUE');
-    const row=lines[lines.length-1].split(',');
-    const usdPerEur=Number((idx>=0?row[idx]:row[row.length-1])?.replace(/"/g,''));
+    const headers=csvLine(lines[0]).map(x=>x.trim());
+    const idx=headers.indexOf('OBS_VALUE');
+    const row=csvLine(lines[lines.length-1]);
+    const usdPerEur=Number(idx>=0?row[idx]:NaN);
     if(!Number.isFinite(usdPerEur)||usdPerEur<=0)throw new Error('invalid rate');
     return NextResponse.json({xof_per_eur:xofPerEur,usd_per_eur:usdPerEur},{headers:{'Cache-Control':'public, max-age=1800, s-maxage=3600, stale-while-revalidate=86400'}});
   }catch{
