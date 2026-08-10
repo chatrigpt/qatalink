@@ -74,7 +74,7 @@ export default function Create(){
     const r=await fetch('/api/catalogs/import',{method:'POST',headers:{'Content-Type':'application/json',Authorization:`Bearer ${session.access_token}`},body:JSON.stringify({source_type:sourceType,catalog,preset_id:presetId,business_name:businessName.trim(),catalog_title:title.trim()})});
     const data=await r.json();
     if(r.status===402){setHasAccess(false);setTrialActive(false);setGate(true);throw new Error('Votre essai est terminé. Activez une formule pour continuer.');}
-    if(!r.ok)throw new Error(data.error||'Impossible d’enregistrer le catalogue.');
+    if(!r.ok)throw new Error('Impossible d’enregistrer le catalogue. Réessayez.');
     return data;
   }
 
@@ -102,30 +102,30 @@ export default function Create(){
           const safe=file.name.replace(/[^a-zA-Z0-9._-]+/g,'-');
           const path=`${user.id}/${Date.now()}-${safe}`;
           const up=await supabase.storage.from('ocr-source').upload(path,file,{upsert:false,contentType:file.type||'image/jpeg'});
-          if(up.error)throw new Error(`Upload Supabase: ${up.error.message}`);
+          if(up.error)throw new Error('Impossible d’importer cette image. Réessayez.');
           const {data:urlData}=supabase.storage.from('ocr-source').getPublicUrl(path);
           source={image_url:urlData.publicUrl,file_name:file.name,mime_type:file.type};
         }
 
-        setMsg(mode==='image'?'Analyse de l’image avec fal…':'Structuration du texte avec fal…');
+        setMsg(mode==='image'?'Analyse de votre image…':'Organisation de votre contenu…');
         const ocr=await fetch('/api/ocr',{method:'POST',headers:{'Content-Type':'application/json',Authorization:`Bearer ${session.access_token}`},body:JSON.stringify({input_type:mode,source,business_context:businessContext,preset:{id:presetId,label:selectedPreset?.label,categories:selectedPreset?.default_categories||[]}})});
         const ocrData=await ocr.json();
         if(ocr.status===402){setHasAccess(false);setTrialActive(false);setGate(true);throw new Error('Votre essai est terminé. Activez une formule pour continuer.');}
-        if(!ocr.ok||!ocrData?.catalog)throw new Error(ocrData.error||'Fal n’a pas pu structurer le catalogue.');
+        if(!ocr.ok||!ocrData?.catalog)throw new Error('Impossible d’organiser ce contenu. Vérifiez votre image ou votre texte puis réessayez.');
         catalogPayload=ocrData.catalog;
         catalogPayload.business={...(catalogPayload.business||{}),...businessContext};
         catalogPayload.catalog={...(catalogPayload.catalog||{}),title:title.trim()||businessName.trim(),type:selectedPreset?.catalog_type||catalogPayload.catalog?.type||'catalog'};
       }
 
-      setMsg('Enregistrement du catalogue…');
+      setMsg('Création de votre catalogue…');
       const saved=await persistCatalog(session,catalogPayload,mode);
       localStorage.setItem('qatalink_import_preview',JSON.stringify({status:'completed',catalog_id:saved.catalog_id,source:mode,preset_id:presetId}));
 
       if(autoImages&&Array.isArray(saved.item_ids)&&saved.item_ids.length){
-        setMsg(`Lancement de ${saved.item_ids.length} illustration(s)…`);
+        setMsg(`Création de ${saved.item_ids.length} illustration(s)…`);
         const gen=await fetch('/api/images/generate',{method:'POST',headers:{'Content-Type':'application/json',Authorization:`Bearer ${session.access_token}`},body:JSON.stringify({item_ids:saved.item_ids})});
         const genData=await gen.json();
-        if(!gen.ok&&genData?.error==='INSUFFICIENT_CREDITS')setMsg(`Catalogue créé. Illustrations non lancées : ${genData.balance||0} crédits disponibles.`);
+        if(!gen.ok&&genData?.error==='INSUFFICIENT_CREDITS')setMsg(`Catalogue créé. Il vous manque des crédits pour lancer toutes les illustrations.`);
         if(gen.ok&&Array.isArray(genData.jobs)){
           const jobIds=genData.jobs.map((j:any)=>j.job_id).filter(Boolean);
           localStorage.setItem('qatalink_pending_image_jobs',JSON.stringify(jobIds));
@@ -134,7 +134,7 @@ export default function Create(){
 
       if(trialActive)localStorage.setItem('qatalink_trial_reminder_on_arrival','1');
       window.location.href=`/dashboard?tab=items&catalog=${encodeURIComponent(saved.catalog_id)}&created=1`;
-    }catch(err:any){setMsg(err?.message||'Erreur');setLoading(false)}
+    }catch(err:any){setMsg(err?.message||'Une erreur est survenue. Réessayez.');setLoading(false)}
   }
 
   if(!ready)return <div className="auth-wrap"><div className="auth-card"><b>Chargement de votre espace…</b></div></div>;
@@ -159,7 +159,7 @@ export default function Create(){
       {mode==='image'&&<div className="upload create-upload"><input type="file" accept="image/*" onChange={e=>setFile(e.target.files?.[0]||null)}/><p>{file?file.name:'Photo, capture ou scan de votre menu/catalogue.'}</p></div>}
       {mode==='text'&&<textarea className="input" rows={12} placeholder={'Collez votre carte complète ici. Exemple :\nPLATS\nPoulet braisé — 3 500 F\nPoisson braisé — 5 000 F\n\nBOISSONS\nBissap — 1 000 F'} value={text} onChange={e=>setText(e.target.value)}/>} 
       {mode==='blank'&&<div className="blank-create-note"><Plus size={22}/><div><b>Structure {selectedPreset?.label||'personnalisée'} prête</b><span>{(selectedPreset?.default_categories||['Catégorie 1']).join(' · ')}. Vous pourrez tout renommer, supprimer ou compléter ensuite.</span></div></div>}
-      {mode!=='blank'&&<label className="auto-image-option"><input type="checkbox" checked={autoImages} onChange={e=>setAutoImages(e.target.checked)}/><Sparkles size={18}/><span><b>Illustrer automatiquement les articles</b><small>5 crédits par image. Les visuels générés sont sauvegardés dans votre stockage Qatalink.</small></span></label>}
+      {mode!=='blank'&&<label className="auto-image-option"><input type="checkbox" checked={autoImages} onChange={e=>setAutoImages(e.target.checked)}/><Sparkles size={18}/><span><b>Illustrer automatiquement les articles</b><small>5 crédits par image. Les illustrations restent disponibles dans votre catalogue.</small></span></label>}
       {msg&&<div className={loading?'progress-note':'error'}>{msg}</div>}
       <button className="btn btn-primary" disabled={loading}>{loading?'Traitement en cours…':mode==='blank'?'Créer mon catalogue':'Générer mon Qatalink'}</button>
     </form>
