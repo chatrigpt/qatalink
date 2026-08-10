@@ -7,6 +7,7 @@ const howDemo='https://monadia-bucket.sfo3.cdn.digitaloceanspaces.com/qatalink-c
 const demos=[
   {name:'Restaurant',label:'Menu interactif',src:'https://monadia-bucket.sfo3.cdn.digitaloceanspaces.com/qatalink-restaurant.mp4'},
   {name:'Spa & Beauté',label:'Catalogue de services',src:'https://monadia-bucket.sfo3.cdn.digitaloceanspaces.com/qatalink-spa.mp4'},
+  {name:'Hôtel',label:'Catalogue de chambres',src:'https://monadia-bucket.sfo3.cdn.digitaloceanspaces.com/qatalink-hotel.mp4'},
   {name:'Immobilier',label:'Biens & demandes',src:'https://monadia-bucket.sfo3.cdn.digitaloceanspaces.com/qatalink-immobilier.mp4'},
   {name:'Boutique',label:'Catalogue produits',src:'https://monadia-bucket.sfo3.cdn.digitaloceanspaces.com/qatalink-boutique.mp4'}
 ];
