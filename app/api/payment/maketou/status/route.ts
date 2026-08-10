@@ -8,7 +8,7 @@ function addMonths(base:Date,months:number){const d=new Date(base);d.setMonth(d.
 
 export async function POST(req:NextRequest){
   const key=process.env.MAKETOU_API_KEY;
-  if(!key)return NextResponse.json({error:'MAKETOU_API_KEY missing'},{status:503});
+  if(!key)return NextResponse.json({error:'PAYMENT_UNAVAILABLE'},{status:503});
   try{
     const auth=req.headers.get('authorization')||'';
     const token=auth.startsWith('Bearer ')?auth.slice(7):'';
@@ -17,31 +17,38 @@ export async function POST(req:NextRequest){
     const {data:{user},error:userError}=await supabase.auth.getUser(token);
     if(userError||!user)return NextResponse.json({error:'Unauthorized'},{status:401});
 
-    const {cart_id}=await req.json();
-    if(!cart_id)return NextResponse.json({error:'cart_id required'},{status:400});
+    const body=await req.json().catch(()=>({}));
+    const requestedCartId=String(body?.cart_id||'').trim();
+    const {data:owned}=await supabase.from('businesses').select('id').eq('owner_user_id',user.id);
+    const businessIds=(owned||[]).map((b:any)=>String(b.id));
+    if(!businessIds.length)return NextResponse.json({error:'Payment not found'},{status:404});
 
-    const {data:payment,error:paymentError}=await supabase.from('payments').select('*').eq('provider','maketou').eq('provider_cart_id',cart_id).maybeSingle();
-    if(paymentError)return NextResponse.json({error:paymentError.message},{status:500});
+    let q=supabase.from('payments').select('*').eq('provider','maketou').in('business_id',businessIds);
+    q=requestedCartId?q.eq('provider_cart_id',requestedCartId):q.order('created_at',{ascending:false}).limit(1);
+    const {data:rows,error:paymentError}=await q;
+    if(paymentError)return NextResponse.json({error:'Impossible de vérifier le paiement.'},{status:500});
+    const payment=Array.isArray(rows)?rows[0]:rows;
     if(!payment)return NextResponse.json({error:'Payment not found'},{status:404});
+    if(!businessIds.includes(String(payment.business_id)))return NextResponse.json({error:'Unauthorized'},{status:403});
 
     if(payment.status==='completed'){
       const {data:wallet}=await supabase.from('credit_wallets').select('balance').eq('business_id',payment.business_id).maybeSingle();
-      return NextResponse.json({status:'completed',payment_id:payment.id,purchase_type:payment.purchase_type||'subscription',credits_added:Number(payment.credits_amount||0),credit_balance:Number(wallet?.balance||0)});
+      return NextResponse.json({status:'completed',payment_id:payment.id,purchase_type:payment.purchase_type||'subscription',plan_code:payment.plan_code,credits_added:Number(payment.credits_amount||0),credit_balance:Number(wallet?.balance||0)});
     }
 
-    const r=await fetch(`https://api.maketou.net/api/v1/stores/cart/${encodeURIComponent(cart_id)}`,{headers:{Authorization:`Bearer ${key}`},cache:'no-store'});
-    const data=await r.json();
-    if(!r.ok)return NextResponse.json({status:'pending',provider:data},{status:200});
+    const r=await fetch(`https://api.maketou.net/api/v1/stores/cart/${encodeURIComponent(payment.provider_cart_id)}`,{headers:{Authorization:`Bearer ${key}`},cache:'no-store'});
+    const data=await r.json().catch(()=>({}));
+    if(!r.ok)return NextResponse.json({status:'pending'},{status:200});
     if(data.status!=='completed')return NextResponse.json({status:data.status||'pending'});
 
     const amount=Number(data.total_price??payment.amount_minor);
-    if(amount!==Number(payment.amount_minor))return NextResponse.json({error:'Payment amount mismatch'},{status:409});
+    if(amount!==Number(payment.amount_minor))return NextResponse.json({error:'PAYMENT_VALIDATION_FAILED'},{status:409});
 
     const now=new Date();
 
     if(payment.purchase_type==='credits'){
       const {error:updateError}=await supabase.from('payments').update({status:'completed',completed_at:now.toISOString(),raw_provider_response:data}).eq('id',payment.id).eq('status','pending');
-      if(updateError)return NextResponse.json({error:updateError.message},{status:500});
+      if(updateError)return NextResponse.json({error:'Impossible de finaliser le paiement.'},{status:500});
       const {data:wallet}=await supabase.from('credit_wallets').select('balance').eq('business_id',payment.business_id).maybeSingle();
       return NextResponse.json({status:'completed',purchase_type:'credits',credits_added:Number(payment.credits_amount||0),credit_balance:Number(wallet?.balance||0)});
     }
@@ -54,16 +61,16 @@ export async function POST(req:NextRequest){
 
     if(current){
       const {error:subError}=await supabase.from('subscriptions').update({plan_code:payment.plan_code,provider:'maketou',status:'active',renewal_mode:'manual',current_period_start:now.toISOString(),current_period_end:end,updated_at:now.toISOString()}).eq('id',current.id);
-      if(subError)return NextResponse.json({error:subError.message},{status:500});
+      if(subError)return NextResponse.json({error:'Impossible d’activer votre formule.'},{status:500});
     }else{
       const {error:subError}=await supabase.from('subscriptions').insert({business_id:payment.business_id,plan_code:payment.plan_code,provider:'maketou',status:'active',renewal_mode:'manual',current_period_start:now.toISOString(),current_period_end:end});
-      if(subError)return NextResponse.json({error:subError.message},{status:500});
+      if(subError)return NextResponse.json({error:'Impossible d’activer votre formule.'},{status:500});
     }
 
     const {error:updateError}=await supabase.from('payments').update({status:'completed',completed_at:now.toISOString(),raw_provider_response:data}).eq('id',payment.id).eq('status','pending');
-    if(updateError)return NextResponse.json({error:updateError.message},{status:500});
+    if(updateError)return NextResponse.json({error:'Impossible de finaliser le paiement.'},{status:500});
 
     const {data:wallet}=await supabase.from('credit_wallets').select('balance').eq('business_id',payment.business_id).maybeSingle();
     return NextResponse.json({status:'completed',purchase_type:'subscription',plan_code:payment.plan_code,billing_period:payment.billing_period||'monthly',current_period_end:end,credit_balance:Number(wallet?.balance||0)});
-  }catch(e:any){return NextResponse.json({error:e.message},{status:500})}
+  }catch{return NextResponse.json({error:'Impossible de vérifier le paiement.'},{status:500})}
 }
