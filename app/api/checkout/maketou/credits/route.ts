@@ -33,7 +33,8 @@ export async function POST(req:NextRequest){
     const parts=fullName.split(/\s+/).filter(Boolean);
     const firstName=body.firstName||parts[0]||'Client';
     const lastName=body.lastName||parts.slice(1).join(' ')||'Qatalink';
-    const appUrl=(process.env.NEXT_PUBLIC_APP_URL||new URL(req.url).origin).replace(/\/$/,'');
+    const requestOrigin=req.headers.get('origin');
+    const appUrl=(requestOrigin&&/^https?:\/\//i.test(requestOrigin)?requestOrigin:(process.env.NEXT_PUBLIC_APP_URL||new URL(req.url).origin)).replace(/\/$/,'');
     const payload={
       productDocumentId:CREDIT_PRODUCT_ID,
       email:user.email||'',
