@@ -25,7 +25,7 @@ export function DashboardAnalytics(){
       const h=[...document.querySelectorAll('.dash-card h3')].find(x=>x.textContent?.trim()==='Mesure réelle');
       const section=h?.closest('.dash-section');
       if(section){
-        [...section.children].forEach((el:any)=>el.style.display='none');
+        [...section.children].forEach((el:any)=>{if(!el.classList?.contains('analytics-real'))el.style.display='none'});
         setHost(section);
         const p=new URLSearchParams(location.search);setCatalogId(p.get('catalog')||'');
       }else setHost(null);
