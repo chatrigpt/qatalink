@@ -2,6 +2,7 @@ import { createClient } from '@supabase/supabase-js';
 import { PublicCatalogV2 } from '@/components/public-catalog-v2';
 import { PublicAnalyticsTracker } from '@/components/public-analytics-tracker';
 import { PublicFlowCustomizer } from '@/components/public-flow-customizer';
+import { PublicCurrencyLocalizer } from '@/components/public-currency-localizer';
 
 export const dynamic='force-dynamic';
 export const revalidate=0;
@@ -14,5 +15,5 @@ export default async function PublicCatalogPage({params}:{params:Promise<{slug:s
   const supabase=createClient(SUPABASE_URL,SUPABASE_KEY,{auth:{persistSession:false}});
   const {data,error}=await supabase.rpc('get_public_catalog',{p_slug:slug});
   if(error||!data)return <main className="public-unavailable"><div><div className="eyebrow">QATALINK</div><h1>Catalogue indisponible</h1><p>Ce catalogue n’est pas publié ou son accès a expiré.</p></div></main>;
-  return <><PublicCatalogV2 data={data}/><PublicAnalyticsTracker/><PublicFlowCustomizer settings={data?.business?.customer_flow_settings||{}}/></>;
+  return <><PublicCatalogV2 data={data}/><PublicCurrencyLocalizer baseCurrency={data?.business?.currency_code||'XOF'}/><PublicAnalyticsTracker/><PublicFlowCustomizer settings={data?.business?.customer_flow_settings||{}}/></>;
 }
