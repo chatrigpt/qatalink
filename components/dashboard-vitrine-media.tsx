@@ -8,158 +8,29 @@ type Business={id:string;name:string;slug:string;description:string|null;profile
 type LinkRow={id:string;business_id:string;kind:string;label:string;url:string;sort_order:number;is_visible:boolean};
 type MediaItem={id:string;name:string;catalog_id:string;image_url?:string|null};
 
-const kinds=[
-  ['instagram','Instagram'],['facebook','Facebook'],['tiktok','TikTok'],['youtube','YouTube'],['website','Site internet'],['maps','Google Maps'],['whatsapp','WhatsApp'],['custom','Autre lien']
-];
+const kinds=[['instagram','Instagram'],['facebook','Facebook'],['tiktok','TikTok'],['youtube','YouTube'],['website','Site internet'],['maps','Google Maps'],['whatsapp','WhatsApp'],['custom','Autre lien']];
 
-function SocialIcon({kind,size=17}:{kind:string;size?:number}){
-  if(kind==='instagram')return <Instagram size={size}/>;
-  if(kind==='facebook')return <Facebook size={size}/>;
-  if(kind==='tiktok')return <Music2 size={size}/>;
-  if(kind==='youtube')return <Youtube size={size}/>;
-  if(kind==='website')return <Globe2 size={size}/>;
-  if(kind==='maps')return <MapPin size={size}/>;
-  if(kind==='whatsapp')return <MessageCircle size={size}/>;
-  return <Link2 size={size}/>;
-}
+function SocialIcon({kind,size=17}:{kind:string;size?:number}){if(kind==='instagram')return <Instagram size={size}/>;if(kind==='facebook')return <Facebook size={size}/>;if(kind==='tiktok')return <Music2 size={size}/>;if(kind==='youtube')return <Youtube size={size}/>;if(kind==='website')return <Globe2 size={size}/>;if(kind==='maps')return <MapPin size={size}/>;if(kind==='whatsapp')return <MessageCircle size={size}/>;return <Link2 size={size}/>}
 
 export function DashboardVitrineMedia(){
-  const supabase=useMemo(()=>createSupabaseBrowserClient(),[]);
-  const [open,setOpen]=useState(false);
-  const [tab,setTab]=useState<'links'|'media'>('links');
-  const [session,setSession]=useState<any>(null);
-  const [businesses,setBusinesses]=useState<Business[]>([]);
-  const [businessId,setBusinessId]=useState('');
-  const [links,setLinks]=useState<LinkRow[]>([]);
-  const [items,setItems]=useState<MediaItem[]>([]);
-  const [credits,setCredits]=useState(0);
-  const [plan,setPlan]=useState('');
-  const [busy,setBusy]=useState('');
-  const [notice,setNotice]=useState('');
-  const [newLink,setNewLink]=useState({kind:'instagram',label:'Instagram',url:''});
-  const pollTimer=useRef<ReturnType<typeof setTimeout>|null>(null);
+  const supabase=useMemo(()=>createSupabaseBrowserClient(),[]);const [open,setOpen]=useState(false);const [tab,setTab]=useState<'links'|'media'>('links');const [session,setSession]=useState<any>(null);const [businesses,setBusinesses]=useState<Business[]>([]);const [businessId,setBusinessId]=useState('');const [links,setLinks]=useState<LinkRow[]>([]);const [items,setItems]=useState<MediaItem[]>([]);const [credits,setCredits]=useState(0);const [plan,setPlan]=useState('');const [busy,setBusy]=useState('');const [notice,setNotice]=useState('');const [newLink,setNewLink]=useState({kind:'instagram',label:'Instagram',url:''});const pollTimer=useRef<ReturnType<typeof setTimeout>|null>(null);
+  const selected=businesses.find(b=>b.id===businessId)||null;const missing=items.filter(i=>!i.image_url);const vitrineUrl=selected&&typeof window!=='undefined'?`${window.location.origin}/v/${selected.slug}`:'';
 
-  const selected=businesses.find(b=>b.id===businessId)||null;
-  const missing=items.filter(i=>!i.image_url);
-  const vitrineUrl=selected&&typeof window!=='undefined'?`${window.location.origin}/v/${selected.slug}`:'';
-
-  useEffect(()=>{(async()=>{
-    const {data:{session:s}}=await supabase.auth.getSession();
-    if(!s)return;
-    setSession(s);
-    const {data:bs}=await supabase.from('businesses').select('id,name,slug,description,profile_headline,profile_bio,linkhub_enabled,whatsapp_number').order('created_at',{ascending:true});
-    const list=(bs||[]) as Business[];
-    setBusinesses(list);
-    if(list[0])setBusinessId(list[0].id);
-  })();return()=>{if(pollTimer.current)clearTimeout(pollTimer.current)}},[]);
-
+  useEffect(()=>{(async()=>{const {data:{session:s}}=await supabase.auth.getSession();if(!s)return;setSession(s);const {data:bs}=await supabase.from('businesses').select('id,name,slug,description,profile_headline,profile_bio,linkhub_enabled,whatsapp_number').order('created_at',{ascending:true});const list=(bs||[]) as Business[];setBusinesses(list);if(list[0])setBusinessId(list[0].id)})();return()=>{if(pollTimer.current)clearTimeout(pollTimer.current)}},[]);
   useEffect(()=>{if(businessId)loadBusiness(businessId)},[businessId]);
 
-  async function loadBusiness(id:string){
-    setBusy('load');setNotice('');
-    const [{data:ls},{data:cs},{data:w},{data:ss}]=await Promise.all([
-      supabase.from('business_links').select('id,business_id,kind,label,url,sort_order,is_visible').eq('business_id',id).order('sort_order'),
-      supabase.from('catalogs').select('id').eq('business_id',id).eq('is_active',true),
-      supabase.from('credit_wallets').select('balance').eq('business_id',id).maybeSingle(),
-      supabase.from('subscriptions').select('plan_code,status,current_period_end').eq('business_id',id).in('status',['active','trialing']).order('created_at',{ascending:false}).limit(1)
-    ]);
-    setLinks((ls||[]) as LinkRow[]); setCredits(Number(w?.balance||0)); setPlan(String(ss?.[0]?.plan_code||''));
-    const catalogIds=(cs||[]).map((c:any)=>c.id);
-    if(!catalogIds.length){setItems([]);setBusy('');return}
-    const {data:rows}=await supabase.from('items').select('id,name,catalog_id').in('catalog_id',catalogIds).eq('is_available',true).order('sort_order');
-    const base=(rows||[]) as MediaItem[];
-    const imageMap:Record<string,string>={};
-    if(base.length){const {data:imgs}=await supabase.from('item_images').select('item_id,image_url,is_primary,created_at').in('item_id',base.map(i=>i.id)).order('created_at',{ascending:false});for(const img of imgs||[])if(!imageMap[img.item_id])imageMap[img.item_id]=img.image_url}
-    setItems(base.map(i=>({...i,image_url:imageMap[i.id]||null})));
-    setBusy('');
-  }
-
+  async function loadBusiness(id:string){setBusy('load');setNotice('');const [{data:ls},{data:cs},{data:w},{data:ss}]=await Promise.all([supabase.from('business_links').select('id,business_id,kind,label,url,sort_order,is_visible').eq('business_id',id).order('sort_order'),supabase.from('catalogs').select('id').eq('business_id',id).eq('is_active',true),supabase.from('credit_wallets').select('balance').eq('business_id',id).maybeSingle(),supabase.from('subscriptions').select('plan_code,status,current_period_end').eq('business_id',id).in('status',['active','trialing']).order('created_at',{ascending:false}).limit(1)]);setLinks((ls||[]) as LinkRow[]);setCredits(Number(w?.balance||0));setPlan(String(ss?.[0]?.plan_code||''));const catalogIds=(cs||[]).map((c:any)=>c.id);if(!catalogIds.length){setItems([]);setBusy('');return}const {data:rows}=await supabase.from('items').select('id,name,catalog_id').in('catalog_id',catalogIds).eq('is_available',true).order('sort_order');const base=(rows||[]) as MediaItem[];const imageMap:Record<string,string>={};if(base.length){const {data:imgs}=await supabase.from('item_images').select('item_id,image_url,is_primary,created_at').in('item_id',base.map(i=>i.id)).order('created_at',{ascending:false});for(const img of imgs||[])if(!imageMap[img.item_id])imageMap[img.item_id]=img.image_url}setItems(base.map(i=>({...i,image_url:imageMap[i.id]||null})));setBusy('')}
   function patchBusiness(patch:Partial<Business>){setBusinesses(x=>x.map(b=>b.id===businessId?{...b,...patch}:b))}
+  async function saveProfile(){if(!selected)return;setBusy('profile');const {error}=await supabase.from('businesses').update({profile_headline:selected.profile_headline,profile_bio:selected.profile_bio,linkhub_enabled:true,published:true,updated_at:new Date().toISOString()}).eq('id',selected.id);setBusy('');setNotice(error?'Impossible d’enregistrer pour le moment. Réessayez.':'Vitrine enregistrée et publiée.')}
+  async function addLink(){if(!selected||!newLink.url.trim())return setNotice('Ajoutez une URL complète pour ce lien.');setBusy('link');const {error}=await supabase.from('business_links').insert({business_id:selected.id,kind:newLink.kind,label:newLink.label||kinds.find(k=>k[0]===newLink.kind)?.[1]||'Lien',url:newLink.url.trim(),sort_order:links.length+10,is_visible:true});if(!error){setNewLink({kind:'instagram',label:'Instagram',url:''});await loadBusiness(selected.id)}setBusy('');setNotice(error?'Impossible d’ajouter ce lien. Réessayez.':'Lien ajouté à la Vitrine.')}
+  async function saveLink(row:LinkRow){setBusy(`link-${row.id}`);const {error}=await supabase.from('business_links').update({kind:row.kind,label:row.label,url:row.url,sort_order:row.sort_order,is_visible:row.is_visible,updated_at:new Date().toISOString()}).eq('id',row.id);setBusy('');setNotice(error?'Impossible d’enregistrer ce lien. Réessayez.':'Lien enregistré.')}
+  async function deleteLink(id:string){if(!confirm('Supprimer ce lien de la Vitrine ?'))return;await supabase.from('business_links').delete().eq('id',id);if(selected)await loadBusiness(selected.id)}
 
-  async function saveProfile(){
-    if(!selected)return;setBusy('profile');
-    const {error}=await supabase.from('businesses').update({profile_headline:selected.profile_headline,profile_bio:selected.profile_bio,linkhub_enabled:true,published:true,updated_at:new Date().toISOString()}).eq('id',selected.id);
-    setBusy('');setNotice(error?error.message:'Vitrine enregistrée et publiée.');
-  }
+  async function generateMissing(){if(!session||!selected||!missing.length)return;const need=missing.length*5;if(credits<need)return setNotice(`Crédits insuffisants : ${need} nécessaires, ${credits} disponibles.`);setBusy('generate');setNotice(`Création de ${missing.length} illustration(s)…`);const r=await fetch('/api/images/generate',{method:'POST',headers:{'Content-Type':'application/json',Authorization:`Bearer ${session.access_token}`},body:JSON.stringify({item_ids:missing.map(i=>i.id)})});const d=await r.json().catch(()=>({}));if(!r.ok){setBusy('');setNotice('Impossible de lancer les illustrations. Réessayez.');return}const jobs=(d.jobs||[]).filter((j:any)=>j.job_id&&!j.error).map((j:any)=>j.job_id);setCredits(Number(d.balance??credits));if(!jobs.length){setBusy('');setNotice('Aucune illustration n’a pu être lancée. Réessayez.');return}setNotice(`${jobs.length} illustration(s) en cours de création.`);pollJobs(jobs)}
+  async function pollJobs(jobIds:string[]){if(!session||!selected)return;const r=await fetch('/api/images/status',{method:'POST',headers:{'Content-Type':'application/json',Authorization:`Bearer ${session.access_token}`},body:JSON.stringify({job_ids:jobIds})});const d=await r.json().catch(()=>({}));const rows=Array.isArray(d.results)?d.results:[];const pending=rows.filter((x:any)=>x.status==='processing'||x.status==='pending').map((x:any)=>x.job_id);const done=rows.filter((x:any)=>x.status==='completed').length;const failed=rows.filter((x:any)=>x.status==='failed').length;if(pending.length){setNotice(`${done} terminée(s) · ${pending.length} en cours${failed?` · ${failed} à relancer`:''}`);pollTimer.current=setTimeout(()=>pollJobs(pending),3000);return}setBusy('');setNotice(`${done} illustration(s) terminée(s)${failed?` · ${failed} à relancer`:''}.`);await loadBusiness(selected.id)}
 
-  async function addLink(){
-    if(!selected||!newLink.url.trim())return setNotice('Ajoute une URL complète pour ce lien.');
-    setBusy('link');
-    const {error}=await supabase.from('business_links').insert({business_id:selected.id,kind:newLink.kind,label:newLink.label||kinds.find(k=>k[0]===newLink.kind)?.[1]||'Lien',url:newLink.url.trim(),sort_order:links.length+10,is_visible:true});
-    if(!error){setNewLink({kind:'instagram',label:'Instagram',url:''});await loadBusiness(selected.id)}
-    setBusy('');setNotice(error?error.message:'Lien ajouté à la Vitrine.');
-  }
-
-  async function saveLink(row:LinkRow){
-    setBusy(`link-${row.id}`);
-    const {error}=await supabase.from('business_links').update({kind:row.kind,label:row.label,url:row.url,sort_order:row.sort_order,is_visible:row.is_visible,updated_at:new Date().toISOString()}).eq('id',row.id);
-    setBusy('');setNotice(error?error.message:'Lien enregistré.');
-  }
-
-  async function deleteLink(id:string){
-    if(!confirm('Supprimer ce lien de la Vitrine ?'))return;
-    await supabase.from('business_links').delete().eq('id',id);if(selected)await loadBusiness(selected.id);
-  }
-
-  async function generateMissing(){
-    if(!session||!selected||!missing.length)return;
-    const need=missing.length*5;
-    if(credits<need)return setNotice(`Crédits insuffisants : ${need} nécessaires, ${credits} disponibles.`);
-    setBusy('generate');setNotice(`Envoi de ${missing.length} illustration(s) à PoYo…`);
-    const r=await fetch('/api/images/generate',{method:'POST',headers:{'Content-Type':'application/json',Authorization:`Bearer ${session.access_token}`},body:JSON.stringify({item_ids:missing.map(i=>i.id)})});
-    const d=await r.json().catch(()=>({}));
-    if(!r.ok){setBusy('');setNotice(d.message||d.error||'Impossible de lancer les générations.');return}
-    const jobs=(d.jobs||[]).filter((j:any)=>j.job_id&&!j.error).map((j:any)=>j.job_id);
-    setCredits(Number(d.balance??credits));
-    if(!jobs.length){setBusy('');setNotice('Aucun job PoYo n’a pu être lancé.');return}
-    setNotice(`${jobs.length} illustration(s) en génération. Tu peux laisser ce panneau ouvert.`);pollJobs(jobs);
-  }
-
-  async function pollJobs(jobIds:string[]){
-    if(!session||!selected)return;
-    const r=await fetch('/api/images/status',{method:'POST',headers:{'Content-Type':'application/json',Authorization:`Bearer ${session.access_token}`},body:JSON.stringify({job_ids:jobIds})});
-    const d=await r.json().catch(()=>({}));
-    const rows=Array.isArray(d.results)?d.results:[];
-    const pending=rows.filter((x:any)=>x.status==='processing'||x.status==='pending').map((x:any)=>x.job_id);
-    const done=rows.filter((x:any)=>x.status==='completed').length;
-    const failed=rows.filter((x:any)=>x.status==='failed').length;
-    if(pending.length){setNotice(`${done} terminée(s) · ${pending.length} en cours${failed?` · ${failed} échec(s)`:''}`);pollTimer.current=setTimeout(()=>pollJobs(pending),3000);return}
-    setBusy('');setNotice(`${done} illustration(s) terminée(s)${failed?` · ${failed} échec(s) remboursé(s)`:''}.`);await loadBusiness(selected.id);
-  }
-
-  if(!businesses.length)return null;
-  const canVitrine=plan==='linkhub'||plan==='trial';
-
-  return <>
-    <button className="vitrine-media-trigger" onClick={()=>setOpen(true)}><Link2 size={17}/><span>Vitrine & médias</span></button>
-    {open&&<div className="vm-backdrop"><section className="vm-panel">
-      <header><div><span className="eyebrow">QATALINK</span><h2>Vitrine & médias</h2></div><button onClick={()=>setOpen(false)}><X/></button></header>
-      <div className="vm-business"><label>Entreprise</label><select className="input" value={businessId} onChange={e=>setBusinessId(e.target.value)}>{businesses.map(b=><option key={b.id} value={b.id}>{b.name}</option>)}</select><span className="tag">{plan==='linkhub'?'Vitrine':plan==='trial'?'Essai':plan||'Sans formule'}</span></div>
-      <div className="vm-tabs"><button className={tab==='links'?'active':''} onClick={()=>setTab('links')}><Link2 size={15}/>Vitrine & liens</button><button className={tab==='media'?'active':''} onClick={()=>setTab('media')}><ImagePlus size={15}/>Illustrations</button></div>
-      {notice&&<div className="vm-notice">{notice}</div>}
-
-      {tab==='links'&&<div className="vm-body">
-        {!canVitrine&&<div className="vm-warning">La page Vitrine publique est réservée à l’offre Vitrine. L’essai 24 h permet de la tester.</div>}
-        <section className="vm-card"><div className="vm-card-head"><div><h3>Profil de la Vitrine</h3><p>C’est la page qui s’ouvre avant le catalogue pour l’offre Vitrine.</p></div>{vitrineUrl&&<a className="mini-action" href={vitrineUrl} target="_blank"><ExternalLink size={13}/>Voir</a>}</div>
-          <div className="field"><label>Titre affiché</label><input className="input" value={selected?.profile_headline||''} onChange={e=>patchBusiness({profile_headline:e.target.value})} placeholder={selected?.name||'Nom de votre entreprise'}/></div>
-          <div className="field"><label>Bio courte</label><textarea className="input" rows={3} value={selected?.profile_bio||''} onChange={e=>patchBusiness({profile_bio:e.target.value})} placeholder="Présentez votre activité en quelques mots…"/></div>
-          <button className="btn btn-primary" onClick={saveProfile} disabled={busy==='profile'}><Save size={15}/>Enregistrer & publier la Vitrine</button>
-        </section>
-
-        <section className="vm-card"><h3>Ajouter un réseau ou un lien</h3><p>Colle ici tes liens Instagram, Facebook, TikTok, ton site, Google Maps ou tout autre lien externe.</p>
-          <div className="vm-add-link"><select className="input" value={newLink.kind} onChange={e=>{const k=e.target.value;setNewLink({...newLink,kind:k,label:kinds.find(x=>x[0]===k)?.[1]||'Lien'})}}>{kinds.map(k=><option key={k[0]} value={k[0]}>{k[1]}</option>)}</select><input className="input" value={newLink.label} onChange={e=>setNewLink({...newLink,label:e.target.value})} placeholder="Libellé"/><input className="input" value={newLink.url} onChange={e=>setNewLink({...newLink,url:e.target.value})} placeholder="https://…"/><button className="btn btn-primary" onClick={addLink} disabled={busy==='link'}><Plus size={15}/>Ajouter</button></div>
-        </section>
-
-        <section className="vm-card"><h3>Liens affichés</h3><div className="vm-links-list">{links.length?links.map((l,index)=><div className={`vm-link-row platform-${l.kind}`} key={l.id}><div className="vm-platform-icon"><SocialIcon kind={l.kind}/></div><div className="vm-link-fields"><select className="input" value={l.kind} onChange={e=>setLinks(x=>x.map((v,i)=>i===index?{...v,kind:e.target.value}:v))}>{kinds.map(k=><option key={k[0]} value={k[0]}>{k[1]}</option>)}</select><input className="input" value={l.label} onChange={e=>setLinks(x=>x.map((v,i)=>i===index?{...v,label:e.target.value}:v))}/><input className="input" value={l.url} onChange={e=>setLinks(x=>x.map((v,i)=>i===index?{...v,url:e.target.value}:v))}/></div><label className="vm-visible"><input type="checkbox" checked={l.is_visible} onChange={e=>setLinks(x=>x.map((v,i)=>i===index?{...v,is_visible:e.target.checked}:v))}/>Visible</label><div className="vm-row-actions"><button className="mini-action" onClick={()=>saveLink(l)}><Save size={12}/></button><button className="mini-action" onClick={()=>deleteLink(l.id)}><Trash2 size={12}/></button></div></div>):<p>Aucun lien ajouté pour cette entreprise.</p>}</div></section>
-      </div>}
-
-      {tab==='media'&&<div className="vm-body">
-        <section className="vm-card"><div className="vm-media-summary"><div><span>Crédits disponibles</span><strong>{credits}</strong></div><div><span>Articles / services</span><strong>{items.length}</strong></div><div><span>Sans image</span><strong>{missing.length}</strong></div></div>
-          <button className="btn btn-primary vm-generate" onClick={generateMissing} disabled={busy==='generate'||!missing.length}><Sparkles size={16}/>{missing.length?`Illustrer les ${missing.length} éléments · ${missing.length*5} crédits`:'Tout est déjà illustré'}</button>
-          <p className="vm-help">Les visuels sont générés via PoYo puis rapatriés automatiquement dans Supabase. Les prompts tiennent maintenant compte du contexte Côte d’Ivoire / Abidjan.</p>
-        </section>
-        <section className="vm-card"><h3>Éléments du catalogue</h3><div className="vm-media-list">{items.map(i=><div key={i.id} className="vm-media-row">{i.image_url?<img src={i.image_url} alt=""/>:<div className="vm-media-empty"><ImagePlus size={17}/></div>}<span>{i.name}</span><b>{i.image_url?'Illustré':'À générer'}</b></div>)}</div></section>
-      </div>}
-    </section></div>}
-  </>;
+  if(!businesses.length)return null;const canVitrine=plan==='linkhub'||plan==='trial';
+  return <><button className="vitrine-media-trigger" onClick={()=>setOpen(true)}><Link2 size={17}/><span>Vitrine & médias</span></button>{open&&<div className="vm-backdrop"><section className="vm-panel"><header><div><span className="eyebrow">QATALINK</span><h2>Vitrine & médias</h2></div><button onClick={()=>setOpen(false)}><X/></button></header><div className="vm-business"><label>Entreprise</label><select className="input" value={businessId} onChange={e=>setBusinessId(e.target.value)}>{businesses.map(b=><option key={b.id} value={b.id}>{b.name}</option>)}</select><span className="tag">{plan==='linkhub'?'Vitrine':plan==='trial'?'Essai':plan||'Sans formule'}</span></div><div className="vm-tabs"><button className={tab==='links'?'active':''} onClick={()=>setTab('links')}><Link2 size={15}/>Vitrine & liens</button><button className={tab==='media'?'active':''} onClick={()=>setTab('media')}><ImagePlus size={15}/>Illustrations</button></div>{notice&&<div className="vm-notice">{notice}</div>}
+  {tab==='links'&&<div className="vm-body">{!canVitrine&&<div className="vm-warning">La page Vitrine publique est réservée à l’offre Vitrine. L’essai 24 h permet de la tester.</div>}<section className="vm-card"><div className="vm-card-head"><div><h3>Profil de la Vitrine</h3><p>Présentez votre activité avant l’accès au catalogue.</p></div>{vitrineUrl&&<a className="mini-action" href={vitrineUrl} target="_blank"><ExternalLink size={13}/>Voir</a>}</div><div className="field"><label>Titre affiché</label><input className="input" value={selected?.profile_headline||''} onChange={e=>patchBusiness({profile_headline:e.target.value})} placeholder={selected?.name||'Nom de votre entreprise'}/></div><div className="field"><label>Bio courte</label><textarea className="input" rows={3} value={selected?.profile_bio||''} onChange={e=>patchBusiness({profile_bio:e.target.value})} placeholder="Présentez votre activité en quelques mots…"/></div><button className="btn btn-primary" onClick={saveProfile} disabled={busy==='profile'}><Save size={15}/>Enregistrer & publier la Vitrine</button></section><section className="vm-card"><h3>Ajouter un réseau ou un lien</h3><p>Ajoutez Instagram, Facebook, TikTok, votre site, Google Maps ou tout autre lien utile.</p><div className="vm-add-link"><select className="input" value={newLink.kind} onChange={e=>{const k=e.target.value;setNewLink({...newLink,kind:k,label:kinds.find(x=>x[0]===k)?.[1]||'Lien'})}}>{kinds.map(k=><option key={k[0]} value={k[0]}>{k[1]}</option>)}</select><input className="input" value={newLink.label} onChange={e=>setNewLink({...newLink,label:e.target.value})} placeholder="Libellé"/><input className="input" value={newLink.url} onChange={e=>setNewLink({...newLink,url:e.target.value})} placeholder="https://…"/><button className="btn btn-primary" onClick={addLink} disabled={busy==='link'}><Plus size={15}/>Ajouter</button></div></section><section className="vm-card"><h3>Liens affichés</h3><div className="vm-links-list">{links.length?links.map((l,index)=><div className={`vm-link-row platform-${l.kind}`} key={l.id}><div className="vm-platform-icon"><SocialIcon kind={l.kind}/></div><div className="vm-link-fields"><select className="input" value={l.kind} onChange={e=>setLinks(x=>x.map((v,i)=>i===index?{...v,kind:e.target.value}:v))}>{kinds.map(k=><option key={k[0]} value={k[0]}>{k[1]}</option>)}</select><input className="input" value={l.label} onChange={e=>setLinks(x=>x.map((v,i)=>i===index?{...v,label:e.target.value}:v))}/><input className="input" value={l.url} onChange={e=>setLinks(x=>x.map((v,i)=>i===index?{...v,url:e.target.value}:v))}/></div><label className="vm-visible"><input type="checkbox" checked={l.is_visible} onChange={e=>setLinks(x=>x.map((v,i)=>i===index?{...v,is_visible:e.target.checked}:v))}/>Visible</label><div className="vm-row-actions"><button className="mini-action" onClick={()=>saveLink(l)}><Save size={12}/></button><button className="mini-action" onClick={()=>deleteLink(l.id)}><Trash2 size={12}/></button></div></div>):<p>Aucun lien ajouté pour cette entreprise.</p>}</div></section></div>}
+  {tab==='media'&&<div className="vm-body"><section className="vm-card"><div className="vm-media-summary"><div><span>Crédits disponibles</span><strong>{credits}</strong></div><div><span>Articles / services</span><strong>{items.length}</strong></div><div><span>Sans image</span><strong>{missing.length}</strong></div></div><button className="btn btn-primary vm-generate" onClick={generateMissing} disabled={busy==='generate'||!missing.length}><Sparkles size={16}/>{missing.length?`Illustrer les ${missing.length} éléments · ${missing.length*5} crédits`:'Tout est déjà illustré'}</button><p className="vm-help">Créez rapidement les visuels manquants pour compléter votre catalogue.</p></section><section className="vm-card"><h3>Éléments du catalogue</h3><div className="vm-media-list">{items.map(i=><div key={i.id} className="vm-media-row">{i.image_url?<img src={i.image_url} alt=""/>:<div className="vm-media-empty"><ImagePlus size={17}/></div>}<span>{i.name}</span><b>{i.image_url?'Illustré':'À générer'}</b></div>)}</div></section></div>}</section></div>}</>;
 }
