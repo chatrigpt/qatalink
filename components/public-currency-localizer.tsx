@@ -5,6 +5,8 @@ import {createPortal} from 'react-dom';
 
 type Currency='XOF'|'EUR'|'USD';
 type Rates={xof_per_eur:number;usd_per_eur:number};
+type GeoData={country_code?:string|null};
+type RateData={xof_per_eur?:number|string|null;usd_per_eur?:number|string|null};
 
 const XOF_COUNTRIES=new Set(['CI','SN','ML','BF','BJ','TG','NE','GW']);
 const EUR_COUNTRIES=new Set(['AT','BE','HR','CY','EE','FI','FR','DE','GR','IE','IT','LV','LT','LU','MT','NL','PT','SK','SI','ES','AD','MC','SM','VA','ME','XK']);
@@ -26,6 +28,16 @@ function fmt(value:number,currency:Currency){
 }
 function parseNumber(raw:string){return Number(raw.replace(/[\s\u00A0\u202F]/g,'').replace(',','.'))}
 
+async function fetchJson<T>(url:string,fallback:T,init?:RequestInit):Promise<T>{
+  try{
+    const response=await fetch(url,init);
+    if(!response.ok)return fallback;
+    return await response.json() as T;
+  }catch{
+    return fallback;
+  }
+}
+
 export function PublicCurrencyLocalizer({baseCurrency='XOF'}:{baseCurrency?:string}){
   const base=(['XOF','EUR','USD'].includes(baseCurrency)?baseCurrency:'XOF') as Currency;
   const [currency,setCurrency]=useState<Currency>(base);
@@ -37,13 +49,15 @@ export function PublicCurrencyLocalizer({baseCurrency='XOF'}:{baseCurrency?:stri
   useEffect(()=>{
     setHost(document.querySelector('.public-v2-hero')||document.querySelector('.public-v2'));
     Promise.all([
-      fetch('/api/geo',{cache:'no-store'}).then(r=>r.ok?r.json():{}).catch(()=>({})),
-      fetch('/api/currency/rates').then(r=>r.ok?r.json():null).catch(()=>null)
+      fetchJson<GeoData>('/api/geo',{}, {cache:'no-store'}),
+      fetchJson<RateData|null>('/api/currency/rates',null)
     ]).then(([geo,fx])=>{
-      if(fx?.xof_per_eur&&fx?.usd_per_eur)setRates({xof_per_eur:Number(fx.xof_per_eur),usd_per_eur:Number(fx.usd_per_eur)});
+      const xof=Number(fx?.xof_per_eur);
+      const usd=Number(fx?.usd_per_eur);
+      if(Number.isFinite(xof)&&xof>0&&Number.isFinite(usd)&&usd>0)setRates({xof_per_eur:xof,usd_per_eur:usd});
       const stored=localStorage.getItem('qatalink_public_currency') as Currency|null;
       if(stored&&['XOF','EUR','USD'].includes(stored))setCurrency(stored);
-      else if(geo?.country_code)setCurrency(autoCurrency(String(geo.country_code)));
+      else if(geo.country_code)setCurrency(autoCurrency(String(geo.country_code)));
     });
   },[]);
 
