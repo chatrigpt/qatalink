@@ -7,6 +7,7 @@ import './theme-fonts.css';
 import './dashboard-v2.css';
 import './dashboard-extras.css';
 import './dashboard-integrations.css';
+import './analytics.css';
 import './advanced-studio.css';
 import './vitrine-media.css';
 import './public-theme.css';
