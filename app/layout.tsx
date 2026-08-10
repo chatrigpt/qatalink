@@ -19,11 +19,11 @@ import './vitrine.css';
 import './qatalink-v3.css';
 import './pwa.css';
 import './landing-extras.css';
+import './mobile-hardening.css';
 import { Plus_Jakarta_Sans, Playfair_Display } from 'next/font/google';
 import { ThemeProvider } from '@/components/theme-provider';
 import { PwaInstallButton } from '@/components/pwa-install-button';
 import { MetaPixel } from '@/components/meta-pixel';
-import { PublicCopyGuard } from '@/components/public-copy-guard';
 
 const jakarta=Plus_Jakarta_Sans({subsets:['latin'],variable:'--font-jakarta'});
 const playfair=Playfair_Display({subsets:['latin'],style:['normal','italic'],variable:'--font-playfair'});
@@ -38,5 +38,5 @@ export const metadata={
 };
 
 export default function RootLayout({children}:{children:React.ReactNode}){
-  return <html lang="fr" suppressHydrationWarning><body className={`${jakarta.variable} ${playfair.variable}`}><ThemeProvider>{children}<PwaInstallButton/><MetaPixel/><PublicCopyGuard/></ThemeProvider></body></html>;
+  return <html lang="fr" suppressHydrationWarning><body className={`${jakarta.variable} ${playfair.variable}`}><ThemeProvider>{children}<PwaInstallButton/><MetaPixel/></ThemeProvider></body></html>;
 }
