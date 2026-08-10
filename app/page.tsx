@@ -29,10 +29,10 @@ const faqItems=[
 ];
 
 export default function Home(){return <>
-  <header className="nav"><div className="container" style={{display:'flex',alignItems:'center',justifyContent:'space-between'}}>
-    <Link className="brand" href="/"><Image src="/qatalink-logo.png" width={34} height={34} alt="Qatalink"/><span>qatalink</span></Link>
+  <header className="nav landing-nav"><div className="container landing-nav-inner" style={{display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+    <Link className="brand landing-brand" href="/"><Image src="/qatalink-logo.png" width={34} height={34} alt="Qatalink"/><span>qatalink</span></Link>
     <nav className="navlinks"><a href="#features">Fonctionnalités</a><a href="#how">Comment ça marche</a><a href="#pricing">Tarifs</a><a href="#faq">FAQ</a></nav>
-    <div className="actions"><ThemeToggle/><Link className="btn btn-ghost" href="/login">Connexion</Link><Link className="btn btn-primary" href="/create">Créer mon catalogue</Link></div>
+    <div className="actions landing-nav-actions"><ThemeToggle/><Link className="btn btn-ghost" href="/login">Connexion</Link><Link className="btn btn-primary landing-create-btn" href="/create"><span className="landing-create-full">Créer mon catalogue</span><span className="landing-create-short">Créer</span></Link></div>
   </div></header>
   <main>
     <section className="hero container">
@@ -42,7 +42,7 @@ export default function Home(){return <>
       <div className="hero-cta"><Link href="/create" className="btn btn-primary">Créer gratuitement <ArrowRight size={17}/></Link><a href="#how" className="btn btn-ghost">Comment ça marche</a></div>
     </section>
 
-    <section className="marquee" id="demo"><div className="track">{[...demos,...demos].map((d,i)=><div className="phone" key={`${d.name}-${i}`}><video src={d.src} autoPlay muted loop playsInline preload="metadata"/><div className="phone-label"><strong>{d.name}</strong><span>{d.label}</span></div></div>)}</div></section>
+    <section className="marquee" id="demo"><div className="track">{[...demos,...demos].map((d,i)=><div className="phone" key={`${d.name}-${i}`}><video src={d.src} autoPlay muted loop playsInline preload="auto" disablePictureInPicture aria-label={`Démonstration ${d.name}`}/><div className="phone-label"><strong>{d.name}</strong><span>{d.label}</span></div></div>)}</div></section>
 
     <section className="section alt" id="features"><div className="container"><div className="section-head"><div className="eyebrow">Tout-en-un</div><h2>Votre catalogue devient un vrai outil commercial</h2><p>Transformez une carte, une image ou un texte en expérience mobile modifiable, partageable et prête pour WhatsApp.</p></div><div className="grid-3">
       <div className="card"><div className="iconbox"><ImageIcon/></div><h3>Image → menu</h3><p>Importez votre carte et retrouvez rapidement une structure organisée que vous pouvez corriger librement.</p></div>
