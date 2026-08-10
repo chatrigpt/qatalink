@@ -10,14 +10,14 @@ export function PublicFlowCustomizer({settings}:{settings:any}){
     const labels=settings?.mode_labels||{};
     const apply=()=>{
       const buttons=[...document.querySelectorAll<HTMLButtonElement>('.public-v2-flow-modes button')];
-      buttons.forEach((button,index)=>{const id=modes[index];if(id)button.textContent=String(labels[id]||DEFAULTS[id]||id)});
+      buttons.forEach((button,index)=>{const id=modes[index];if(!id)return;const next=String(labels[id]||DEFAULTS[id]||id);if(button.textContent!==next)button.textContent=next});
       const activeIndex=buttons.findIndex(b=>b.classList.contains('active'));
       const activeId=modes[Math.max(0,activeIndex)];
       const custom=activeId?String(labels[activeId]||DEFAULTS[activeId]||activeId):'';
       const base=activeId?DEFAULTS[activeId]||activeId:'';
       if(custom&&base&&custom!==base){
         document.querySelectorAll<HTMLAnchorElement>('a[href*="wa.me"],a[href*="api.whatsapp.com"]').forEach(a=>{
-          try{const u=new URL(a.href);const text=u.searchParams.get('text');if(text&&text.includes(`Option : ${base}`)){u.searchParams.set('text',text.replace(`Option : ${base}`,`Option : ${custom}`));a.href=u.toString()}}catch{}
+          try{const u=new URL(a.href);const text=u.searchParams.get('text');if(text&&text.includes(`Option : ${base}`)){u.searchParams.set('text',text.replace(`Option : ${base}`,`Option : ${custom}`));const next=u.toString();if(a.href!==next)a.href=next}}catch{}
         });
       }
     };
