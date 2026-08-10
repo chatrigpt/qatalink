@@ -12,6 +12,7 @@ import './advanced-studio.css';
 import './vitrine-media.css';
 import './public-theme.css';
 import './public-catalog-v2.css';
+import './public-currency.css';
 import './public-flow.css';
 import './multipage.css';
 import './vitrine.css';
@@ -26,13 +27,13 @@ import { PublicCopyGuard } from '@/components/public-copy-guard';
 
 const jakarta=Plus_Jakarta_Sans({subsets:['latin'],variable:'--font-jakarta'});
 const playfair=Playfair_Display({subsets:['latin'],style:['normal','italic'],variable:'--font-playfair'});
-const logo='https://monadia-bucket.sfo3.cdn.digitaloceanspaces.com/QATALINK%20LOGO%20(1).png';
+const logo='/qatalink-icon.svg';
 
 export const metadata={
   title:'Qatalink — Menu & catalogue interactif',
   description:'Créez un menu ou catalogue interactif depuis une image, un texte ou de zéro.',
   manifest:'/manifest.webmanifest',
-  icons:{icon:logo,apple:logo},
+  icons:{icon:[{url:logo,type:'image/svg+xml'}],shortcut:logo,apple:logo},
   appleWebApp:{capable:true,statusBarStyle:'default' as const,title:'Qatalink'}
 };
 
