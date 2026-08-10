@@ -22,7 +22,7 @@ const SUPABASE_KEY=process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY||'sb_publish
 
 export async function POST(req:NextRequest){
   const key=process.env.MAKETOU_API_KEY;
-  if(!key)return NextResponse.json({error:'MAKETOU_API_KEY missing'},{status:503});
+  if(!key)return NextResponse.json({error:'PAYMENT_UNAVAILABLE'},{status:503});
   try{
     const auth=req.headers.get('authorization')||'';
     const token=auth.startsWith('Bearer ')?auth.slice(7):'';
@@ -46,30 +46,30 @@ export async function POST(req:NextRequest){
     if(!businessId){
       const suffix=user.id.replace(/-/g,'').slice(0,8);
       const {data:created,error:createError}=await supabase.from('businesses').insert({owner_user_id:user.id,name:'Mon entreprise',slug:`mon-entreprise-${suffix}`,business_type:'other',currency_code:'XOF',country_code:'CI'}).select('id').single();
-      if(createError||!created)return NextResponse.json({error:createError?.message||'Impossible de préparer votre espace entreprise.'},{status:500});
+      if(createError||!created)return NextResponse.json({error:'Impossible de préparer votre espace entreprise.'},{status:500});
       businessId=created.id;
     }
 
-    const appUrl=process.env.NEXT_PUBLIC_APP_URL||new URL(req.url).origin;
+    const appUrl=(process.env.NEXT_PUBLIC_APP_URL||new URL(req.url).origin).replace(/\/$/,'');
     const payload={
       productDocumentId:product.id,
       email:user.email||'',
       firstName:firstName||'Client',
       lastName:lastName||'Qatalink',
-      redirectURL:`${appUrl}/dashboard?payment=pending`,
+      redirectURL:`${appUrl}/payment/return?kind=subscription`,
       meta:{user_id:user.id,business_id:businessId,plan:p,plan_code:planCodes[p],billing_period:period,period_months:product.months}
     };
 
     const r=await fetch('https://api.maketou.net/api/v1/stores/cart/checkout',{method:'POST',headers:{'Content-Type':'application/json','Authorization':`Bearer ${key}`},body:JSON.stringify(payload),cache:'no-store'});
     const data=await r.json().catch(()=>null);
-    if(!r.ok)return NextResponse.json({...data,error:data?.message||data?.error||'Maketou a refusé le panier.'},{status:r.status});
+    if(!r.ok)return NextResponse.json({...data,error:'Impossible de démarrer le paiement.'},{status:r.status});
 
     const cartId=data?.cart?.id||data?.id;
     if(cartId){
       const {error:paymentError}=await supabase.from('payments').insert({business_id:businessId,plan_code:planCodes[p],provider:'maketou',provider_cart_id:cartId,amount_minor:product.amount,currency_code:'XOF',status:'pending',customer_email:user.email||null,billing_period:period,period_months:product.months,raw_provider_response:data});
-      if(paymentError && paymentError.code!=='23505')return NextResponse.json({error:paymentError.message},{status:500});
+      if(paymentError && paymentError.code!=='23505')return NextResponse.json({error:'Impossible de préparer le suivi du paiement.'},{status:500});
     }
 
     return NextResponse.json(data,{status:r.status});
-  }catch(e:any){return NextResponse.json({error:e?.message||'Checkout failed'},{status:500})}
+  }catch{return NextResponse.json({error:'Impossible de démarrer le paiement.'},{status:500})}
 }
