@@ -32,7 +32,7 @@ export default function Home(){return <>
   <main>
     <section className="hero container">
       <div className="pill"><Sparkles size={14}/> Essai complet gratuit pendant 24 h</div>
-      <h1>Le moyen le plus simple de créer un <span className="gradient-text">menu </span><span className="hero-interactive-word">interactif</span></h1>
+      <h1>Le moyen le plus <span className="hero-simple-word">simple</span> de créer un <span className="gradient-text">menu </span><span className="hero-interactive-word">interactif</span></h1>
       <p>Importez une photo ou un texte, choisissez votre secteur, personnalisez votre catalogue puis partagez votre QR permanent.</p>
       <div className="hero-cta"><Link href="/create" className="btn btn-primary">Créer gratuitement <ArrowRight size={17}/></Link><a href="#how" className="btn btn-ghost">Comment ça marche</a></div>
     </section>
