@@ -5,7 +5,17 @@ import { DashboardVitrineMedia } from '@/components/dashboard-vitrine-media';
 import { DashboardSidebarTools } from '@/components/dashboard-sidebar-tools';
 import { DashboardCustomerFlow } from '@/components/dashboard-customer-flow';
 import { DashboardAnalytics } from '@/components/dashboard-analytics';
+import { DashboardSafeBoundary, DashboardStorageGuard } from '@/components/dashboard-safe-boundary';
 
 export default function DashboardPage(){
-  return <><DashboardAppV3/><DashboardAnalytics/><DashboardAdvancedControls/><DashboardVitrineMedia/><DashboardCustomerFlow/><DashboardSidebarTools/><DashboardLogoutButton/></>;
+  return <>
+    <DashboardStorageGuard/>
+    <DashboardSafeBoundary critical><DashboardAppV3/></DashboardSafeBoundary>
+    <DashboardSafeBoundary><DashboardAnalytics/></DashboardSafeBoundary>
+    <DashboardSafeBoundary><DashboardAdvancedControls/></DashboardSafeBoundary>
+    <DashboardSafeBoundary><DashboardVitrineMedia/></DashboardSafeBoundary>
+    <DashboardSafeBoundary><DashboardCustomerFlow/></DashboardSafeBoundary>
+    <DashboardSafeBoundary><DashboardSidebarTools/></DashboardSafeBoundary>
+    <DashboardSafeBoundary><DashboardLogoutButton/></DashboardSafeBoundary>
+  </>;
 }
