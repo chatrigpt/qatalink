@@ -13,6 +13,8 @@ const exactReplacements:[RegExp,string][]=[
   [/Les images générées sont sauvegardées dans le stockage Qatalink afin de ne pas dépendre d’un lien temporaire du fournisseur\./gi,'Les images générées restent disponibles dans votre catalogue.'],
   [/Les photos importées et les illustrations générées sont enregistrées dans le stockage associé à votre Qatalink\. Le lien public utilise ces fichiers persistants plutôt que les liens temporaires des fournisseurs de génération\./gi,'Les photos importées et les illustrations générées restent disponibles dans votre catalogue.'],
   [/L’installation Qatalink en PWA ou l’ajout à l’écran d’accueil est optionnel/gi,'L’ajout de Qatalink à l’écran d’accueil est optionnel'],
+  [/Les scans QR sont enregistrés dans (?:Supabase|Qatalink) au passage par \/q\/ avant la redirection\. Les autres statistiques comportementales pourront être ajoutées avec les événements catalogue_view, item_view, add_to_cart et whatsapp_click\./gi,'Retrouvez ici les performances réelles de votre catalogue et les actions effectuées par vos visiteurs.'],
+  [/catalogue_view|item_view|add_to_cart|whatsapp_click|checkout_start|flow_mode_select/gi,'interaction']
 ];
 
 const termReplacements:[RegExp,string][]=[
