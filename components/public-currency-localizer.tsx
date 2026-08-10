@@ -19,14 +19,38 @@ function autoCurrency(country:string):Currency{
   if(USD_COUNTRIES.has(code))return 'USD';
   return 'USD';
 }
-function toEur(value:number,base:Currency,r:Rates){if(base==='EUR')return value;if(base==='XOF')return value/r.xof_per_eur;return value/r.usd_per_eur}
-function fromEur(value:number,target:Currency,r:Rates){if(target==='EUR')return value;if(target==='XOF')return value*r.xof_per_eur;return value*r.usd_per_eur}
-function fmt(value:number,currency:Currency){
-  if(currency==='XOF')return `${new Intl.NumberFormat('fr-FR',{maximumFractionDigits:0}).format(Math.round(value)).replace(/\u202f/g,' ')} F CFA`;
-  if(currency==='EUR')return new Intl.NumberFormat('fr-FR',{style:'currency',currency:'EUR',minimumFractionDigits:2,maximumFractionDigits:2}).format(value).replace(/\u202f/g,' ');
+
+function toEur(value:number,base:Currency,rates:Rates):number{
+  if(base==='EUR')return value;
+  if(base==='XOF')return value/rates.xof_per_eur;
+  return value/rates.usd_per_eur;
+}
+
+function fromEur(value:number,target:Currency,rates:Rates):number{
+  if(target==='EUR')return value;
+  if(target==='XOF')return value*rates.xof_per_eur;
+  return value*rates.usd_per_eur;
+}
+
+function formatCurrency(value:number,currency:Currency):string{
+  if(currency==='XOF'){
+    return `${new Intl.NumberFormat('fr-FR',{maximumFractionDigits:0}).format(Math.round(value)).replace(/\u202f/g,' ')} F CFA`;
+  }
+  if(currency==='EUR'){
+    return new Intl.NumberFormat('fr-FR',{style:'currency',currency:'EUR',minimumFractionDigits:2,maximumFractionDigits:2}).format(value).replace(/\u202f/g,' ');
+  }
   return new Intl.NumberFormat('en-US',{style:'currency',currency:'USD',minimumFractionDigits:2,maximumFractionDigits:2}).format(value);
 }
-function parseNumber(raw:string){return Number(raw.replace(/[\s\u00A0\u202F]/g,'').replace(',','.'))}
+
+function convertAmount(value:number,base:Currency,target:Currency,rates:Rates):string{
+  const eurValue=toEur(value,base,rates);
+  const converted=fromEur(eurValue,target,rates);
+  return formatCurrency(converted,target);
+}
+
+function parseNumber(raw:string):number{
+  return Number(raw.replace(/[\s\u00A0\u202F]/g,'').replace(',','.'));
+}
 
 async function fetchJson<T>(url:string,fallback:T,init?:RequestInit):Promise<T>{
   try{
@@ -54,14 +78,18 @@ export function PublicCurrencyLocalizer({baseCurrency='XOF'}:{baseCurrency?:stri
     ]).then(([geo,fx])=>{
       const xof=Number(fx?.xof_per_eur);
       const usd=Number(fx?.usd_per_eur);
-      if(Number.isFinite(xof)&&xof>0&&Number.isFinite(usd)&&usd>0)setRates({xof_per_eur:xof,usd_per_eur:usd});
+      if(Number.isFinite(xof)&&xof>0&&Number.isFinite(usd)&&usd>0){
+        setRates({xof_per_eur:xof,usd_per_eur:usd});
+      }
       const stored=localStorage.getItem('qatalink_public_currency') as Currency|null;
       if(stored&&['XOF','EUR','USD'].includes(stored))setCurrency(stored);
       else if(geo.country_code)setCurrency(autoCurrency(String(geo.country_code)));
     });
   },[]);
 
-  useEffect(()=>{localStorage.setItem('qatalink_public_currency',currency)},[currency]);
+  useEffect(()=>{
+    localStorage.setItem('qatalink_public_currency',currency);
+  },[currency]);
 
   useEffect(()=>{
     if(!rates)return;
@@ -70,10 +98,13 @@ export function PublicCurrencyLocalizer({baseCurrency='XOF'}:{baseCurrency?:stri
       EUR:/(\d[\d\s\u00A0\u202F]*(?:[.,]\d+)?)\s*€/g,
       USD:/\$\s*(\d[\d,]*(?:\.\d+)?)/g
     };
-    const convertText=(source:string)=>source.replace(rxByBase[base],(_m,n)=>{
-      const value=parseNumber(String(n));if(!Number.isFinite(value))return _m;
-      return fmt(fromEur(toEur(value,base,rates),currency),currency);
+
+    const convertText=(source:string):string=>source.replace(rxByBase[base],(match,rawNumber)=>{
+      const value=parseNumber(String(rawNumber));
+      if(!Number.isFinite(value))return match;
+      return convertAmount(value,base,currency,rates);
     });
+
     const walk=(root:Node)=>{
       const walker=document.createTreeWalker(root,NodeFilter.SHOW_TEXT);
       let node=walker.nextNode() as Text|null;
@@ -87,24 +118,35 @@ export function PublicCurrencyLocalizer({baseCurrency='XOF'}:{baseCurrency?:stri
         }
         node=walker.nextNode() as Text|null;
       }
-      document.querySelectorAll<HTMLAnchorElement>('a[href*="wa.me"],a[href*="api.whatsapp.com"]').forEach(a=>{
-        if(!hrefs.has(a))hrefs.set(a,a.href);
-        const original=hrefs.get(a)||a.href;
+
+      document.querySelectorAll<HTMLAnchorElement>('a[href*="wa.me"],a[href*="api.whatsapp.com"]').forEach(anchor=>{
+        if(!hrefs.has(anchor))hrefs.set(anchor,anchor.href);
+        const original=hrefs.get(anchor)||anchor.href;
         try{
-          const u=new URL(original);const msg=u.searchParams.get('text');
-          if(msg)u.searchParams.set('text',convertText(msg));a.href=u.toString();
+          const url=new URL(original);
+          const message=url.searchParams.get('text');
+          if(message)url.searchParams.set('text',convertText(message));
+          anchor.href=url.toString();
         }catch{}
       });
     };
-    const root=document.querySelector('.public-v2');if(!root)return;
+
+    const root=document.querySelector('.public-v2');
+    if(!root)return;
     walk(root);
-    const mo=new MutationObserver(mutations=>{for(const m of mutations)m.addedNodes.forEach(n=>walk(n));walk(root)});
-    mo.observe(root,{subtree:true,childList:true,characterData:true,attributes:true,attributeFilter:['href']});
-    return()=>mo.disconnect();
+    const observer=new MutationObserver(mutations=>{
+      for(const mutation of mutations)mutation.addedNodes.forEach(node=>walk(node));
+      walk(root);
+    });
+    observer.observe(root,{subtree:true,childList:true,characterData:true,attributes:true,attributeFilter:['href']});
+    return()=>observer.disconnect();
   },[currency,rates,base,originals,hrefs]);
 
   if(!host)return null;
-  return createPortal(<div className="currency-switcher" aria-label="Choisir la monnaie">
-    {(['XOF','EUR','USD'] as Currency[]).map(c=><button key={c} className={currency===c?'active':''} onClick={()=>setCurrency(c)}>{c==='XOF'?'F CFA':c}</button>)}
-  </div>,host);
+  return createPortal(
+    <div className="currency-switcher" aria-label="Choisir la monnaie">
+      {(['XOF','EUR','USD'] as Currency[]).map(option=><button key={option} className={currency===option?'active':''} onClick={()=>setCurrency(option)}>{option==='XOF'?'F CFA':option}</button>)}
+    </div>,
+    host
+  );
 }
