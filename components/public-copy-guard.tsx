@@ -34,7 +34,7 @@ const termReplacements:[RegExp,string][]=[
   [/\blinkhub\b/gi,'Vitrine'],
 ];
 
-const technicalLeak=/(supabase|poyo|fal\.ai|openrouter|gemini|n8n|maketou|api\.poyo|supabase\.co|service_role|publishable_key|webhook|endpoint|stack trace|postgres|sqlstate|jwt|bearer token)/i;
+const technicalLeak=/(supabase|poyo|fal\.ai|openrouter|gemini|n8n|maketou|api\.poyo|supabase\.co|service_role|publishable_key|webhook|endpoint|stack trace|postgres|sqlstate|jwt|bearer token|schema cache|row-level security|permission denied|duplicate key|violates unique|invalid input syntax|relation ["']|column ["']|pgrst\d+|sql error|database error|foreign key|constraint ["'])/i;
 
 function cleanText(value:string){
   let out=value;
