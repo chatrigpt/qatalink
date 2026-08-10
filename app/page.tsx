@@ -3,8 +3,13 @@ import Link from 'next/link';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { ArrowRight, Check, ImageIcon, MessageCircle, Palette, QrCode, Smartphone, Sparkles } from 'lucide-react';
 
-const demo='https://monadia-bucket.sfo3.cdn.digitaloceanspaces.com/WhatsApp%20Video%202026-07-24%20at%2015.56.05.mp4';
-const demos=[['Restaurant','Menu interactif'],['Spa','Catalogue de services'],['Hôtel','Catalogue de chambres'],['Immobilier','Biens & demandes'],['Boutique','Catalogue produits'],['Restaurant','Commande WhatsApp']];
+const howDemo='https://monadia-bucket.sfo3.cdn.digitaloceanspaces.com/qatalink-comment-%C3%A7a-marche.mp4';
+const demos=[
+  {name:'Restaurant',label:'Menu interactif',src:'https://monadia-bucket.sfo3.cdn.digitaloceanspaces.com/qatalink-restaurant.mp4'},
+  {name:'Spa & Beauté',label:'Catalogue de services',src:'https://monadia-bucket.sfo3.cdn.digitaloceanspaces.com/qatalink-spa.mp4'},
+  {name:'Immobilier',label:'Biens & demandes',src:'https://monadia-bucket.sfo3.cdn.digitaloceanspaces.com/qatalink-immobilier.mp4'},
+  {name:'Boutique',label:'Catalogue produits',src:'https://monadia-bucket.sfo3.cdn.digitaloceanspaces.com/qatalink-boutique.mp4'}
+];
 const faqItems=[
   ['Dois-je refaire mon QR quand je modifie mon menu ?','Non. Votre QR reste le même. Vous pouvez changer les prix, photos, descriptions, catégories, couleurs, promotions et le thème sans le réimprimer.'],
   ['Puis-je créer mon menu à partir d’une simple photo ?','Oui. Importez une photo, une capture ou un scan. Qatalink organise automatiquement les catégories, articles et prix, puis vous pouvez tout corriger avant ou après publication.'],
@@ -37,7 +42,7 @@ export default function Home(){return <>
       <div className="hero-cta"><Link href="/create" className="btn btn-primary">Créer gratuitement <ArrowRight size={17}/></Link><a href="#how" className="btn btn-ghost">Comment ça marche</a></div>
     </section>
 
-    <section className="marquee" id="demo"><div className="track">{[...demos,...demos].map((d,i)=><div className="phone" key={i}><video src={demo} autoPlay muted loop playsInline/><div className="phone-label"><strong>{d[0]}</strong><span>{d[1]}</span></div></div>)}</div></section>
+    <section className="marquee" id="demo"><div className="track">{[...demos,...demos].map((d,i)=><div className="phone" key={`${d.name}-${i}`}><video src={d.src} autoPlay muted loop playsInline preload="metadata"/><div className="phone-label"><strong>{d.name}</strong><span>{d.label}</span></div></div>)}</div></section>
 
     <section className="section alt" id="features"><div className="container"><div className="section-head"><div className="eyebrow">Tout-en-un</div><h2>Votre catalogue devient un vrai outil commercial</h2><p>Transformez une carte, une image ou un texte en expérience mobile modifiable, partageable et prête pour WhatsApp.</p></div><div className="grid-3">
       <div className="card"><div className="iconbox"><ImageIcon/></div><h3>Image → menu</h3><p>Importez votre carte et retrouvez rapidement une structure organisée que vous pouvez corriger librement.</p></div>
@@ -51,7 +56,7 @@ export default function Home(){return <>
     <section className="section how-section" id="how"><div className="container">
       <div className="section-head"><div className="eyebrow">Comment ça marche</div><h2>Une photo. Quelques réglages. Votre menu est prêt.</h2><p>Qatalink organise votre contenu, vous laisse tout vérifier puis transforme votre catalogue en une expérience mobile partageable par lien ou QR code.</p></div>
       <div className="how-showcase">
-        <div className="how-video-card"><div className="how-video-top"><span className="live-dot"/>DÉMO QATALINK</div><div className="how-video-wrap"><video src={demo} controls muted playsInline preload="metadata"/></div><div className="how-video-caption"><strong>Voyez le parcours côté client</strong><span>De la découverte du catalogue jusqu’à la sélection sur WhatsApp.</span></div></div>
+        <div className="how-video-card"><div className="how-video-top"><span className="live-dot"/>DÉMO QATALINK</div><div className="how-video-wrap"><video src={howDemo} controls muted playsInline preload="metadata"/></div><div className="how-video-caption"><strong>Voyez le parcours côté client</strong><span>La vidéo démarre sans son. Utilisez le contrôle du lecteur pour l’activer.</span></div></div>
         <div className="how-copy"><div className="how-mini-step"><span>01</span><div><b>Choisissez votre secteur</b><p>Restaurant, Hôtel, Spa, Immobilier, Boutique ou une base libre.</p></div></div><div className="how-mini-step"><span>02</span><div><b>Importez ou partez de zéro</b><p>Photo, texte ou catalogue vide avec une structure de départ.</p></div></div><div className="how-mini-step"><span>03</span><div><b>Personnalisez tout</b><p>Nom de l’entreprise, couleurs, polices, catégories, prix, images et disposition.</p></div></div><div className="how-mini-step"><span>04</span><div><b>Publiez</b><p>Le QR reste stable même lorsque le catalogue évolue.</p></div></div><Link href="/create" className="btn btn-primary how-main-cta">Créer mon Qatalink <ArrowRight size={17}/></Link></div>
       </div>
       <div className="steps how-steps"><div className="card"><div className="step-num">01 — IMPORTER</div><h3>Photo, texte ou vide</h3><p>Importez votre carte existante ou construisez votre catalogue manuellement.</p></div><div className="card"><div className="step-num">02 — PERSONNALISER</div><h3>Identité + design</h3><p>Nom de l’entreprise, logo, couleurs, typographies, prix, catégories et illustrations.</p></div><div className="card"><div className="step-num">03 — PUBLIER</div><h3>QR + WhatsApp</h3><p>Publiez votre catalogue et modifiez-le à volonté sans changer son QR permanent.</p></div></div>
