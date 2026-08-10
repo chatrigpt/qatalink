@@ -11,6 +11,7 @@ import './advanced-studio.css';
 import './vitrine-media.css';
 import './public-theme.css';
 import './public-catalog-v2.css';
+import './public-flow.css';
 import './multipage.css';
 import './vitrine.css';
 import './qatalink-v3.css';
