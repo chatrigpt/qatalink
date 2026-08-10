@@ -9,7 +9,7 @@ const SUPABASE_KEY=process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY||'sb_publish
 
 export async function POST(req:NextRequest){
   const key=process.env.MAKETOU_API_KEY;
-  if(!key)return NextResponse.json({error:'MAKETOU_API_KEY missing'},{status:503});
+  if(!key)return NextResponse.json({error:'PAYMENT_UNAVAILABLE'},{status:503});
   try{
     const auth=req.headers.get('authorization')||'';
     const token=auth.startsWith('Bearer ')?auth.slice(7):'';
@@ -33,25 +33,25 @@ export async function POST(req:NextRequest){
     const parts=fullName.split(/\s+/).filter(Boolean);
     const firstName=body.firstName||parts[0]||'Client';
     const lastName=body.lastName||parts.slice(1).join(' ')||'Qatalink';
-    const appUrl=process.env.NEXT_PUBLIC_APP_URL||new URL(req.url).origin;
+    const appUrl=(process.env.NEXT_PUBLIC_APP_URL||new URL(req.url).origin).replace(/\/$/,'');
     const payload={
       productDocumentId:CREDIT_PRODUCT_ID,
       email:user.email||'',
       firstName,
       lastName,
-      redirectURL:`${appUrl}/dashboard?payment=pending&kind=credits`,
+      redirectURL:`${appUrl}/payment/return?kind=credits`,
       meta:{user_id:user.id,business_id:businessId,purchase_type:'credits',credits:CREDIT_PACK_SIZE,plan_code:sub.plan_code}
     };
 
     const r=await fetch('https://api.maketou.net/api/v1/stores/cart/checkout',{method:'POST',headers:{'Content-Type':'application/json',Authorization:`Bearer ${key}`},body:JSON.stringify(payload),cache:'no-store'});
     const data=await r.json().catch(()=>null);
-    if(!r.ok)return NextResponse.json({...data,error:data?.message||data?.error||'Maketou a refusé le panier.'},{status:r.status});
+    if(!r.ok)return NextResponse.json({...data,error:'Impossible de démarrer le paiement.'},{status:r.status});
 
     const cartId=data?.cart?.id||data?.id;
     if(cartId){
       const {error:paymentError}=await supabase.from('payments').insert({business_id:businessId,plan_code:sub.plan_code,provider:'maketou',provider_cart_id:cartId,amount_minor:CREDIT_PACK_AMOUNT,currency_code:'XOF',status:'pending',customer_email:user.email||null,billing_period:'credits',period_months:0,purchase_type:'credits',credits_amount:CREDIT_PACK_SIZE,raw_provider_response:data});
-      if(paymentError&&paymentError.code!=='23505')return NextResponse.json({error:paymentError.message},{status:500});
+      if(paymentError&&paymentError.code!=='23505')return NextResponse.json({error:'Impossible de préparer le suivi du paiement.'},{status:500});
     }
     return NextResponse.json({...data,credits:CREDIT_PACK_SIZE,amount:CREDIT_PACK_AMOUNT},{status:r.status});
-  }catch(e:any){return NextResponse.json({error:e?.message||'Credit checkout failed'},{status:500})}
+  }catch{return NextResponse.json({error:'Impossible de démarrer le paiement.'},{status:500})}
 }
