@@ -1,4 +1,4 @@
-import { createClient } from '@supabase/supabase-js';
+import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 
 const SUPABASE_URL =
   process.env.NEXT_PUBLIC_SUPABASE_URL ||
@@ -58,15 +58,34 @@ async function qatalinkFetch(input: RequestInfo | URL, init?: RequestInit) {
         : sanitizeThemeRow(parsed);
       return fetch(input, { ...init, body: JSON.stringify(cleaned) });
     } catch {
-      // If it is not JSON, let Supabase handle the original request normally.
+      // Keep the original request when the body is not JSON.
     }
   }
 
   return fetch(input, init);
 }
 
+let browserClient: SupabaseClient | null = null;
+
 export function createSupabaseBrowserClient() {
-  return createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
-    global: { fetch: qatalinkFetch },
-  });
+  if (typeof window === 'undefined') {
+    return createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
+      global: { fetch: qatalinkFetch },
+      auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
+    });
+  }
+
+  if (!browserClient) {
+    browserClient = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
+      global: { fetch: qatalinkFetch },
+      auth: {
+        persistSession: true,
+        autoRefreshToken: true,
+        detectSessionInUrl: true,
+        storageKey: 'qatalink-auth-token',
+      },
+    });
+  }
+
+  return browserClient;
 }
