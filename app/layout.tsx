@@ -30,6 +30,7 @@ import { ThemeProvider } from '@/components/theme-provider';
 import { PwaInstallButton } from '@/components/pwa-install-button';
 import { MetaPixel } from '@/components/meta-pixel';
 import { GenerationActivityCenter } from '@/components/generation-activity-center';
+import { ProviderNameScrubber } from '@/components/provider-name-scrubber';
 
 const jakarta=Plus_Jakarta_Sans({subsets:['latin'],variable:'--font-jakarta'});
 const playfair=Playfair_Display({subsets:['latin'],style:['normal','italic'],variable:'--font-playfair'});
@@ -44,5 +45,5 @@ export const metadata={
 };
 
 export default function RootLayout({children}:{children:React.ReactNode}){
-  return <html lang="fr" suppressHydrationWarning><body className={`${jakarta.variable} ${playfair.variable}`}><ThemeProvider>{children}<GenerationActivityCenter/><PwaInstallButton/><MetaPixel/></ThemeProvider></body></html>;
+  return <html lang="fr" suppressHydrationWarning><body className={`${jakarta.variable} ${playfair.variable}`}><ThemeProvider>{children}<ProviderNameScrubber/><GenerationActivityCenter/><PwaInstallButton/><MetaPixel/></ThemeProvider></body></html>;
 }
