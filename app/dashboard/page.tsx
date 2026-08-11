@@ -10,6 +10,7 @@ import { NewUserGuide } from '@/components/new-user-guide';
 import { SupportChat } from '@/components/support-chat';
 import { DashboardSubscriptionStatus } from '@/components/dashboard-subscription-status';
 import { TrialConversionCoach } from '@/components/trial-conversion-coach';
+import { TrialCreditAccess } from '@/components/trial-credit-access';
 
 export default function DashboardPage(){
   return <>
@@ -22,6 +23,7 @@ export default function DashboardPage(){
     <DashboardSafeBoundary><SupportChat/></DashboardSafeBoundary>
     <DashboardSafeBoundary><DashboardSidebarTools/></DashboardSafeBoundary>
     <DashboardSafeBoundary><DashboardSubscriptionStatus/></DashboardSafeBoundary>
+    <DashboardSafeBoundary><TrialCreditAccess/></DashboardSafeBoundary>
     <DashboardSafeBoundary><TrialConversionCoach/></DashboardSafeBoundary>
     <DashboardSafeBoundary><DashboardLogoutButton/></DashboardSafeBoundary>
     <DashboardSafeBoundary><NewUserGuide/></DashboardSafeBoundary>
