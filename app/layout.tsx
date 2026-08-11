@@ -21,6 +21,7 @@ import './pwa.css';
 import './landing-extras.css';
 import './mobile-hardening.css';
 import './onboarding-admin.css';
+import './support-chat.css';
 import { Plus_Jakarta_Sans, Playfair_Display } from 'next/font/google';
 import { ThemeProvider } from '@/components/theme-provider';
 import { PwaInstallButton } from '@/components/pwa-install-button';
