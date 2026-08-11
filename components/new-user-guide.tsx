@@ -1,29 +1,40 @@
 'use client';
 
-import {useEffect,useMemo,useState} from 'react';
-import {ArrowLeft,ArrowRight,BookOpen,Check,ImagePlus,Palette,QrCode,X} from 'lucide-react';
+import {useEffect,useMemo,useRef,useState} from 'react';
+import {ArrowRight,BookOpen,Check,ImagePlus,MousePointer2,Palette,QrCode,X} from 'lucide-react';
 import {createSupabaseBrowserClient} from '@/lib/supabase';
 
 const tutorialVideo='https://monadia-bucket.sfo3.cdn.digitaloceanspaces.com/qatalink-comment-%C3%A7a-marche.mp4';
-const ONBOARDING_VERSION=1;
+const ONBOARDING_VERSION=2;
 
-type TourStep={title:string;body:string;label:string};
+type TourStep={
+  label:string;
+  title:string;
+  body:string;
+  action:string;
+  after?:string;
+};
+
 const steps:TourStep[]=[
-  {label:'Catalogues',title:'Créez et gérez vos catalogues',body:'Retrouvez ici tous vos catalogues. Vous pouvez en créer plusieurs, choisir celui à modifier et récupérer son lien public.'},
-  {label:'Articles',title:'Corrigez vos contenus facilement',body:'Ajoutez, renommez ou supprimez catégories, produits, services, prix et images sans repartir de zéro.'},
-  {label:'Apparence',title:'Adaptez rapidement le rendu',body:'Couleurs, typographies et style général sont accessibles ici pour une personnalisation rapide.'},
-  {label:'Studio avancé',title:'Passez à la personnalisation avancée',body:'Layouts, polices, styles de titres, fonds, image de fond, analyse de palette et réglages plus poussés sont regroupés dans le Studio avancé.'},
-  {label:'Vitrine & médias',title:'Construisez votre présence publique',body:'Ajoutez vos liens, réseaux sociaux, visuels et gérez votre page Vitrine lorsque votre formule le permet.'},
-  {label:'Parcours client',title:'Choisissez ce que vos visiteurs peuvent faire',body:'Livraison, retrait, réservation, rendez-vous, appel découverte, visite ou autre action : adaptez le parcours à votre activité.'},
-  {label:'QR & partage',title:'Diffusez votre catalogue',body:'Votre QR reste stable pendant que votre catalogue évolue. Utilisez également le lien public pour WhatsApp, Instagram ou vos supports imprimés.'},
-  {label:'Statistiques',title:'Suivez les résultats',body:'Consultez les scans, vues, interactions, paniers et intentions de contact réellement mesurés sur votre catalogue.'},
-  {label:'Support',title:'Besoin d’aide ?',body:'Le Support Qatalink est accessible ici directement depuis votre espace. Vous pouvez écrire sans quitter votre dashboard.'}
+  {label:'Catalogues',title:'Commencez par vos catalogues',body:'Touchez « Catalogues ». C’est ici que vous retrouvez chaque catalogue, son état et son lien public.',action:'Touchez « Catalogues » pour continuer.'},
+  {label:'Articles',title:'Modifiez réellement votre contenu',body:'Ouvrez « Articles ». Vous pourrez corriger les noms, prix, catégories, descriptions et visuels sans recréer votre catalogue.',action:'Touchez « Articles ».'},
+  {label:'Apparence',title:'Personnalisez le rendu',body:'Ouvrez « Apparence » pour voir les réglages rapides de couleurs, typographies et identité visuelle.',action:'Touchez « Apparence ».'},
+  {label:'Studio avancé',title:'Découvrez le Studio avancé',body:'Le Studio avancé va plus loin : layouts, styles de texte, fond personnalisé, palette, image de fond et réglages précis.',action:'Touchez « Studio avancé » pour l’ouvrir.'},
+  {label:'Vitrine & médias',title:'Ajoutez votre présence de marque',body:'Cette section sert à ajouter vos liens, réseaux sociaux, médias et à gérer votre Vitrine lorsque votre formule le permet.',action:'Touchez « Vitrine & médias ».'},
+  {label:'Parcours client',title:'Choisissez ce que le visiteur peut faire',body:'Vous pouvez adapter le parcours à votre activité : livraison, retrait, réservation, rendez-vous, appel découverte, visite, etc.',action:'Touchez « Parcours client ».'},
+  {label:'QR & partage',title:'Diffusez votre catalogue',body:'Votre lien public et votre QR sont ici. Le QR reste stable même quand vous modifiez le catalogue.',action:'Touchez « QR & partage ».'},
+  {label:'Statistiques',title:'Mesurez les résultats',body:'Consultez les scans, vues, interactions, paniers et intentions réellement mesurés.',action:'Touchez « Statistiques ».'},
+  {label:'Support',title:'Vous savez où demander de l’aide',body:'Le Support Qatalink reste accessible depuis votre espace sans afficher de coordonnées personnelles.',action:'Touchez « Support » pour terminer le tour.'}
 ];
 
+function normalize(v:string){return v.replace(/\s+/g,' ').trim().toLocaleLowerCase('fr')}
 function findTarget(label:string){
+  const wanted=normalize(label);
   const nodes=Array.from(document.querySelectorAll<HTMLElement>('button,a,[role="button"]'));
-  const wanted=label.toLocaleLowerCase('fr');
-  return nodes.find(n=>(n.textContent||'').trim().toLocaleLowerCase('fr').includes(wanted))||null;
+  const visible=nodes.filter(n=>{const r=n.getBoundingClientRect();const s=getComputedStyle(n);return r.width>0&&r.height>0&&s.visibility!=='hidden'&&s.display!=='none'});
+  return visible.find(n=>normalize(n.textContent||'')===wanted)
+    ||visible.find(n=>normalize(n.textContent||'').includes(wanted))
+    ||null;
 }
 
 export function NewUserGuide(){
@@ -33,6 +44,9 @@ export function NewUserGuide(){
   const [step,setStep]=useState(0);
   const [userId,setUserId]=useState('');
   const [target,setTarget]=useState<HTMLElement|null>(null);
+  const [targetFound,setTargetFound]=useState(false);
+  const [bubble,setBubble]=useState<{top:number;left:number;width:number;mobile:boolean}>({top:0,left:0,width:360,mobile:false});
+  const observerRef=useRef<MutationObserver|null>(null);
 
   useEffect(()=>{(async()=>{
     const {data:{session}}=await supabase.auth.getSession();
@@ -43,17 +57,74 @@ export function NewUserGuide(){
   })()},[supabase]);
 
   useEffect(()=>{
-    if(!tour){if(target)target.classList.remove('qatalink-tour-target');setTarget(null);return}
-    const current=steps[step];
-    let tries=0;
-    const locate=()=>{
-      if(target)target.classList.remove('qatalink-tour-target');
-      const el=findTarget(current.label);
-      if(el){el.classList.add('qatalink-tour-target');el.scrollIntoView({behavior:'smooth',block:'center',inline:'nearest'});setTarget(el)}
-      else if(tries++<10)setTimeout(locate,180);
+    if(!tour)return;
+    let active=true;
+    let current:HTMLElement|null=null;
+    let retry:number|undefined;
+
+    const clearTarget=()=>{
+      if(current){current.classList.remove('qatalink-tour-target');current.removeAttribute('data-qatalink-tour-active')}
+      current=null;
+      setTarget(null);setTargetFound(false);
     };
-    const t=setTimeout(locate,120);
-    return()=>{clearTimeout(t);if(target)target.classList.remove('qatalink-tour-target')}
+
+    const position=(el:HTMLElement)=>{
+      const rect=el.getBoundingClientRect();
+      const mobile=window.innerWidth<=700;
+      if(mobile){setBubble({top:window.innerHeight-250,left:10,width:Math.max(280,window.innerWidth-20),mobile:true});return}
+      const width=Math.min(380,window.innerWidth-32);
+      const gap=18;
+      let left=rect.right+gap;
+      if(left+width>window.innerWidth-16)left=Math.max(16,rect.left-width-gap);
+      let top=Math.max(16,Math.min(rect.top,window.innerHeight-300));
+      setBubble({top,left,width,mobile:false});
+    };
+
+    const bind=(el:HTMLElement)=>{
+      clearTarget();
+      if(!active)return;
+      current=el;
+      setTarget(el);setTargetFound(true);
+      el.classList.add('qatalink-tour-target');
+      el.setAttribute('data-qatalink-tour-active','true');
+      el.scrollIntoView({behavior:'smooth',block:'center',inline:'nearest'});
+      setTimeout(()=>active&&position(el),320);
+      const onClick=()=>{
+        setTimeout(()=>{
+          if(!active)return;
+          clearTarget();
+          if(step>=steps.length-1){void finish();}
+          else setStep(s=>s+1);
+        },220);
+      };
+      el.addEventListener('click',onClick,{once:true});
+    };
+
+    const locate=()=>{
+      if(!active)return;
+      const el=findTarget(steps[step].label);
+      if(el){bind(el);return}
+      setTargetFound(false);
+      retry=window.setTimeout(locate,300);
+    };
+
+    locate();
+    observerRef.current=new MutationObserver(()=>{
+      if(!current||!document.body.contains(current))locate();
+      else position(current);
+    });
+    observerRef.current.observe(document.body,{childList:true,subtree:true,attributes:true,attributeFilter:['class','style']});
+    const onResize=()=>current&&position(current);
+    window.addEventListener('resize',onResize);
+    window.addEventListener('scroll',onResize,true);
+
+    return()=>{
+      active=false;
+      if(retry)clearTimeout(retry);
+      observerRef.current?.disconnect();observerRef.current=null;
+      window.removeEventListener('resize',onResize);window.removeEventListener('scroll',onResize,true);
+      clearTarget();
+    };
   },[tour,step]);
 
   async function markDone(){
@@ -61,37 +132,45 @@ export function NewUserGuide(){
     await supabase.from('profiles').upsert({id:userId,onboarding_version:ONBOARDING_VERSION,onboarding_completed_at:new Date().toISOString(),updated_at:new Date().toISOString()},{onConflict:'id'});
   }
   function startTour(){setIntro(false);setStep(0);setTour(true)}
-  async function finish(){if(target)target.classList.remove('qatalink-tour-target');setTour(false);await markDone()}
+  async function finish(){setTour(false);await markDone()}
   async function skip(){await finish()}
-  function next(){if(step>=steps.length-1){void finish();return}setStep(s=>s+1)}
-  function prev(){setStep(s=>Math.max(0,s-1))}
+  function pointAgain(){
+    const el=findTarget(steps[step].label);
+    if(!el)return;
+    el.scrollIntoView({behavior:'smooth',block:'center',inline:'nearest'});
+    el.animate([{transform:'scale(1)'},{transform:'scale(1.06)'},{transform:'scale(1)'}],{duration:650,easing:'ease-out'});
+  }
 
   return <>
     {intro&&<div className="welcome-guide-backdrop" role="dialog" aria-modal="true" aria-label="Bienvenue sur Qatalink">
       <section className="welcome-guide">
         <button className="welcome-guide-close" onClick={startTour} aria-label="Passer la vidéo"><X/></button>
-        <div className="welcome-guide-copy"><span className="eyebrow">BIENVENUE SUR QATALINK</span><h2>Découvrez votre espace en quelques minutes</h2><p>La vidéo est facultative. Dans tous les cas, un tour guidé vous montrera ensuite les fonctions essentielles une seule fois.</p></div>
+        <div className="welcome-guide-copy"><span className="eyebrow">BIENVENUE SUR QATALINK</span><h2>On vous montre directement où toucher</h2><p>La vidéo est facultative. Ensuite, le guide vous fera réellement utiliser le dashboard : chaque étape avance uniquement après avoir touché l’élément indiqué.</p></div>
         <div className="welcome-guide-video"><video src={tutorialVideo} controls muted playsInline preload="metadata"/></div>
         <div className="welcome-guide-steps">
-          <div><ImagePlus/><span><b>Créez</b><small>Image, texte ou création manuelle.</small></span></div>
-          <div><BookOpen/><span><b>Modifiez</b><small>Articles, catégories, prix et médias.</small></span></div>
-          <div><Palette/><span><b>Personnalisez</b><small>Identité, thèmes et Studio avancé.</small></span></div>
-          <div><QrCode/><span><b>Partagez</b><small>Lien public et QR permanent.</small></span></div>
+          <div><ImagePlus/><span><b>Créez</b><small>Retrouvez vos catalogues et outils.</small></span></div>
+          <div><BookOpen/><span><b>Modifiez</b><small>Testez les sections de contenu.</small></span></div>
+          <div><Palette/><span><b>Personnalisez</b><small>Ouvrez les réglages avancés.</small></span></div>
+          <div><QrCode/><span><b>Partagez</b><small>Repérez lien, QR et statistiques.</small></span></div>
         </div>
-        <div className="welcome-guide-actions"><button className="btn btn-ghost" onClick={startTour}>Passer la vidéo</button><button className="btn btn-primary" onClick={startTour}>Commencer le tour <ArrowRight size={16}/></button></div>
+        <div className="welcome-guide-actions"><button className="btn btn-ghost" onClick={startTour}>Passer la vidéo</button><button className="btn btn-primary" onClick={startTour}>Me guider dans l’app <ArrowRight size={16}/></button></div>
       </section>
     </div>}
 
-    {tour&&<div className="qatalink-tour-layer" aria-live="polite">
-      <section className="qatalink-tour-card">
-        <div className="qatalink-tour-progress"><span>Guide Qatalink</span><b>{step+1}/{steps.length}</b></div>
-        <h3>{steps[step].title}</h3><p>{steps[step].body}</p>
-        <div className="qatalink-tour-hint">Repérez l’élément mis en évidence sur votre écran.</div>
+    {tour&&<>
+      <div className="qatalink-tour-scrim" aria-hidden="true"/>
+      <section className={'qatalink-tour-card '+(bubble.mobile?'is-mobile':'')} style={bubble.mobile?undefined:{top:bubble.top,left:bubble.left,width:bubble.width}} role="dialog" aria-live="polite">
+        <div className="qatalink-tour-progress"><span>Guide interactif</span><b>{step+1}/{steps.length}</b></div>
+        <div className="qatalink-tour-action-icon"><MousePointer2 size={18}/></div>
+        <h3>{steps[step].title}</h3>
+        <p>{steps[step].body}</p>
+        <div className="qatalink-tour-instruction">{steps[step].action}</div>
+        {!targetFound&&<div className="qatalink-tour-searching">Recherche de l’élément…</div>}
         <div className="qatalink-tour-actions">
           <button className="qatalink-tour-skip" onClick={skip}>Ignorer le guide</button>
-          <div>{step>0&&<button className="btn btn-ghost" onClick={prev}><ArrowLeft size={15}/>Précédent</button>}<button className="btn btn-primary" onClick={next}>{step===steps.length-1?<><Check size={15}/>Terminer</>:<>Suivant<ArrowRight size={15}/></>}</button></div>
+          <button className="btn btn-primary" onClick={pointAgain} disabled={!targetFound}><MousePointer2 size={15}/>Me montrer</button>
         </div>
       </section>
-    </div>}
+    </>}
   </>;
 }
