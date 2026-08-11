@@ -5,17 +5,18 @@ const SUPABASE_URL=process.env.NEXT_PUBLIC_SUPABASE_URL||'https://rifjsvbbhsnpif
 const SUPABASE_KEY=process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY||'sb_publishable_5A_EpEK4Jrwh-3-NT43RxA_0iIP9Tdl';
 
 function addMonths(base:Date,months:number){const d=new Date(base);d.setMonth(d.getMonth()+months);return d;}
+function normalizePaymentKey(value:string|undefined){let key=(value||'').replace(/^\uFEFF/,'').trim();if((key.startsWith('"')&&key.endsWith('"'))||(key.startsWith("'")&&key.endsWith("'")))key=key.slice(1,-1).trim();return key.replace(/^Bearer\s+/i,'').replace(/[\u200B-\u200D\u2060]/g,'').trim();}
 
 export async function POST(req:NextRequest){
-  const key=process.env.MAKETOU_API_KEY;
+  const key=normalizePaymentKey(process.env.MAKETOU_API_KEY);
   if(!key)return NextResponse.json({error:'PAYMENT_UNAVAILABLE'},{status:503});
   try{
     const auth=req.headers.get('authorization')||'';
     const token=auth.startsWith('Bearer ')?auth.slice(7):'';
-    if(!token)return NextResponse.json({error:'Unauthorized'},{status:401});
+    if(!token)return NextResponse.json({error:'SESSION_EXPIRED',message:'Votre session a expiré. Actualisez la page puis réessayez.'},{status:401});
     const supabase=createClient(SUPABASE_URL,SUPABASE_KEY,{global:{headers:{Authorization:`Bearer ${token}`}}});
     const {data:{user},error:userError}=await supabase.auth.getUser(token);
-    if(userError||!user)return NextResponse.json({error:'Unauthorized'},{status:401});
+    if(userError||!user)return NextResponse.json({error:'SESSION_EXPIRED',message:'Votre session a expiré. Actualisez la page puis réessayez.'},{status:401});
 
     const body=await req.json().catch(()=>({}));
     const requestedCartId=String(body?.cart_id||'').trim();
@@ -38,7 +39,7 @@ export async function POST(req:NextRequest){
 
     const r=await fetch(`https://api.maketou.net/api/v1/stores/cart/${encodeURIComponent(payment.provider_cart_id)}`,{headers:{Authorization:`Bearer ${key}`},cache:'no-store'});
     const data=await r.json().catch(()=>({}));
-    if(!r.ok)return NextResponse.json({status:'pending'},{status:200});
+    if(!r.ok)return NextResponse.json({status:'pending'});
     if(data.status!=='completed')return NextResponse.json({status:data.status||'pending'});
 
     const amount=Number(data.total_price??payment.amount_minor);
