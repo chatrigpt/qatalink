@@ -2,26 +2,40 @@
 
 import {useEffect,useMemo,useState} from 'react';
 import {createPortal} from 'react-dom';
-import {RefreshCw,ArrowUpRight} from 'lucide-react';
+import {RefreshCw,ArrowUpRight,CreditCard} from 'lucide-react';
 import {createSupabaseBrowserClient} from '@/lib/supabase';
 
 type Sub={plan_code:string;status:string;current_period_end:string|null}|null;
 
 function isCurrent(sub:Sub){return !!sub&&(sub.status==='active'||sub.status==='trialing')&&(!sub.current_period_end||new Date(sub.current_period_end).getTime()>Date.now())}
+function planName(sub:Sub){
+  if(!isCurrent(sub))return'GRATUIT';
+  if(sub?.status==='trialing'&&sub.plan_code==='trial')return'ESSAI 24 H';
+  if(sub?.plan_code==='static')return'BASIC';
+  if(sub?.plan_code==='interactive')return'INTERACTIF';
+  if(sub?.plan_code==='linkhub')return'VITRINE';
+  return'GRATUIT';
+}
 
 export function DashboardUtilityControls(){
   const supabase=useMemo(()=>createSupabaseBrowserClient(),[]);
   const [headerTarget,setHeaderTarget]=useState<Element|null>(null);
+  const [titleTarget,setTitleTarget]=useState<Element|null>(null);
   const [subscriptionTarget,setSubscriptionTarget]=useState<Element|null>(null);
   const [sub,setSub]=useState<Sub>(null);
+  const [showSubscription,setShowSubscription]=useState(false);
   const [refreshing,setRefreshing]=useState(false);
 
   useEffect(()=>{
     let cancelled=false;
     const resolve=()=>{
-      setHeaderTarget(document.querySelector('.dash-v3-actions'));
+      const actions=document.querySelector('.dash-v3-actions');
+      setHeaderTarget(actions);
       const title=document.querySelector('.dash-v3-top h1')?.textContent||'';
-      if(title.includes('Abonnement')){
+      const onSubscription=title.includes('Abonnement');
+      setShowSubscription(onSubscription);
+      setTitleTarget(document.querySelector('.dash-v3-top > div:first-child'));
+      if(onSubscription){
         const main=document.querySelector('.dash-v3-main');
         const sections=main?.querySelectorAll(':scope > .dash-section');
         setSubscriptionTarget(sections&&sections.length?sections[0]:null);
@@ -42,6 +56,13 @@ export function DashboardUtilityControls(){
     return()=>{cancelled=true;observer.disconnect();document.removeEventListener('click',click,true)};
   },[supabase]);
 
+  useEffect(()=>{
+    if(!titleTarget)return;
+    const native=titleTarget.querySelector<HTMLElement>(':scope > .eyebrow');
+    if(native)native.style.display='none';
+    return()=>{if(native)native.style.display=''};
+  },[titleTarget]);
+
   async function refreshApp(){
     if(refreshing)return;setRefreshing(true);
     try{
@@ -61,9 +82,12 @@ export function DashboardUtilityControls(){
   const valid=isCurrent(sub);
   const trial=valid&&sub?.status==='trialing'&&sub.plan_code==='trial';
   const label=trial?'Payer mon abonnement':valid?'Prendre un abonnement supérieur':'Payer mon abonnement';
+  const currentPlan=planName(sub);
 
   return <>
+    {titleTarget&&createPortal(<span className="eyebrow dashboard-correct-plan">{currentPlan}</span>,titleTarget)}
     {headerTarget&&createPortal(<button className="btn btn-ghost dashboard-refresh-btn" onClick={refreshApp} disabled={refreshing} title="Actualiser l’application"><RefreshCw size={16}/><span>{refreshing?'Actualisation…':'Actualiser'}</span></button>,headerTarget)}
+    {showSubscription&&headerTarget&&createPortal(<button className="btn btn-primary dashboard-subscription-header-btn" onClick={openPaywall}><CreditCard size={16}/><span>{label}</span></button>,headerTarget)}
     {subscriptionTarget&&createPortal(<section className="dash-card subscription-paywall-cta"><div><span className="eyebrow">ABONNEMENT</span><h3>{label}</h3><p>Consultez les formules et choisissez celle qui vous convient.</p></div><button className="btn btn-primary" onClick={openPaywall}>{label}<ArrowUpRight size={16}/></button></section>,subscriptionTarget)}
   </>;
 }
