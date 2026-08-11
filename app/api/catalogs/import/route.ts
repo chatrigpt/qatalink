@@ -15,6 +15,14 @@ function normalizePrice(v:any){
   return Number.isFinite(n)?Math.max(0,Math.round(n)):0;
 }
 
+function normalizeWhatsapp(v:any){
+  const raw=String(v??'').trim();
+  if(!raw)return null;
+  const digits=raw.replace(/\D/g,'');
+  if(!digits)return null;
+  return `+${digits}`;
+}
+
 export async function POST(req:NextRequest){
   try{
     const auth=req.headers.get('authorization')||'';
@@ -35,6 +43,7 @@ export async function POST(req:NextRequest){
     const payload=body?.catalog||{};
     const presetId=String(body?.preset_id||'').trim();
     const requestedBusinessName=String(body?.business_name||payload?.business?.name||'').trim();
+    const whatsappNumber=normalizeWhatsapp(body?.whatsapp_number||payload?.business?.phone_whatsapp||payload?.business?.whatsapp_number);
 
     let preset:any=null;
     if(presetId){
@@ -54,12 +63,12 @@ export async function POST(req:NextRequest){
     if(preset?.business_type)businessPatch.business_type=preset.business_type;
     else if(payload?.business?.business_type)businessPatch.business_type=payload.business.business_type;
     if(payload?.business?.description)businessPatch.description=payload.business.description;
-    if(payload?.business?.phone_whatsapp)businessPatch.whatsapp_number=payload.business.phone_whatsapp;
+    if(whatsappNumber)businessPatch.whatsapp_number=whatsappNumber;
     if(payload?.business?.currency_code)businessPatch.currency_code=payload.business.currency_code;
 
     if(!businessId){
       const suffix=user.id.replace(/-/g,'').slice(0,8);
-      const {data:created,error:createError}=await supabase.from('businesses').insert({owner_user_id:user.id,name:businessName,slug:`${slugify(businessName)}-${suffix}`,business_type:preset?.business_type||payload?.business?.business_type||'other',currency_code:payload?.business?.currency_code||'XOF',country_code:payload?.business?.country_code||'CI',description:payload?.business?.description||null,whatsapp_number:payload?.business?.phone_whatsapp||null,theme_preset:presetId||null}).select('id').single();
+      const {data:created,error:createError}=await supabase.from('businesses').insert({owner_user_id:user.id,name:businessName,slug:`${slugify(businessName)}-${suffix}`,business_type:preset?.business_type||payload?.business?.business_type||'other',currency_code:payload?.business?.currency_code||'XOF',country_code:payload?.business?.country_code||'CI',description:payload?.business?.description||null,whatsapp_number:whatsappNumber,theme_preset:presetId||null}).select('id').single();
       if(createError||!created)return NextResponse.json({success:false,error:createError?.message||'Impossible de créer l’entreprise.'},{status:500});
       businessId=created.id;
     }else{
@@ -75,31 +84,11 @@ export async function POST(req:NextRequest){
     if(catalogError||!catalogRow)return NextResponse.json({success:false,error:catalogError?.message||'Impossible de créer le catalogue.'},{status:500});
 
     const theme={...(preset?.default_theme||{}),...(body?.theme_overrides||{})};
-    const {error:themeError}=await supabase.from('catalog_theme_settings').insert({
-      catalog_id:catalogRow.id,
-      preset_id:presetId||null,
-      primary_color:theme.primary_color||'#B5122B',
-      secondary_color:theme.secondary_color||'#F7E8EA',
-      background_color:theme.background_color||'#FFFFFF',
-      text_color:theme.text_color||'#171719',
-      heading_font:theme.heading_font||'Plus Jakarta Sans',
-      body_font:theme.body_font||'Plus Jakarta Sans',
-      border_radius:theme.border_radius||'18px',
-      card_style:theme.card_style||'soft',
-      button_style:theme.button_style||'rounded',
-      layout_style:theme.layout_style||'cards',
-      hero_style:theme.hero_style||'minimal',
-      show_business_name:true,
-      show_logo:true,
-      show_prices:true,
-      header_alignment:'left'
-    });
+    const {error:themeError}=await supabase.from('catalog_theme_settings').insert({catalog_id:catalogRow.id,preset_id:presetId||null,primary_color:theme.primary_color||'#B5122B',secondary_color:theme.secondary_color||'#F7E8EA',background_color:theme.background_color||'#FFFFFF',text_color:theme.text_color||'#171719',heading_font:theme.heading_font||'Plus Jakarta Sans',body_font:theme.body_font||'Plus Jakarta Sans',border_radius:theme.border_radius||'18px',card_style:theme.card_style||'soft',button_style:theme.button_style||'rounded',layout_style:theme.layout_style||'cards',hero_style:theme.hero_style||'minimal',show_business_name:true,show_logo:true,show_prices:true,header_alignment:'left'});
     if(themeError)return NextResponse.json({success:false,error:themeError.message},{status:500});
 
     let categories=Array.isArray(payload?.categories)?payload.categories:[];
-    if(!categories.length&&Array.isArray(preset?.default_categories)){
-      categories=preset.default_categories.map((name:string,index:number)=>({name,sort_order:index+1,items:[]}));
-    }
+    if(!categories.length&&Array.isArray(preset?.default_categories))categories=preset.default_categories.map((name:string,index:number)=>({name,sort_order:index+1,items:[]}));
     if(!categories.length&&sourceType==='manual')categories=[{name:'Catégorie 1',sort_order:1,items:[]}];
 
     const itemIds:string[]=[];
