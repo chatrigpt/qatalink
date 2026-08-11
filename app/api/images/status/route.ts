@@ -4,13 +4,14 @@ import {createClient} from '@supabase/supabase-js';
 export const runtime='nodejs';
 const SUPABASE_URL=process.env.NEXT_PUBLIC_SUPABASE_URL||'https://rifjsvbbhsnpifgooenl.supabase.co';
 const SUPABASE_KEY=process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY||'';
+function normalizePoyoKey(value:string|undefined){let key=(value||'').trim();if((key.startsWith('"')&&key.endsWith('"'))||(key.startsWith("'")&&key.endsWith("'")))key=key.slice(1,-1).trim();key=key.replace(/^Bearer\s+/i,'').trim();return key}
 function extensionFor(contentType:string,url:string){if(contentType.includes('webp'))return'webp';if(contentType.includes('jpeg')||contentType.includes('jpg'))return'jpg';if(contentType.includes('png'))return'png';return url.match(/\.([a-zA-Z0-9]{2,5})(?:\?|$)/)?.[1]?.toLowerCase()||'png'}
 async function refund(supabase:any,job:any){if(job.credit_debited&&!job.credit_refunded){const {data}=await supabase.rpc('refund_failed_image_credits',{p_business_id:job.business_id,p_job_id:job.id});return data===null||data===undefined?null:Number(data)}return null}
-async function submitFallback(key:string,prompt:string){const r=await fetch('https://api.poyo.ai/api/generate/submit',{method:'POST',headers:{Authorization:`Bearer ${key}`,'Content-Type':'application/json'},body:JSON.stringify({model:'nano-banana-2-new',input:{prompt,size:'1:1',resolution:'2K'}}),cache:'no-store'});const data:any=await r.json().catch(()=>null);return {ok:r.ok&&!!data?.data?.task_id,data,taskId:data?.data?.task_id}}
+async function submitFallback(key:string,prompt:string){const r=await fetch('https://api.poyo.ai/api/generate/submit',{method:'POST',headers:{Authorization:`Bearer ${key}`,'Content-Type':'application/json'},body:JSON.stringify({model:'nano-banana-2-new',input:{prompt,size:'1:1',resolution:'2K'}}),cache:'no-store'});const data:any=await r.json().catch(()=>null);return {ok:r.ok&&!!data?.data?.task_id,status:r.status,data,taskId:data?.data?.task_id}}
 
 export async function POST(req:NextRequest){
   try{
-    const key=process.env.POYO_API_KEY;if(!key)return NextResponse.json({success:false,error:'GENERATION_UNAVAILABLE'},{status:503});
+    const key=normalizePoyoKey(process.env.POYO_API_KEY);if(!key)return NextResponse.json({success:false,error:'GENERATION_UNAVAILABLE'},{status:503});
     const auth=req.headers.get('authorization')||'';const token=auth.startsWith('Bearer ')?auth.slice(7):'';if(!token)return NextResponse.json({success:false,error:'Unauthorized'},{status:401});
     const supabase=createClient(SUPABASE_URL,SUPABASE_KEY,{global:{headers:{Authorization:`Bearer ${token}`}}});const {data:{user},error:userError}=await supabase.auth.getUser(token);if(userError||!user)return NextResponse.json({success:false,error:'Unauthorized'},{status:401});
     const body=await req.json();const jobIds=(Array.isArray(body?.job_ids)?body.job_ids:[body?.job_id]).filter(Boolean).slice(0,50);if(!jobIds.length)return NextResponse.json({success:false,error:'NO_JOBS'},{status:400});
@@ -20,7 +21,7 @@ export async function POST(req:NextRequest){
       if(job.status==='completed'){results.push({job_id:job.id,item_id:job.item_id,status:'completed',image_url:job.result_image_url});continue}
       if(job.status==='failed'){results.push({job_id:job.id,item_id:job.item_id,status:'failed',error:'GENERATION_FAILED',refunded:job.credit_refunded});continue}
       if(!job.provider_task_id){await supabase.from('item_image_generation_jobs').update({status:'failed',error_message:'MISSING_TASK',completed_at:new Date().toISOString()}).eq('id',job.id);const balance=await refund(supabase,job);results.push({job_id:job.id,item_id:job.item_id,status:'failed',error:'GENERATION_FAILED',refunded:true,balance});continue}
-      const provider=await fetch(`https://api.poyo.ai/api/generate/status/${encodeURIComponent(job.provider_task_id)}`,{headers:{Authorization:`Bearer ${key}`},cache:'no-store'});const providerData:any=await provider.json().catch(()=>null);if(!provider.ok){results.push({job_id:job.id,item_id:job.item_id,status:'processing'});continue}
+      const provider=await fetch(`https://api.poyo.ai/api/generate/status/${encodeURIComponent(job.provider_task_id)}`,{headers:{Authorization:`Bearer ${key}`},cache:'no-store'});const providerData:any=await provider.json().catch(()=>null);if(provider.status===401){await supabase.from('item_image_generation_jobs').update({error_message:'POYO_AUTH_FAILED',provider_payload:{...(providerData||{}),http_status:401}}).eq('id',job.id);results.push({job_id:job.id,item_id:job.item_id,status:'processing',error:'POYO_AUTH_FAILED'});continue}if(!provider.ok){results.push({job_id:job.id,item_id:job.item_id,status:'processing'});continue}
       const task=providerData?.data||{};
       if(task.status==='failed'){
         const alreadyFallback=String(job.provider||'').includes('nano-banana');
