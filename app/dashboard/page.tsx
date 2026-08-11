@@ -17,6 +17,7 @@ export default function DashboardPage(){
   return <>
     <DashboardStorageGuard/>
     <DashboardSafeBoundary critical><DashboardAppV3/></DashboardSafeBoundary>
+    <DashboardSafeBoundary><DashboardUtilityControls/></DashboardSafeBoundary>
     <DashboardSafeBoundary><DashboardAnalytics/></DashboardSafeBoundary>
     <DashboardSafeBoundary><DashboardAdvancedControls/></DashboardSafeBoundary>
     <DashboardSafeBoundary><DashboardVitrineMedia/></DashboardSafeBoundary>
@@ -25,7 +26,6 @@ export default function DashboardPage(){
     <DashboardSafeBoundary><DashboardSidebarTools/></DashboardSafeBoundary>
     <DashboardSafeBoundary><DashboardSubscriptionStatus/></DashboardSafeBoundary>
     <DashboardSafeBoundary><TrialCreditAccess/></DashboardSafeBoundary>
-    <DashboardSafeBoundary><DashboardUtilityControls/></DashboardSafeBoundary>
     <DashboardSafeBoundary><TrialConversionCoach/></DashboardSafeBoundary>
     <DashboardSafeBoundary><DashboardLogoutButton/></DashboardSafeBoundary>
     <DashboardSafeBoundary><NewUserGuide/></DashboardSafeBoundary>
