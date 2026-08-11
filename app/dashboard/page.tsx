@@ -7,6 +7,7 @@ import { DashboardCustomerFlow } from '@/components/dashboard-customer-flow';
 import { DashboardAnalytics } from '@/components/dashboard-analytics';
 import { DashboardSafeBoundary, DashboardStorageGuard } from '@/components/dashboard-safe-boundary';
 import { NewUserGuide } from '@/components/new-user-guide';
+import { SupportChat } from '@/components/support-chat';
 
 export default function DashboardPage(){
   return <>
@@ -16,6 +17,7 @@ export default function DashboardPage(){
     <DashboardSafeBoundary><DashboardAdvancedControls/></DashboardSafeBoundary>
     <DashboardSafeBoundary><DashboardVitrineMedia/></DashboardSafeBoundary>
     <DashboardSafeBoundary><DashboardCustomerFlow/></DashboardSafeBoundary>
+    <DashboardSafeBoundary><SupportChat/></DashboardSafeBoundary>
     <DashboardSafeBoundary><DashboardSidebarTools/></DashboardSafeBoundary>
     <DashboardSafeBoundary><DashboardLogoutButton/></DashboardSafeBoundary>
     <DashboardSafeBoundary><NewUserGuide/></DashboardSafeBoundary>
