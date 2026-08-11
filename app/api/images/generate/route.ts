@@ -1,5 +1,6 @@
 import {NextRequest,NextResponse} from 'next/server';
 import {createClient} from '@supabase/supabase-js';
+import {createHash} from 'crypto';
 
 export const runtime='nodejs';
 const SUPABASE_URL=process.env.NEXT_PUBLIC_SUPABASE_URL||'https://rifjsvbbhsnpifgooenl.supabase.co';
@@ -7,10 +8,21 @@ const SUPABASE_KEY=process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY||'';
 const IMAGE_CREDIT_COST=5;
 
 function normalizePoyoKey(value:string|undefined){
-  let key=(value||'').trim();
+  let key=(value||'').replace(/[\u200B-\u200D\u2060\uFEFF]/g,'').trim();
   if((key.startsWith('"')&&key.endsWith('"'))||(key.startsWith("'")&&key.endsWith("'"))) key=key.slice(1,-1).trim();
   key=key.replace(/^Bearer\s+/i,'').trim();
   return key;
+}
+
+function keyDiagnostics(key:string){
+  return {
+    key_length:key.length,
+    key_fingerprint:createHash('sha256').update(key).digest('hex').slice(0,12),
+    has_internal_whitespace:/\s/.test(key),
+    vercel_env:process.env.VERCEL_ENV||null,
+    vercel_region:process.env.VERCEL_REGION||null,
+    deployment_id:process.env.VERCEL_DEPLOYMENT_ID||null,
+  };
 }
 
 function buildPrompt(input:{businessName:string;businessType:string;catalogTitle:string;categoryName:string;itemName:string;description:string;seedPrompt:string}){
@@ -30,7 +42,9 @@ async function submitModel(key:string,model:string,prompt:string){
 
 export async function POST(req:NextRequest){
   try{
-    const poyoKey=normalizePoyoKey(process.env.POYO_API_KEY);if(!poyoKey)return NextResponse.json({success:false,error:'GENERATION_UNAVAILABLE'},{status:503});
+    const poyoKey=normalizePoyoKey(process.env.POYO_API_KEY);
+    if(!poyoKey)return NextResponse.json({success:false,error:'GENERATION_UNAVAILABLE',diagnostics:{key_present:false,vercel_env:process.env.VERCEL_ENV||null}},{status:503});
+    const diagnostics=keyDiagnostics(poyoKey);
     const auth=req.headers.get('authorization')||'';const token=auth.startsWith('Bearer ')?auth.slice(7):'';if(!token)return NextResponse.json({success:false,error:'Unauthorized'},{status:401});
     const supabase=createClient(SUPABASE_URL,SUPABASE_KEY,{global:{headers:{Authorization:`Bearer ${token}`}}});
     const {data:{user},error:userError}=await supabase.auth.getUser(token);if(userError||!user)return NextResponse.json({success:false,error:'Unauthorized'},{status:401});
@@ -48,10 +62,17 @@ export async function POST(req:NextRequest){
       const {data:job,error:jobError}=await supabase.from('item_image_generation_jobs').insert({business_id:businessId,item_id:item.id,prompt,status:'pending',provider:'poyo:gpt-image-2',credit_cost:IMAGE_CREDIT_COST}).select('id').single();if(jobError||!job){jobs.push({item_id:itemId,error:'JOB_CREATE_FAILED'});continue}
       const {data:balanceAfter,error:creditError}=await supabase.rpc('consume_image_credits',{p_business_id:businessId,p_job_id:job.id,p_cost:IMAGE_CREDIT_COST});if(creditError){await supabase.from('item_image_generation_jobs').update({status:'failed',error_message:'CREDIT_ERROR',completed_at:new Date().toISOString()}).eq('id',job.id);jobs.push({item_id:itemId,job_id:job.id,error:'CREDIT_ERROR'});continue}lastBalance=Number(balanceAfter??lastBalance-IMAGE_CREDIT_COST);
       let submitted=await submitModel(poyoKey,'gpt-image-2',prompt);let provider='poyo:gpt-image-2';
-      if(!submitted.ok&&submitted.status!==401){submitted=await submitModel(poyoKey,'nano-banana-2-new',prompt);provider='poyo:nano-banana-2-new'}
-      if(!submitted.ok){await supabase.from('item_image_generation_jobs').update({status:'failed',provider,error_message:String(submitted.error||'GENERATION_FAILED'),provider_payload:{...(submitted.data||{}),http_status:submitted.status},completed_at:new Date().toISOString()}).eq('id',job.id);const {data:refunded}=await supabase.rpc('refund_failed_image_credits',{p_business_id:businessId,p_job_id:job.id});if(refunded!==null&&refunded!==undefined)lastBalance=Number(refunded);jobs.push({item_id:itemId,job_id:job.id,error:submitted.status===401?'POYO_AUTH_FAILED':'GENERATION_FAILED',provider_status:submitted.status,refunded:true});continue}
-      await supabase.from('item_image_generation_jobs').update({status:'processing',provider,provider_task_id:submitted.taskId,provider_payload:{...submitted.data,fallback_used:provider.includes('nano-banana')}}).eq('id',job.id);jobs.push({item_id:itemId,job_id:job.id,task_id:submitted.taskId,status:'processing',credit_cost:IMAGE_CREDIT_COST,balance:lastBalance});
+      if(!submitted.ok&&submitted.status!==401&&submitted.status!==403){submitted=await submitModel(poyoKey,'nano-banana-2-new',prompt);provider='poyo:nano-banana-2-new'}
+      if(!submitted.ok){
+        const authFailure=submitted.status===401||submitted.status===403;
+        const safePayload={...(submitted.data||{}),http_status:submitted.status,poyo_diagnostics:diagnostics};
+        await supabase.from('item_image_generation_jobs').update({status:'failed',provider,error_message:String(submitted.error||'GENERATION_FAILED'),provider_payload:safePayload,completed_at:new Date().toISOString()}).eq('id',job.id);
+        const {data:refunded}=await supabase.rpc('refund_failed_image_credits',{p_business_id:businessId,p_job_id:job.id});if(refunded!==null&&refunded!==undefined)lastBalance=Number(refunded);
+        console.error('[Qatalink:Poyo]',{status:submitted.status,error:submitted.error,...diagnostics});
+        jobs.push({item_id:itemId,job_id:job.id,error:authFailure?'POYO_AUTH_FAILED':'GENERATION_FAILED',provider_status:submitted.status,refunded:true,diagnostics:authFailure?diagnostics:undefined});continue
+      }
+      await supabase.from('item_image_generation_jobs').update({status:'processing',provider,provider_task_id:submitted.taskId,provider_payload:{...submitted.data,fallback_used:provider.includes('nano-banana'),poyo_diagnostics:diagnostics}}).eq('id',job.id);jobs.push({item_id:itemId,job_id:job.id,task_id:submitted.taskId,status:'processing',credit_cost:IMAGE_CREDIT_COST,balance:lastBalance});
     }
     return NextResponse.json({success:true,jobs,credit_cost_per_image:IMAGE_CREDIT_COST,balance:lastBalance,business_id:businessId});
-  }catch{return NextResponse.json({success:false,error:'GENERATION_FAILED'},{status:500})}
+  }catch(error){console.error('[Qatalink:ImagesGenerate]',error);return NextResponse.json({success:false,error:'GENERATION_FAILED'},{status:500})}
 }
