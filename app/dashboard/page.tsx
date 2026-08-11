@@ -11,7 +11,7 @@ import { SupportChat } from '@/components/support-chat';
 import { DashboardSubscriptionStatus } from '@/components/dashboard-subscription-status';
 import { TrialConversionCoach } from '@/components/trial-conversion-coach';
 import { TrialCreditAccess } from '@/components/trial-credit-access';
-import { SubscriptionEntryControls } from '@/components/subscription-entry-controls';
+import { DashboardUtilityControls } from '@/components/dashboard-utility-controls';
 
 export default function DashboardPage(){
   return <>
@@ -25,7 +25,7 @@ export default function DashboardPage(){
     <DashboardSafeBoundary><DashboardSidebarTools/></DashboardSafeBoundary>
     <DashboardSafeBoundary><DashboardSubscriptionStatus/></DashboardSafeBoundary>
     <DashboardSafeBoundary><TrialCreditAccess/></DashboardSafeBoundary>
-    <DashboardSafeBoundary><SubscriptionEntryControls/></DashboardSafeBoundary>
+    <DashboardSafeBoundary><DashboardUtilityControls/></DashboardSafeBoundary>
     <DashboardSafeBoundary><TrialConversionCoach/></DashboardSafeBoundary>
     <DashboardSafeBoundary><DashboardLogoutButton/></DashboardSafeBoundary>
     <DashboardSafeBoundary><NewUserGuide/></DashboardSafeBoundary>
