@@ -36,6 +36,30 @@ function scrub(root:Node){
   }
 }
 
+function findAccessToken(value:unknown):string|null{
+  if(!value||typeof value!=='object')return null;
+  if('access_token' in value&&typeof (value as any).access_token==='string')return (value as any).access_token;
+  for(const child of Object.values(value as Record<string,unknown>)){
+    const token=findAccessToken(child);
+    if(token)return token;
+  }
+  return null;
+}
+
+function currentStoredAccessToken(){
+  try{
+    for(let i=0;i<localStorage.length;i++){
+      const key=localStorage.key(i)||'';
+      if(!key.startsWith('sb-')||!key.endsWith('-auth-token'))continue;
+      const raw=localStorage.getItem(key);
+      if(!raw)continue;
+      const token=findAccessToken(JSON.parse(raw));
+      if(token)return token;
+    }
+  }catch{}
+  return null;
+}
+
 export function ProviderNameScrubber(){
   useEffect(()=>{
     scrub(document.body);
@@ -46,7 +70,20 @@ export function ProviderNameScrubber(){
       }
     });
     observer.observe(document.body,{subtree:true,childList:true,characterData:true});
-    return()=>observer.disconnect();
+
+    const originalFetch=window.fetch.bind(window);
+    window.fetch=async(input:RequestInfo|URL,init?:RequestInit)=>{
+      const url=typeof input==='string'?input:input instanceof URL?input.toString():input.url;
+      const isOwnApi=url.startsWith('/api/')||url.startsWith(`${window.location.origin}/api/`);
+      if(!isOwnApi)return originalFetch(input,init);
+      const freshToken=currentStoredAccessToken();
+      if(!freshToken)return originalFetch(input,init);
+      const headers=new Headers(init?.headers||(input instanceof Request?input.headers:undefined));
+      if(headers.has('Authorization'))headers.set('Authorization',`Bearer ${freshToken}`);
+      return originalFetch(input,{...init,headers});
+    };
+
+    return()=>{observer.disconnect();window.fetch=originalFetch};
   },[]);
   return null;
 }
