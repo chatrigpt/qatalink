@@ -23,6 +23,7 @@ import './mobile-hardening.css';
 import './onboarding-admin.css';
 import './onboarding-v3.css';
 import './support-chat.css';
+import './trial-conversion.css';
 import { Plus_Jakarta_Sans, Playfair_Display } from 'next/font/google';
 import { ThemeProvider } from '@/components/theme-provider';
 import { PwaInstallButton } from '@/components/pwa-install-button';
