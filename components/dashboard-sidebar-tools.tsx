@@ -2,7 +2,7 @@
 
 import {useEffect,useState} from 'react';
 import {createPortal} from 'react-dom';
-import {Headphones,Link2,Palette,Route,Settings,ShieldCheck} from 'lucide-react';
+import {Link2,Palette,Route,Settings,ShieldCheck} from 'lucide-react';
 import {createSupabaseBrowserClient} from '@/lib/supabase';
 
 function clickHidden(selector:string){const node=document.querySelector<HTMLButtonElement>(selector);node?.click()}
@@ -21,7 +21,6 @@ export function DashboardSidebarTools(){
     <button className="dash-tool-nav dash-tool-vitrine" onClick={()=>clickHidden('.vitrine-media-trigger')}><Link2 size={16}/><span>Vitrine & médias</span></button>
     <button className="dash-tool-nav dash-tool-flow" onClick={()=>window.dispatchEvent(new CustomEvent('qatalink:customer-flow-open'))}><Route size={16}/><span>Parcours client</span></button>
     <button className="dash-tool-nav dash-tool-settings" onClick={()=>clickByText('Paramètres')}><Settings size={16}/><span>Paramètre</span></button>
-    <button className="dash-tool-nav dash-tool-support" onClick={()=>window.dispatchEvent(new CustomEvent('qatalink:support-open'))}><Headphones size={16}/><span>Support</span></button>
     {isAdmin&&<button className="dash-tool-nav dash-tool-admin" onClick={()=>window.location.href='/admin'}><ShieldCheck size={16}/><span>Administration</span></button>}
   </>;
   return <>{desktop&&createPortal(tools,desktop)}{mobile&&createPortal(tools,mobile)}</>;
