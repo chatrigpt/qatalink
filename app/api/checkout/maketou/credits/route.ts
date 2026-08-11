@@ -7,17 +7,24 @@ const CREDIT_PACK_SIZE=100;
 const SUPABASE_URL=process.env.NEXT_PUBLIC_SUPABASE_URL||'https://rifjsvbbhsnpifgooenl.supabase.co';
 const SUPABASE_KEY=process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY||'sb_publishable_5A_EpEK4Jrwh-3-NT43RxA_0iIP9Tdl';
 
+function normalizePaymentKey(value:string|undefined){
+  let key=(value||'').replace(/^\uFEFF/,'').trim();
+  if((key.startsWith('"')&&key.endsWith('"'))||(key.startsWith("'")&&key.endsWith("'")))key=key.slice(1,-1).trim();
+  key=key.replace(/^Bearer\s+/i,'').replace(/[\u200B-\u200D\u2060]/g,'').trim();
+  return key;
+}
+
 export async function POST(req:NextRequest){
-  const key=process.env.MAKETOU_API_KEY;
+  const key=normalizePaymentKey(process.env.MAKETOU_API_KEY);
   if(!key)return NextResponse.json({error:'PAYMENT_UNAVAILABLE'},{status:503});
   try{
     const auth=req.headers.get('authorization')||'';
     const token=auth.startsWith('Bearer ')?auth.slice(7):'';
-    if(!token)return NextResponse.json({error:'Unauthorized'},{status:401});
+    if(!token)return NextResponse.json({error:'SESSION_EXPIRED',message:'Votre session a expiré. Actualisez la page puis réessayez.'},{status:401});
 
     const supabase=createClient(SUPABASE_URL,SUPABASE_KEY,{global:{headers:{Authorization:`Bearer ${token}`}}});
     const {data:{user},error:userError}=await supabase.auth.getUser(token);
-    if(userError||!user)return NextResponse.json({error:'Unauthorized'},{status:401});
+    if(userError||!user)return NextResponse.json({error:'SESSION_EXPIRED',message:'Votre session a expiré. Actualisez la page puis réessayez.'},{status:401});
 
     const {data:owned}=await supabase.from('businesses').select('id').eq('owner_user_id',user.id).order('created_at',{ascending:true}).limit(1);
     const businessId=owned?.[0]?.id;
@@ -46,7 +53,7 @@ export async function POST(req:NextRequest){
 
     const r=await fetch('https://api.maketou.net/api/v1/stores/cart/checkout',{method:'POST',headers:{'Content-Type':'application/json',Authorization:`Bearer ${key}`},body:JSON.stringify(payload),cache:'no-store'});
     const data=await r.json().catch(()=>null);
-    if(!r.ok)return NextResponse.json({...data,error:'Impossible de démarrer le paiement.'},{status:r.status});
+    if(!r.ok)return NextResponse.json({error:'Impossible de démarrer le paiement.',provider_status:r.status},{status:r.status});
 
     const cartId=data?.cart?.id||data?.id;
     if(cartId){
