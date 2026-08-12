@@ -5,6 +5,7 @@ import { DashboardVitrineMedia } from '@/components/dashboard-vitrine-media';
 import { DashboardSidebarTools } from '@/components/dashboard-sidebar-tools';
 import { DashboardCustomerFlow } from '@/components/dashboard-customer-flow';
 import { DashboardAnalytics } from '@/components/dashboard-analytics';
+import { DashboardActivationEngine } from '@/components/dashboard-activation-engine';
 import { DashboardSafeBoundary, DashboardStorageGuard } from '@/components/dashboard-safe-boundary';
 import { NewUserGuide } from '@/components/new-user-guide';
 import { SupportChat } from '@/components/support-chat';
@@ -18,6 +19,7 @@ export default function DashboardPage(){
     <DashboardStorageGuard/>
     <DashboardSafeBoundary critical><DashboardAppV3/></DashboardSafeBoundary>
     <DashboardSafeBoundary><DashboardUtilityControls/></DashboardSafeBoundary>
+    <DashboardSafeBoundary><DashboardActivationEngine/></DashboardSafeBoundary>
     <DashboardSafeBoundary><DashboardAnalytics/></DashboardSafeBoundary>
     <DashboardSafeBoundary><DashboardAdvancedControls/></DashboardSafeBoundary>
     <DashboardSafeBoundary><DashboardVitrineMedia/></DashboardSafeBoundary>
