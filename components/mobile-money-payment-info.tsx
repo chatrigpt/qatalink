@@ -2,7 +2,8 @@
 
 import {useEffect,useState} from 'react';
 import {createPortal} from 'react-dom';
-import {ShieldCheck,Smartphone} from 'lucide-react';
+import {CreditCard,ShieldCheck} from 'lucide-react';
+import {PaymentTrustBadge} from '@/components/payment-trust-badge';
 
 export function MobileMoneyPaymentInfo(){
   const [host,setHost]=useState<HTMLElement|null>(null);
@@ -48,12 +49,13 @@ export function MobileMoneyPaymentInfo(){
   if(!host)return null;
 
   return createPortal(
-    <section className="mobile-money-subscription-banner" aria-label="Paiement Mobile Money">
-      <div className="mobile-money-subscription-icon"><Smartphone size={25}/></div>
+    <section className="mobile-money-subscription-banner" aria-label="Moyens de paiement Qatalink">
+      <div className="mobile-money-subscription-icon"><CreditCard size={25}/></div>
       <div className="mobile-money-subscription-copy">
-        <div className="mobile-money-subscription-title"><b>Paiement par Mobile Money</b><span><ShieldCheck size={14}/> Paiement sécurisé</span></div>
-        <p>Tous les abonnements Qatalink — mensuels ou annuels — ainsi que les recharges de crédits se règlent par <strong>Mobile Money</strong>.</p>
-        <div className="mobile-money-subscription-tags"><span>Abonnements mensuels</span><span>Abonnements annuels</span><span>Recharges de crédits</span></div>
+        <div className="mobile-money-subscription-title"><b>Mobile Money ou carte bancaire</b><span><ShieldCheck size={14}/> Paiement sécurisé</span></div>
+        <p>Payez votre abonnement Qatalink ou rechargez vos crédits depuis <strong>l’Afrique ou partout dans le monde</strong>, par Mobile Money ou carte bancaire.</p>
+        <div className="mobile-money-subscription-tags"><span>Mobile Money</span><span>Carte bancaire</span><span>Abonnements & crédits</span></div>
+        <PaymentTrustBadge compact/>
       </div>
     </section>,
     host
