@@ -52,11 +52,20 @@ export async function POST(req:NextRequest){
     const {data:{user},error:userError}=await supabase.auth.getUser(token);
     if(userError||!user)return NextResponse.json({success:false,error:'Unauthorized'},{status:401});
 
-    const {data:subs,error:subError}=await supabase.from('subscriptions').select('status,current_period_end').in('status',['active','trialing']).order('created_at',{ascending:false}).limit(1);
+    const {data:owned}=await supabase.from('businesses').select('id').eq('owner_user_id',user.id).order('created_at',{ascending:true}).limit(1);
+    const businessId=owned?.[0]?.id||null;
+    const {data:subRows,error:subError}=businessId
+      ? await supabase.from('subscriptions').select('plan_code,status,current_period_end').eq('business_id',businessId).order('created_at',{ascending:false}).limit(1)
+      : {data:[],error:null as any};
     if(subError)return NextResponse.json({success:false,error:'Subscription check failed'},{status:500});
-    const sub=subs?.[0];
-    const valid=!!sub&&(!sub.current_period_end||new Date(sub.current_period_end).getTime()>Date.now());
-    if(!valid)return NextResponse.json({success:false,error:'SUBSCRIPTION_REQUIRED'},{status:402});
+    const sub=subRows?.[0]||null;
+    const valid=!!sub&&(sub.status==='active'||sub.status==='trialing')&&(!sub.current_period_end||new Date(sub.current_period_end).getTime()>Date.now());
+    let pretrial=!sub;
+    if(pretrial&&businessId){
+      const {count}=await supabase.from('catalogs').select('*',{count:'exact',head:true}).eq('business_id',businessId);
+      pretrial=(count||0)===0;
+    }
+    if(!valid&&!pretrial)return NextResponse.json({success:false,error:'SUBSCRIPTION_REQUIRED'},{status:402});
 
     const body=await req.json();
     const inputType=body?.input_type==='text'?'text':'image';
@@ -101,7 +110,7 @@ export async function POST(req:NextRequest){
     catalog.schema='qatalink_catalog_v2';
     catalog.source_type=inputType;
 
-    return NextResponse.json({success:true,catalog,usage:providerData?.usage||null});
+    return NextResponse.json({success:true,catalog,usage:providerData?.usage||null,pretrial});
   }catch(e:any){
     return NextResponse.json({success:false,error:e?.message||'OCR failed'},{status:500});
   }
