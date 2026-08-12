@@ -7,7 +7,7 @@ import {createSupabaseBrowserClient} from '@/lib/supabase';
 
 type Sub={plan_code:string;status:string;current_period_start:string|null;current_period_end:string|null};
 
-function planLabel(v:string){if(v==='static')return'Basic';if(v==='interactive')return'Interactif';if(v==='linkhub')return'Vitrine';if(v==='trial')return'Essai 24 h';return'—'}
+function planLabel(v:string){if(v==='static')return'Basic';if(v==='interactive')return'Interactif';if(v==='linkhub')return'Vitrine';if(v==='trial')return'Essai 7 jours';return'—'}
 function date(v:string|null){return v?new Intl.DateTimeFormat('fr-FR',{day:'2-digit',month:'long',year:'numeric'}).format(new Date(v)):'Sans date de fin'}
 
 export function DashboardSubscriptionStatus(){
@@ -40,10 +40,14 @@ export function DashboardSubscriptionStatus(){
   },[supabase]);
 
   if(!target)return null;
-  const valid=!!sub&&(sub.status==='active'||sub.status==='trialing')&&(!sub.current_period_end||new Date(sub.current_period_end).getTime()>Date.now());
+  const now=Date.now();
+  const end=sub?.current_period_end?new Date(sub.current_period_end).getTime():null;
+  const valid=!!sub&&(sub.status==='active'||sub.status==='trialing')&&(!end||end>now);
+  const grace=!!sub&&sub.plan_code==='trial'&&!!end&&end<=now&&end+48*36e5>now;
+  const statusLabel=valid?'Actif':grace?'Grâce 48 h':'Inactif';
   return createPortal(<section className="dash-card subscription-current-card">
-    <div className="subscription-current-icon">{valid?<CheckCircle2/>:<CreditCard/>}</div>
+    <div className="subscription-current-icon">{valid||grace?<CheckCircle2/>:<CreditCard/>}</div>
     <div className="subscription-current-copy"><span className="eyebrow">ABONNEMENT EN COURS</span><h3>{sub?planLabel(sub.plan_code):'Aucune formule active'}</h3><p>{businessName}</p></div>
-    <div className="subscription-current-meta"><span className={'admin-status '+(valid?'active':'none')}>{valid?'Actif':'Inactif'}</span>{sub?.current_period_end&&<small><Clock3 size={13}/> Jusqu’au {date(sub.current_period_end)}</small>}</div>
+    <div className="subscription-current-meta"><span className={'admin-status '+(valid?'active':grace?'pending':'none')}>{statusLabel}</span>{sub?.current_period_end&&<small><Clock3 size={13}/>{grace?'Fin de grâce autour du ':valid?'Jusqu’au ':'Terminé le '}{date(grace?new Date(end!+48*36e5).toISOString():sub.current_period_end)}</small>}</div>
   </section>,target);
 }
