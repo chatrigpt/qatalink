@@ -20,6 +20,7 @@ import './qatalink-v3.css';
 import './pwa.css';
 import './landing-extras.css';
 import './activation-engine.css';
+import './trial-lifecycle.css';
 import './mobile-hardening.css';
 import './onboarding-admin.css';
 import './onboarding-v3.css';
