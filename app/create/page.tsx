@@ -8,6 +8,7 @@ import { PricingGate } from '@/components/pricing-gate';
 
 type Mode='image'|'text'|'blank';
 type Preset={id:string;label:string;business_type:string;catalog_type:string;default_catalog_title:string;default_categories:string[];default_theme:any};
+type Sub={plan_code:string;status:string;current_period_end:string|null};
 
 const presetIcons:Record<string,React.ReactNode>={restaurant:<UtensilsCrossed size={20}/>,hotel:<Hotel size={20}/>,spa_beauty:<Scissors size={20}/>,real_estate:<House size={20}/>,retail:<ShoppingBag size={20}/>};
 const countryCodes=[
@@ -27,6 +28,7 @@ export default function Create(){
   const [loading,setLoading]=useState(false);
   const [ready,setReady]=useState(false);
   const [hasAccess,setHasAccess]=useState(false);
+  const [pretrial,setPretrial]=useState(false);
   const [trialActive,setTrialActive]=useState(false);
   const [trialExpiresAt,setTrialExpiresAt]=useState<string|null>(null);
   const [gate,setGate]=useState(false);
@@ -44,14 +46,15 @@ export default function Create(){
     (async()=>{
       const {data:{session}}=await supabase.auth.getSession();
       if(!session){window.location.href='/login?next=/create';return;}
-      const [{data:subs},{data:presetRows},{data:owned}]=await Promise.all([
-        supabase.from('subscriptions').select('plan_code,status,current_period_end').in('status',['active','trialing']).order('created_at',{ascending:false}).limit(1),
+      const [{data:subRows},{data:presetRows},{data:owned}]=await Promise.all([
+        supabase.from('subscriptions').select('plan_code,status,current_period_end').order('created_at',{ascending:false}).limit(1),
         supabase.from('sector_presets').select('*').order('label'),
-        supabase.from('businesses').select('name,business_type,theme_preset,whatsapp_number').eq('owner_user_id',session.user.id).order('created_at',{ascending:true}).limit(1)
+        supabase.from('businesses').select('id,name,business_type,theme_preset,whatsapp_number').eq('owner_user_id',session.user.id).order('created_at',{ascending:true}).limit(1)
       ]);
-      const candidate=subs?.[0];
-      const valid=!!candidate&&(!candidate.current_period_end||new Date(candidate.current_period_end).getTime()>Date.now());
+      const candidate=(subRows?.[0]||null) as Sub|null;
+      const valid=!!candidate&&(candidate.status==='active'||candidate.status==='trialing')&&(!candidate.current_period_end||new Date(candidate.current_period_end).getTime()>Date.now());
       const trial=!!candidate&&candidate.plan_code==='trial'&&candidate.status==='trialing'&&valid;
+      const eligibleForFirstTrial=!candidate;
       const existing=owned?.[0];
       const rows=(presetRows||[]) as Preset[];
       setPresets(rows);
@@ -62,8 +65,12 @@ export default function Create(){
       setTitle(initialBusiness||rows.find(p=>p.id===initialPreset)?.default_catalog_title||'Catalogue principal');
       const existingPhone=String(existing?.whatsapp_number||'').replace(/\D/g,'');
       if(existingPhone){const match=countryCodes.find(c=>existingPhone.startsWith(digitsOnly(c[2])));if(match){setDialCode(match[2]);setWhatsappLocal(existingPhone.slice(digitsOnly(match[2]).length))}else setWhatsappLocal(existingPhone)}
-      setHasAccess(valid);setTrialActive(trial);setTrialExpiresAt(trial?candidate.current_period_end:null);setReady(true);
-      if(!valid)setGate(true);
+      setPretrial(eligibleForFirstTrial);
+      setHasAccess(valid||eligibleForFirstTrial);
+      setTrialActive(trial);
+      setTrialExpiresAt(trial?candidate?.current_period_end||null:null);
+      setReady(true);
+      if(!valid&&!eligibleForFirstTrial)setGate(true);
     })();
   },[supabase]);
 
@@ -74,8 +81,8 @@ export default function Create(){
   async function persistCatalog(session:any,catalog:any,sourceType:Mode){
     const r=await fetch('/api/catalogs/import',{method:'POST',headers:{'Content-Type':'application/json',Authorization:`Bearer ${session.access_token}`},body:JSON.stringify({source_type:sourceType,catalog,preset_id:presetId,business_name:businessName.trim(),catalog_title:title.trim(),whatsapp_number:whatsappNumber})});
     const data=await r.json();
-    if(r.status===402){setHasAccess(false);setTrialActive(false);setGate(true);throw new Error('Votre essai est terminé. Activez une formule pour continuer.')}
-    if(!r.ok)throw new Error('Impossible d’enregistrer le catalogue. Réessayez.');
+    if(r.status===402){setHasAccess(false);setPretrial(false);setTrialActive(false);setGate(true);throw new Error('Votre essai est terminé. Activez une formule pour continuer.')}
+    if(!r.ok)throw new Error(data?.message||data?.error||'Impossible d’enregistrer le catalogue. Réessayez.');
     return data;
   }
 
@@ -96,8 +103,8 @@ export default function Create(){
         setMsg(mode==='image'?'Analyse de votre image…':'Organisation de votre contenu…');
         const ocr=await fetch('/api/ocr',{method:'POST',headers:{'Content-Type':'application/json',Authorization:`Bearer ${session.access_token}`},body:JSON.stringify({input_type:mode,source,business_context:businessContext,preset:{id:presetId,label:selectedPreset?.label,categories:selectedPreset?.default_categories||[]}})});
         const ocrData=await ocr.json();
-        if(ocr.status===402){setHasAccess(false);setTrialActive(false);setGate(true);throw new Error('Votre essai est terminé. Activez une formule pour continuer.')}
-        if(!ocr.ok||!ocrData?.catalog)throw new Error('Impossible d’organiser ce contenu. Vérifiez votre image ou votre texte puis réessayez.');
+        if(ocr.status===402){setHasAccess(false);setPretrial(false);setTrialActive(false);setGate(true);throw new Error('Votre essai est terminé. Activez une formule pour continuer.')}
+        if(!ocr.ok||!ocrData?.catalog)throw new Error(ocrData?.message||ocrData?.error||'Impossible d’organiser ce contenu. Vérifiez votre image ou votre texte puis réessayez.');
         catalogPayload=ocrData.catalog;catalogPayload.business={...(catalogPayload.business||{}),...businessContext};catalogPayload.catalog={...(catalogPayload.catalog||{}),title:title.trim()||selectedPreset?.default_catalog_title||effectiveBusinessName,type:selectedPreset?.catalog_type||catalogPayload.catalog?.type||'catalog'};
       }
       setMsg('Création de votre catalogue…');const saved=await persistCatalog(session,catalogPayload,mode);localStorage.setItem('qatalink_import_preview',JSON.stringify({status:'completed',catalog_id:saved.catalog_id,source:mode,preset_id:presetId}));
@@ -109,7 +116,7 @@ export default function Create(){
   if(!ready)return <div className="auth-wrap"><div className="auth-card"><b>Préparation de votre espace…</b></div></div>;
   return <div className="auth-wrap create-wrap"><div className="auth-card create-card activation-create-card">
     <Link href="/dashboard" className="brand"><Image src="/qatalink-logo.png" width={34} height={34} alt="Qatalink"/>qatalink</Link>
-    <div className="create-activation-head"><span className="eyebrow">OBJECTIF : PREMIER CATALOGUE EN LIGNE</span><h1>Transformez ce que vous avez déjà</h1><p>{trialActive?'Tout est ouvert pendant 24 h. Commencez par obtenir un résultat visible, vous personnaliserez le reste ensuite.':'Importez une carte, collez un texte ou partez de zéro. Qatalink construit la première version pour vous.'}</p></div>
+    <div className="create-activation-head"><span className="eyebrow">OBJECTIF : PREMIER CATALOGUE EN LIGNE</span><h1>Transformez ce que vous avez déjà</h1><p>{trialActive?'Tout est ouvert pendant 7 jours. Commencez par obtenir un résultat visible, vous personnaliserez le reste ensuite.':pretrial?'Votre essai complet de 7 jours démarrera seulement quand ce premier catalogue sera créé. Vous ne perdez aucun temps avant le premier résultat.':'Importez une carte, collez un texte ou partez de zéro. Qatalink construit la première version pour vous.'}</p></div>
 
     <form className="form activation-create-form" onSubmit={start}>
       <section className="create-step-card"><div className="create-step-label"><span>1</span><div><b>Choisissez votre activité</b><small>Qatalink adapte automatiquement les catégories et le parcours client.</small></div></div><div className="preset-grid">{presets.map(p=><button key={p.id} type="button" className={'preset-card '+(presetId===p.id?'active':'')} onClick={()=>{setPresetId(p.id);setTitleTouched(false)}}><span>{presetIcons[p.id]||<Building2 size={20}/>}</span><b>{p.label}</b><small>{(p.default_categories||[]).slice(0,3).join(' · ')}</small></button>)}</div></section>
@@ -126,8 +133,8 @@ export default function Create(){
 
       {loading&&<div className="activation-progress" aria-live="polite"><div className={progressStep>=1?'done active':''}><span>1</span><b>Lecture du contenu</b></div><div className={progressStep>=2?'done active':''}><span>2</span><b>Organisation du catalogue</b></div><div className={progressStep>=3?'done active':''}><span>3</span><b>Préparation du rendu</b></div><p>{msg||'Traitement en cours…'}</p></div>}
       {!loading&&msg&&<div className="error">{msg}</div>}
-      <button className="btn btn-primary create-value-cta" disabled={loading}>{loading?'Votre catalogue prend forme…':mode==='blank'?'Créer et voir mon catalogue':'Créer et voir mon catalogue'}</button>
-      <small className="create-value-note">Vous pourrez modifier les prix, photos, catégories, couleurs et textes après la génération.</small>
+      <button className="btn btn-primary create-value-cta" disabled={loading}>{loading?'Votre catalogue prend forme…':'Créer et voir mon catalogue'}</button>
+      <small className="create-value-note">{pretrial?'Vos 7 jours commencent uniquement après cette création. ':''}Vous pourrez modifier les prix, photos, catégories, couleurs et textes après la génération.</small>
     </form>
   </div><PricingGate open={gate} onClose={()=>setGate(false)} title={trialActive?'Votre essai est en cours':'Choisissez une formule pour continuer'} trialActive={trialActive} trialExpiresAt={trialExpiresAt}/></div>
 }
