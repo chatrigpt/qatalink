@@ -13,11 +13,13 @@ import { DashboardSubscriptionStatus } from '@/components/dashboard-subscription
 import { TrialConversionCoach } from '@/components/trial-conversion-coach';
 import { TrialCreditAccess } from '@/components/trial-credit-access';
 import { DashboardUtilityControls } from '@/components/dashboard-utility-controls';
+import { TrialLifecycleBanner } from '@/components/trial-lifecycle-banner';
 
 export default function DashboardPage(){
   return <>
     <DashboardStorageGuard/>
     <DashboardSafeBoundary critical><DashboardAppV3/></DashboardSafeBoundary>
+    <DashboardSafeBoundary><TrialLifecycleBanner/></DashboardSafeBoundary>
     <DashboardSafeBoundary><DashboardUtilityControls/></DashboardSafeBoundary>
     <DashboardSafeBoundary><DashboardActivationEngine/></DashboardSafeBoundary>
     <DashboardSafeBoundary><DashboardAnalytics/></DashboardSafeBoundary>
