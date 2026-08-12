@@ -6,10 +6,12 @@ import {createSupabaseBrowserClient} from '@/lib/supabase';
 import './payment-return.css';
 
 type State='checking'|'success'|'pending'|'error'|'login';
+type PurchaseType='credits'|'subscription'|'';
 
 export default function PaymentReturnPage(){
   const supabase=useMemo(()=>createSupabaseBrowserClient(),[]);
   const [state,setState]=useState<State>('checking');
+  const [purchaseType,setPurchaseType]=useState<PurchaseType>('');
   const [message,setMessage]=useState('Confirmation de votre paiement…');
   const [details,setDetails]=useState('Cette vérification peut prendre quelques secondes.');
   const attempts=useRef(0);
@@ -37,15 +39,15 @@ export default function PaymentReturnPage(){
       const result=await response.json().catch(()=>({}));
 
       if(response.ok&&result.status==='completed'){
-        setState('success');
-        if(result.purchase_type==='credits'){
+        const type=result.purchase_type==='credits'?'credits':'subscription';
+        setPurchaseType(type);setState('success');
+        if(type==='credits'){
           setMessage('Crédits ajoutés avec succès');
-          setDetails(`${Number(result.credits_added||100)} crédits ont été ajoutés à votre compte.`);
+          setDetails(`${Number(result.credits_added||100)} crédits ont été ajoutés à votre compte. Vous pouvez reprendre vos illustrations immédiatement.`);
         }else{
-          setMessage('Paiement confirmé');
-          setDetails('Votre formule est maintenant active. Redirection vers votre espace…');
+          setMessage('Votre Qatalink reste en ligne ✓');
+          setDetails('Paiement confirmé. Profitez de ce moment pour partager votre QR et continuer à générer des visites et des contacts.');
         }
-        timer.current=setTimeout(()=>window.location.replace('/dashboard?payment=success'),1800);
         return;
       }
 
@@ -82,6 +84,8 @@ export default function PaymentReturnPage(){
       <h1>{message}</h1>
       <p>{details}</p>
       {(state==='checking'||state==='pending')&&<div className="payment-progress"><span/></div>}
+      {state==='success'&&purchaseType==='subscription'&&<><button className="payment-primary" onClick={()=>window.location.href='/dashboard?tab=qr'}>Partager mon catalogue maintenant</button><button className="payment-secondary" onClick={()=>window.location.href='/dashboard'}>Retour au tableau de bord</button></>}
+      {state==='success'&&purchaseType==='credits'&&<><button className="payment-primary" onClick={()=>window.location.href='/dashboard?tab=items'}>Reprendre mes illustrations</button><button className="payment-secondary" onClick={()=>window.location.href='/dashboard'}>Retour au tableau de bord</button></>}
       {state==='error'&&<button className="payment-primary" onClick={()=>{attempts.current=0;verify()}}><RefreshCw/> Vérifier à nouveau</button>}
       {state==='login'&&<button className="payment-primary" onClick={()=>window.location.href='/login?next=/payment/return'}>Se connecter</button>}
       {state==='error'&&<button className="payment-secondary" onClick={()=>window.location.href='/dashboard'}>Retour au tableau de bord</button>}
