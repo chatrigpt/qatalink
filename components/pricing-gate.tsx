@@ -1,7 +1,7 @@
 'use client';
 
 import { Check, Clock3, X } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { createSupabaseBrowserClient } from '@/lib/supabase';
 
 type Props = {open:boolean;onClose?:()=>void;title?:string;trialExpiresAt?:string|null;trialActive?:boolean};
@@ -82,7 +82,7 @@ export function PricingGate({open,onClose,title='Choisissez votre formule pour c
   const hasProof=!!proof&&(proof.views+proof.scans+proof.whatsapp)>0;
   const effectiveEnd=trialExpiresAt||trialContext?.end||null;
   const effectiveTrialActive=trialActive||!!trialContext?.active;
-  const remaining=useMemo(()=>effectiveEnd?Math.max(0,new Date(effectiveEnd).getTime()-now):0,[effectiveEnd,now]);
+  const remaining=effectiveEnd?Math.max(0,new Date(effectiveEnd).getTime()-now):0;
   const effectiveTitle=proof?.whatsapp? 'Votre catalogue génère déjà des contacts.' : hasProof? 'Votre catalogue est déjà utilisé.' : trialContext?.grace?'Votre essai est terminé. Gardez votre Qatalink actif.':title;
   const recommendedId:'interactive'='interactive';
 
