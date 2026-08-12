@@ -36,17 +36,21 @@ export default function Home(){return <>
     <div className="actions landing-nav-actions"><ThemeToggle/><Link className="btn btn-ghost" href="/login">Connexion</Link><Link className="btn btn-primary landing-create-btn" href="/create"><span className="landing-create-full">Créer mon catalogue</span><span className="landing-create-short">Créer</span></Link></div>
   </div></header>
   <main>
-    <section className="hero container">
-      <div className="pill"><Sparkles size={14}/> Essai complet gratuit pendant 24 h</div>
-      <h1>Le moyen le plus <span className="hero-simple-word">simple</span> de créer un <span className="gradient-text">menu </span><span className="hero-interactive-word">interactif</span></h1>
-      <p>Importez une photo ou un texte, choisissez votre secteur, personnalisez votre catalogue puis partagez votre QR permanent.</p>
-      <div className="hero-cta"><Link href="/create" className="btn btn-primary">Créer gratuitement <ArrowRight size={17}/></Link><a href="#how" className="btn btn-ghost">Comment ça marche</a></div>
+    <section className="hero container hero-conversion">
+      <div className="hero-conversion-copy">
+        <div className="pill"><Sparkles size={14}/> 24 h gratuites · aucune carte requise</div>
+        <h1>Transformez votre <span className="hero-simple-word">catalogue</span> en <span className="hero-interactive-word">expérience interactive</span></h1>
+        <p>Importez une photo ou un texte. Qatalink organise vos offres, crée un lien et un QR permanent, puis vous laisse modifier prix, photos, services et catégories sans rien réimprimer.</p>
+        <div className="hero-cta"><Link href="/create" className="btn btn-primary">Créer mon catalogue gratuitement <ArrowRight size={17}/></Link><a href="#how" className="btn btn-ghost">Voir comment ça marche</a></div>
+        <div className="hero-reassurance"><span><Check size={13}/>Premier rendu en quelques minutes</span><span><Check size={13}/>QR permanent</span><span><Check size={13}/>WhatsApp intégré</span></div>
+      </div>
+      <HeroActivationDemo/>
     </section>
 
-    <section className="marquee" id="demo"><div className="track">{[...demos,...demos].map((d,i)=><div className="phone" key={`${d.name}-${i}`}><video src={d.src} autoPlay muted loop playsInline preload="auto" disablePictureInPicture aria-label={`Démonstration ${d.name}`}/><div className="phone-label"><strong>{d.name}</strong><span>{d.label}</span></div></div>)}</div></section>
+    <section className="marquee" id="demo"><div className="track">{[...demos,...demos].map((d,i)=><div className="phone" key={`${d.name}-${i}`}><video src={d.src} autoPlay muted loop playsInline preload="metadata" disablePictureInPicture aria-label={`Démonstration ${d.name}`}/><div className="phone-label"><strong>{d.name}</strong><span>{d.label}</span></div></div>)}</div></section>
 
     <section className="section alt" id="features"><div className="container"><div className="section-head"><div className="eyebrow">Tout-en-un</div><h2>Votre catalogue devient un vrai outil commercial</h2><p>Transformez une carte, une image ou un texte en expérience mobile modifiable, partageable et prête pour WhatsApp.</p></div><div className="grid-3">
-      <div className="card"><div className="iconbox"><ImageIcon/></div><h3>Image → menu</h3><p>Importez votre carte et retrouvez rapidement une structure organisée que vous pouvez corriger librement.</p></div>
+      <div className="card"><div className="iconbox"><ImageIcon/></div><h3>Image → catalogue</h3><p>Importez votre carte ou votre ancien catalogue et retrouvez rapidement une structure organisée que vous pouvez corriger librement.</p></div>
       <div className="card"><div className="iconbox"><Palette/></div><h3>Personnalisation complète</h3><p>Fond uni, gradient ou image, couleurs, polices, styles typographiques, arrondis, cartes, boutons et dispositions : vous gardez le contrôle.</p></div>
       <div className="card"><div className="iconbox"><MessageCircle/></div><h3>Commande WhatsApp</h3><p>Le client sélectionne plusieurs articles, vérifie son panier et ouvre WhatsApp avec un récapitulatif clair.</p></div>
       <div className="card"><div className="iconbox"><QrCode/></div><h3>QR permanent</h3><p>Changez prix, photos, catégories, textes ou thème sans réimprimer votre QR code. Le lien reste identique.</p></div>
@@ -55,12 +59,12 @@ export default function Home(){return <>
     </div></div></section>
 
     <section className="section how-section" id="how"><div className="container">
-      <div className="section-head"><div className="eyebrow">Comment ça marche</div><h2>Une photo. Quelques réglages. Votre menu est prêt.</h2><p>Qatalink organise votre contenu, vous laisse tout vérifier puis transforme votre catalogue en une expérience mobile partageable par lien ou QR code.</p></div>
+      <div className="section-head"><div className="eyebrow">Comment ça marche</div><h2>Une photo. Quelques réglages. Votre catalogue est prêt.</h2><p>Qatalink organise votre contenu, vous laisse tout vérifier puis transforme votre offre en une expérience mobile partageable par lien ou QR code.</p></div>
       <div className="how-showcase">
         <div className="how-video-card"><div className="how-video-top"><span className="live-dot"/>DÉMO QATALINK</div><div className="how-video-wrap"><video src={howDemo} controls muted playsInline preload="metadata"/></div><div className="how-video-caption"><strong>Voyez le parcours côté client</strong><span>La vidéo démarre sans son. Utilisez le contrôle du lecteur pour l’activer.</span></div></div>
-        <div className="how-copy"><div className="how-mini-step"><span>01</span><div><b>Choisissez votre secteur</b><p>Restaurant, Hôtel, Spa, Immobilier, Boutique ou une base libre.</p></div></div><div className="how-mini-step"><span>02</span><div><b>Importez ou partez de zéro</b><p>Photo, texte ou catalogue vide avec une structure de départ.</p></div></div><div className="how-mini-step"><span>03</span><div><b>Personnalisez tout</b><p>Nom de l’entreprise, couleurs, polices, catégories, prix, images et disposition.</p></div></div><div className="how-mini-step"><span>04</span><div><b>Publiez</b><p>Le QR reste stable même lorsque le catalogue évolue.</p></div></div><Link href="/create" className="btn btn-primary how-main-cta">Créer mon Qatalink <ArrowRight size={17}/></Link></div>
+        <div className="how-copy"><div className="how-mini-step"><span>01</span><div><b>Choisissez votre secteur</b><p>Restaurant, Hôtel, Spa, Immobilier, Boutique ou une base libre.</p></div></div><div className="how-mini-step"><span>02</span><div><b>Importez ou partez de zéro</b><p>Photo, texte ou catalogue vide avec une structure de départ.</p></div></div><div className="how-mini-step"><span>03</span><div><b>Vérifiez votre premier rendu</b><p>Qatalink organise le contenu d’abord. Vous affinez l’identité, les images et le design ensuite.</p></div></div><div className="how-mini-step"><span>04</span><div><b>Publiez et partagez</b><p>Le QR reste stable même lorsque votre catalogue évolue.</p></div></div><Link href="/create" className="btn btn-primary how-main-cta">Créer mon Qatalink <ArrowRight size={17}/></Link></div>
       </div>
-      <div className="steps how-steps"><div className="card"><div className="step-num">01 — IMPORTER</div><h3>Photo, texte ou vide</h3><p>Importez votre carte existante ou construisez votre catalogue manuellement.</p></div><div className="card"><div className="step-num">02 — PERSONNALISER</div><h3>Identité + design</h3><p>Nom de l’entreprise, logo, couleurs, typographies, prix, catégories et illustrations.</p></div><div className="card"><div className="step-num">03 — PUBLIER</div><h3>QR + WhatsApp</h3><p>Publiez votre catalogue et modifiez-le à volonté sans changer son QR permanent.</p></div></div>
+      <div className="steps how-steps"><div className="card"><div className="step-num">01 — IMPORTER</div><h3>Photo, texte ou vide</h3><p>Importez votre carte existante ou construisez votre catalogue manuellement.</p></div><div className="card"><div className="step-num">02 — VÉRIFIER</div><h3>Votre premier rendu</h3><p>Le catalogue apparaît rapidement. Corrigez seulement ce qui compte avant de le montrer.</p></div><div className="card"><div className="step-num">03 — PUBLIER</div><h3>QR + WhatsApp</h3><p>Publiez votre catalogue et modifiez-le à volonté sans changer son QR permanent.</p></div></div>
     </div></section>
 
     <section className="section alt" id="pricing"><div className="container"><div className="section-head"><div className="eyebrow">Tarifs simples</div><h2>24 h pour tout tester. Puis choisissez votre formule.</h2><p>Une illustration coûte 5 crédits. Les offres annuelles incluent un mois offert.</p></div><div className="pricing">
@@ -73,5 +77,12 @@ export default function Home(){return <>
   </main>
   <footer className="footer"><div className="container" style={{display:'flex',justifyContent:'space-between',gap:20,flexWrap:'wrap'}}><div className="brand"><Image src="/qatalink-logo.png" width={32} height={32} alt="Qatalink"/>qatalink</div><div>© 2026 Qatalink. Menus & catalogues interactifs.</div></div></footer>
 </>}
+
+function HeroActivationDemo(){return <div className="activation-live-demo" aria-label="Démonstration visuelle de transformation d’un catalogue">
+  <div className="activation-demo-source"><strong>VOTRE CONTENU</strong><div className="activation-source-line"/><div className="activation-source-line short"/><div className="activation-source-line"/><div className="activation-source-line short"/><div className="activation-source-price"><span>Offre signature</span><b>10 000 F</b></div></div>
+  <div className="activation-demo-arrow">→</div>
+  <div className="activation-demo-phone"><div className="activation-demo-phone-head"><small>CATALOGUE INTERACTIF</small><b>Votre entreprise</b></div><div className="activation-demo-tabs"><span>Nouveautés</span><span>Populaires</span><span>Offres</span></div><div className="activation-demo-item"><span className="activation-demo-thumb"/><div><b>Offre Signature</b><small>Disponible maintenant</small></div><strong>10 000 F</strong></div><div className="activation-demo-item"><span className="activation-demo-thumb"/><div><b>Pack Premium</b><small>Présentation claire</small></div><strong>15 000 F</strong></div><div className="activation-demo-item"><span className="activation-demo-thumb"/><div><b>Nouveauté</b><small>Modifiable à tout moment</small></div><strong>8 500 F</strong></div><div className="activation-demo-cta">CONTINUER SUR WHATSAPP</div></div>
+  <div className="activation-demo-qr"><QrCode size={54}/><b>LE MÊME QR</b><small>même après vos modifications</small></div>
+</div>}
 
 function Price({name,price,annual,oldAnnual,features,featured=false}:{name:string;price:string;annual:string;oldAnnual:string;features:string[];featured?:boolean}){return <div className={'price-card '+(featured?'featured':'')}>{featured&&<div className="popular">RECOMMANDÉ</div>}<h3>{name}</h3><div className="price">{price} F <small>/ mois</small></div><div className="landing-annual"><span className="annual-card-badge">1 MOIS OFFERT</span><b>{annual} F / an</b><small><s>{oldAnnual} F</s></small></div><div className="features">{features.map((f,i)=><div className="feature" key={i}><Check size={16} color="#c7192f"/>{f}</div>)}</div><Link className={featured?'btn btn-primary':'btn btn-dark'} style={{width:'100%'}} href="/create">Choisir {name}</Link></div>}
