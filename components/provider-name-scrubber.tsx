@@ -3,12 +3,12 @@
 import { useEffect } from 'react';
 
 const replacements:[RegExp,string][]=[
-  [/Recharger avec Maketou/gi,'Recharger par Mobile Money'],
-  [/avec Maketou/gi,'par Mobile Money'],
-  [/Maketou n’a pas renvoyé de lien de paiement\./gi,'Le service de paiement Mobile Money n’a pas renvoyé de lien.'],
+  [/Recharger avec Maketou/gi,'Recharger par Mobile Money ou carte bancaire'],
+  [/avec Maketou/gi,'par paiement sécurisé'],
+  [/Maketou n’a pas renvoyé de lien de paiement\./gi,'Le service de paiement n’a pas renvoyé de lien.'],
   [/Les scans QR sont enregistrés dans Supabase au passage par \/q\/ avant la redirection\./gi,'Les scans QR sont enregistrés automatiquement avant l’ouverture du catalogue.'],
   [/Supabase/gi,'Qatalink'],
-  [/Maketou/gi,'Mobile Money'],
+  [/Maketou/gi,'service de paiement'],
   [/Vercel/gi,'Qatalink'],
 ];
 
