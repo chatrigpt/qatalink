@@ -19,6 +19,7 @@ import './vitrine.css';
 import './qatalink-v3.css';
 import './pwa.css';
 import './landing-extras.css';
+import './activation-engine.css';
 import './mobile-hardening.css';
 import './onboarding-admin.css';
 import './onboarding-v3.css';
@@ -37,8 +38,8 @@ const playfair=Playfair_Display({subsets:['latin'],style:['normal','italic'],var
 const logo='/qatalink-icon.svg';
 
 export const metadata={
-  title:'Qatalink — Menu & catalogue interactif',
-  description:'Créez un menu ou catalogue interactif depuis une image, un texte ou de zéro.',
+  title:'Qatalink — Catalogue & menu interactif',
+  description:'Transformez une image, un texte ou votre offre en catalogue interactif, modifiable et partageable par QR code.',
   manifest:'/manifest.webmanifest',
   icons:{icon:[{url:logo,type:'image/svg+xml'}],shortcut:logo,apple:logo},
   appleWebApp:{capable:true,statusBarStyle:'default' as const,title:'Qatalink'}
