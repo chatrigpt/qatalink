@@ -21,6 +21,7 @@ import './pwa.css';
 import './landing-extras.css';
 import './activation-engine.css';
 import './trial-lifecycle.css';
+import './mobile-money.css';
 import './mobile-hardening.css';
 import './onboarding-admin.css';
 import './onboarding-v3.css';
@@ -33,6 +34,7 @@ import { PwaInstallButton } from '@/components/pwa-install-button';
 import { MetaPixel } from '@/components/meta-pixel';
 import { GenerationActivityCenter } from '@/components/generation-activity-center';
 import { ProviderNameScrubber } from '@/components/provider-name-scrubber';
+import { MobileMoneyPaymentInfo } from '@/components/mobile-money-payment-info';
 
 const jakarta=Plus_Jakarta_Sans({subsets:['latin'],variable:'--font-jakarta'});
 const playfair=Playfair_Display({subsets:['latin'],style:['normal','italic'],variable:'--font-playfair'});
@@ -47,5 +49,5 @@ export const metadata={
 };
 
 export default function RootLayout({children}:{children:React.ReactNode}){
-  return <html lang="fr" suppressHydrationWarning><body className={`${jakarta.variable} ${playfair.variable}`}><ThemeProvider>{children}<ProviderNameScrubber/><GenerationActivityCenter/><PwaInstallButton/><MetaPixel/></ThemeProvider></body></html>;
+  return <html lang="fr" suppressHydrationWarning><body className={`${jakarta.variable} ${playfair.variable}`}><ThemeProvider>{children}<ProviderNameScrubber/><MobileMoneyPaymentInfo/><GenerationActivityCenter/><PwaInstallButton/><MetaPixel/></ThemeProvider></body></html>;
 }
