@@ -21,8 +21,13 @@ type ActivationData={
 function remainingLabel(end:string|null){
   if(!end)return'';
   const ms=Math.max(0,new Date(end).getTime()-Date.now());
-  const h=Math.floor(ms/36e5);const m=Math.floor((ms%36e5)/60000);
-  return h>0?`${h} h ${m} min restantes`:`${m} min restantes`;
+  const totalMinutes=Math.floor(ms/60000);
+  const d=Math.floor(totalMinutes/1440);
+  const h=Math.floor((totalMinutes%1440)/60);
+  const m=totalMinutes%60;
+  if(d>0)return`${d} j ${h} h restants`;
+  if(h>0)return`${h} h ${m} min restantes`;
+  return`${m} min restantes`;
 }
 
 export function DashboardActivationEngine(){
