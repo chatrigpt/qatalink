@@ -29,12 +29,14 @@ import './support-chat.css';
 import './trial-conversion.css';
 import './generation-activity.css';
 import './image-generation-controls.css';
+import './ux-fix.css';
 import { Plus_Jakarta_Sans, Playfair_Display } from 'next/font/google';
 import { ThemeProvider } from '@/components/theme-provider';
 import { PwaInstallButton } from '@/components/pwa-install-button';
 import { MetaPixel } from '@/components/meta-pixel';
 import { GenerationActivityCenter } from '@/components/generation-activity-center';
 import { ItemImageGenerationControls } from '@/components/item-image-generation-controls';
+import { QatalinkUxRefinements } from '@/components/qatalink-ux-refinements';
 import { ProviderNameScrubber } from '@/components/provider-name-scrubber';
 import { MobileMoneyPaymentInfo } from '@/components/mobile-money-payment-info';
 import { LandingSupportExperience } from '@/components/landing-support-experience';
@@ -52,5 +54,5 @@ export const metadata={
 };
 
 export default function RootLayout({children}:{children:React.ReactNode}){
-  return <html lang="fr" suppressHydrationWarning><body className={`${jakarta.variable} ${playfair.variable}`}><ThemeProvider>{children}<ProviderNameScrubber/><MobileMoneyPaymentInfo/><LandingSupportExperience/><ItemImageGenerationControls/><GenerationActivityCenter/><PwaInstallButton/><MetaPixel/></ThemeProvider></body></html>;
+  return <html lang="fr" suppressHydrationWarning><body className={`${jakarta.variable} ${playfair.variable}`}><ThemeProvider>{children}<ProviderNameScrubber/><MobileMoneyPaymentInfo/><LandingSupportExperience/><ItemImageGenerationControls/><QatalinkUxRefinements/><GenerationActivityCenter/><PwaInstallButton/><MetaPixel/></ThemeProvider></body></html>;
 }
