@@ -9,6 +9,7 @@ import { DashboardActivationEngine } from '@/components/dashboard-activation-eng
 import { DashboardSafeBoundary, DashboardStorageGuard } from '@/components/dashboard-safe-boundary';
 import { NewUserGuide } from '@/components/new-user-guide';
 import { SupportChat } from '@/components/support-chat';
+import { DashboardSupportNudge } from '@/components/dashboard-support-nudge';
 import { DashboardSubscriptionStatus } from '@/components/dashboard-subscription-status';
 import { TrialConversionCoach } from '@/components/trial-conversion-coach';
 import { TrialCreditAccess } from '@/components/trial-credit-access';
@@ -27,6 +28,7 @@ export default function DashboardPage(){
     <DashboardSafeBoundary><DashboardVitrineMedia/></DashboardSafeBoundary>
     <DashboardSafeBoundary><DashboardCustomerFlow/></DashboardSafeBoundary>
     <DashboardSafeBoundary><SupportChat/></DashboardSafeBoundary>
+    <DashboardSafeBoundary><DashboardSupportNudge/></DashboardSafeBoundary>
     <DashboardSafeBoundary><DashboardSidebarTools/></DashboardSafeBoundary>
     <DashboardSafeBoundary><DashboardSubscriptionStatus/></DashboardSafeBoundary>
     <DashboardSafeBoundary><TrialCreditAccess/></DashboardSafeBoundary>
