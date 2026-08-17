@@ -6,7 +6,6 @@ export const runtime='nodejs';
 const SUPABASE_URL=process.env.NEXT_PUBLIC_SUPABASE_URL||'https://rifjsvbbhsnpifgooenl.supabase.co';
 const SUPABASE_KEY=process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY||'';
 const IMAGE_CREDIT_COST=5;
-const MAX_IMAGES_PER_BATCH=15;
 
 type PromptInput={
   businessName:string;
@@ -58,15 +57,20 @@ function buildPrompt(input:PromptInput){
 }
 
 async function submitModel(key:string,model:string,prompt:string){
-  const input=model==='nano-banana-2-new'
-    ?{prompt,size:'1:1',resolution:'1K'}
-    :{prompt,quality:'low',size:'1:1',resolution:'1K'};
+  const input=model==='gpt-image-2'
+    ?{prompt,quality:'low' as const,size:'1:1',resolution:'1K'}
+    :{prompt,size:'1:1',resolution:'1K'};
+
+  if(model==='gpt-image-2'){
+    console.info('[Qatalink:PoyoSubmit]',{model,quality:'low',resolution:'1K',size:'1:1'});
+  }
+
   const r=await fetch('https://api.poyo.ai/api/generate/submit',{method:'POST',headers:{Authorization:`Bearer ${key}`,'Content-Type':'application/json'},body:JSON.stringify({model,input}),cache:'no-store'});
   const raw=await r.text();
   let data:any=null;try{data=raw?JSON.parse(raw):null}catch{data={raw:raw.slice(0,500)}}
   const taskId=data?.data?.task_id;
   const error=data?.error?.message||data?.error||data?.message||(!r.ok?`Generation submit failed (${r.status})`:'Missing task id');
-  return {ok:r.ok&&!!taskId,status:r.status,data,taskId,error};
+  return {ok:r.ok&&!!taskId,status:r.status,data,taskId,error,input};
 }
 
 export async function POST(req:NextRequest){
@@ -79,9 +83,7 @@ export async function POST(req:NextRequest){
     const {data:{user},error:userError}=await supabase.auth.getUser(token);if(userError||!user)return NextResponse.json({success:false,error:'Unauthorized'},{status:401});
 
     const body=await req.json();
-    const requestedIds=[...new Set((Array.isArray(body?.item_ids)?body.item_ids:[body?.item_id]).filter(Boolean))] as string[];
-    const ids=requestedIds.slice(0,MAX_IMAGES_PER_BATCH);
-    const omittedCount=Math.max(0,requestedIds.length-ids.length);
+    const ids=[...new Set((Array.isArray(body?.item_ids)?body.item_ids:[body?.item_id]).filter(Boolean))] as string[];
     if(!ids.length)return NextResponse.json({success:false,error:'NO_ITEMS'},{status:400});
     const generationMode=body?.generation_mode==='custom'?'custom':'auto';
     const customPrompt=generationMode==='custom'?cleanText(body?.custom_prompt):'';
@@ -136,15 +138,15 @@ export async function POST(req:NextRequest){
       if(!submitted.ok&&submitted.status!==401&&submitted.status!==403){submitted=await submitModel(poyoKey,'nano-banana-2-new',prompt);provider='poyo:nano-banana-2-new'}
       if(!submitted.ok){
         const authFailure=submitted.status===401||submitted.status===403;
-        const safePayload={...(submitted.data||{}),http_status:submitted.status,poyo_diagnostics:diagnostics};
+        const safePayload={...(submitted.data||{}),http_status:submitted.status,poyo_diagnostics:diagnostics,request_input:submitted.input};
         await supabase.from('item_image_generation_jobs').update({status:'failed',provider,error_message:String(submitted.error||'GENERATION_FAILED'),provider_payload:safePayload,completed_at:new Date().toISOString()}).eq('id',job.id);
         const {data:refunded}=await supabase.rpc('refund_failed_image_credits',{p_business_id:businessId,p_job_id:job.id});if(refunded!==null&&refunded!==undefined)lastBalance=Number(refunded);
         console.error('[Qatalink:Poyo]',{status:submitted.status,error:submitted.error,...diagnostics});
         jobs.push({item_id:itemId,item_name:item.name,job_id:job.id,error:authFailure?'POYO_AUTH_FAILED':'GENERATION_FAILED',provider_status:submitted.status,refunded:true,diagnostics:authFailure?diagnostics:undefined});continue
       }
-      await supabase.from('item_image_generation_jobs').update({status:'processing',provider,provider_task_id:submitted.taskId,provider_payload:{...submitted.data,fallback_used:provider.includes('nano-banana'),generation_mode:generationMode,poyo_diagnostics:diagnostics}}).eq('id',job.id);
+      await supabase.from('item_image_generation_jobs').update({status:'processing',provider,provider_task_id:submitted.taskId,provider_payload:{...submitted.data,fallback_used:provider.includes('nano-banana'),generation_mode:generationMode,poyo_diagnostics:diagnostics,request_input:submitted.input}}).eq('id',job.id);
       jobs.push({item_id:itemId,item_name:item.name,job_id:job.id,task_id:submitted.taskId,status:'processing',credit_cost:IMAGE_CREDIT_COST,balance:lastBalance});
     }
-    return NextResponse.json({success:true,jobs,credit_cost_per_image:IMAGE_CREDIT_COST,balance:lastBalance,business_id:businessId,generated_count:ids.length,omitted_count:omittedCount,max_images_per_batch:MAX_IMAGES_PER_BATCH});
+    return NextResponse.json({success:true,jobs,credit_cost_per_image:IMAGE_CREDIT_COST,balance:lastBalance,business_id:businessId,generated_count:ids.length,generation_profile:'gpt-image-2:low:1K'});
   }catch(error){console.error('[Qatalink:ImagesGenerate]',error);return NextResponse.json({success:false,error:'GENERATION_FAILED'},{status:500})}
 }
