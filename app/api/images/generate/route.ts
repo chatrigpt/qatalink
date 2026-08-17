@@ -6,6 +6,7 @@ export const runtime='nodejs';
 const SUPABASE_URL=process.env.NEXT_PUBLIC_SUPABASE_URL||'https://rifjsvbbhsnpifgooenl.supabase.co';
 const SUPABASE_KEY=process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY||'';
 const IMAGE_CREDIT_COST=5;
+const MAX_IMAGES_PER_BATCH=15;
 
 type PromptInput={
   businessName:string;
@@ -58,8 +59,8 @@ function buildPrompt(input:PromptInput){
 
 async function submitModel(key:string,model:string,prompt:string){
   const input=model==='nano-banana-2-new'
-    ?{prompt,size:'1:1',resolution:'2K'}
-    :{prompt,quality:'high',size:'1:1',resolution:'4K'};
+    ?{prompt,size:'1:1',resolution:'1K'}
+    :{prompt,quality:'low',size:'1:1',resolution:'1K'};
   const r=await fetch('https://api.poyo.ai/api/generate/submit',{method:'POST',headers:{Authorization:`Bearer ${key}`,'Content-Type':'application/json'},body:JSON.stringify({model,input}),cache:'no-store'});
   const raw=await r.text();
   let data:any=null;try{data=raw?JSON.parse(raw):null}catch{data={raw:raw.slice(0,500)}}
@@ -78,7 +79,9 @@ export async function POST(req:NextRequest){
     const {data:{user},error:userError}=await supabase.auth.getUser(token);if(userError||!user)return NextResponse.json({success:false,error:'Unauthorized'},{status:401});
 
     const body=await req.json();
-    const ids=[...new Set((Array.isArray(body?.item_ids)?body.item_ids:[body?.item_id]).filter(Boolean))].slice(0,50) as string[];
+    const requestedIds=[...new Set((Array.isArray(body?.item_ids)?body.item_ids:[body?.item_id]).filter(Boolean))] as string[];
+    const ids=requestedIds.slice(0,MAX_IMAGES_PER_BATCH);
+    const omittedCount=Math.max(0,requestedIds.length-ids.length);
     if(!ids.length)return NextResponse.json({success:false,error:'NO_ITEMS'},{status:400});
     const generationMode=body?.generation_mode==='custom'?'custom':'auto';
     const customPrompt=generationMode==='custom'?cleanText(body?.custom_prompt):'';
@@ -142,6 +145,6 @@ export async function POST(req:NextRequest){
       await supabase.from('item_image_generation_jobs').update({status:'processing',provider,provider_task_id:submitted.taskId,provider_payload:{...submitted.data,fallback_used:provider.includes('nano-banana'),generation_mode:generationMode,poyo_diagnostics:diagnostics}}).eq('id',job.id);
       jobs.push({item_id:itemId,item_name:item.name,job_id:job.id,task_id:submitted.taskId,status:'processing',credit_cost:IMAGE_CREDIT_COST,balance:lastBalance});
     }
-    return NextResponse.json({success:true,jobs,credit_cost_per_image:IMAGE_CREDIT_COST,balance:lastBalance,business_id:businessId});
+    return NextResponse.json({success:true,jobs,credit_cost_per_image:IMAGE_CREDIT_COST,balance:lastBalance,business_id:businessId,generated_count:ids.length,omitted_count:omittedCount,max_images_per_batch:MAX_IMAGES_PER_BATCH});
   }catch(error){console.error('[Qatalink:ImagesGenerate]',error);return NextResponse.json({success:false,error:'GENERATION_FAILED'},{status:500})}
 }
