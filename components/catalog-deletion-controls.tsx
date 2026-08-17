@@ -17,7 +17,7 @@ export function CatalogDeletionControls(){
       const title=document.querySelector('.dash-v3-top h1')?.textContent?.trim()||'';
       if(title!=='Vos catalogues'){setHost(null);setCatalogId('');setCatalogTitle('');return}
       const active=document.querySelector('.catalog-v2-card.active') as HTMLElement|null;
-      const slug=(active?.querySelector('small')?.textContent||'').replace(/^\/q\//,'').trim();
+      const slug=(active?.querySelector('small')?.textContent||'').replace(/^\/(?:q|c)\//,'').trim();
       const editCard=document.querySelector('.catalog-v2-grid + .dash-card');
       setHost(editCard);
       if(!slug){setCatalogId('');setCatalogTitle('');return}
@@ -46,7 +46,7 @@ export function CatalogDeletionControls(){
       if(itemIds.length){
         const {data:images}=await supabase.from('item_images').select('storage_path').in('item_id',itemIds);
         const paths=(images||[]).map((x:any)=>x.storage_path).filter(Boolean);
-        if(paths.length)await supabase.storage.from('catalog-assets').remove(paths);
+        if(paths.length){await supabase.storage.from('catalog-assets').remove(paths);await supabase.storage.from('generated-assets').remove(paths)}
       }
       const {error}=await supabase.from('catalogs').delete().eq('id',catalogId);
       if(error)throw error;
