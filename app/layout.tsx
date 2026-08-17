@@ -32,6 +32,7 @@ import './image-generation-controls.css';
 import './ux-fix.css';
 import './catalog-deletion.css';
 import './qr-canonical.css';
+import './order-ops.css';
 import { Plus_Jakarta_Sans, Playfair_Display } from 'next/font/google';
 import { ThemeProvider } from '@/components/theme-provider';
 import { PwaInstallButton } from '@/components/pwa-install-button';
@@ -41,6 +42,7 @@ import { ItemImageGenerationControls } from '@/components/item-image-generation-
 import { QatalinkUxRefinements } from '@/components/qatalink-ux-refinements';
 import { CatalogDeletionControls } from '@/components/catalog-deletion-controls';
 import { QrCanonicalControls } from '@/components/qr-canonical-controls';
+import { OrderOperationsCenter } from '@/components/order-operations-center';
 import { ProviderNameScrubber } from '@/components/provider-name-scrubber';
 import { MobileMoneyPaymentInfo } from '@/components/mobile-money-payment-info';
 import { LandingSupportExperience } from '@/components/landing-support-experience';
@@ -58,5 +60,5 @@ export const metadata={
 };
 
 export default function RootLayout({children}:{children:React.ReactNode}){
-  return <html lang="fr" suppressHydrationWarning><body className={`${jakarta.variable} ${playfair.variable}`}><ThemeProvider>{children}<ProviderNameScrubber/><MobileMoneyPaymentInfo/><LandingSupportExperience/><ItemImageGenerationControls/><QatalinkUxRefinements/><CatalogDeletionControls/><QrCanonicalControls/><GenerationActivityCenter/><PwaInstallButton/><MetaPixel/></ThemeProvider></body></html>;
+  return <html lang="fr" suppressHydrationWarning><body className={`${jakarta.variable} ${playfair.variable}`}><ThemeProvider>{children}<ProviderNameScrubber/><MobileMoneyPaymentInfo/><LandingSupportExperience/><ItemImageGenerationControls/><QatalinkUxRefinements/><CatalogDeletionControls/><QrCanonicalControls/><OrderOperationsCenter/><GenerationActivityCenter/><PwaInstallButton/><MetaPixel/></ThemeProvider></body></html>;
 }
