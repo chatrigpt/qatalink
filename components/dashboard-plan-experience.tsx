@@ -22,9 +22,11 @@ export function DashboardPlanExperience(){
 
   useEffect(()=>{
     if(!plan||location.pathname!='/dashboard')return;
+    let scheduled:ReturnType<typeof setTimeout>|null=null;
     const apply=()=>{
       const eyebrow=document.querySelector<HTMLElement>('.dash-v3-top .eyebrow');
-      if(eyebrow&&labels[plan])eyebrow.textContent=labels[plan];
+      const desired=labels[plan];
+      if(eyebrow&&desired&&(eyebrow.textContent||'').trim()!==desired)eyebrow.textContent=desired;
       document.querySelectorAll<HTMLElement>('*').forEach(el=>{
         if(el.children.length)return;
         const value=(el.textContent||'').trim();
@@ -35,10 +37,12 @@ export function DashboardPlanExperience(){
 
       const orderBlock=document.querySelector<HTMLElement>('.order-settings-block');
       if(orderBlock){
-        const old=orderBlock.querySelector('.q-plan-order-note');old?.remove();
+        const existing=orderBlock.querySelector<HTMLElement>('.q-plan-order-note');
         if(plan==='static'){
-          const note=document.createElement('div');note.className='q-plan-order-note';note.innerHTML='<b>Starter · WhatsApp direct</b><span>Le client compose sa commande dans le catalogue puis l’envoie directement sur WhatsApp. L’enregistrement privé des commandes et les accès équipe commencent avec Pro.</span>';
-          orderBlock.querySelector('.order-section-head')?.insertAdjacentElement('afterend',note);
+          if(!existing){
+            const note=document.createElement('div');note.className='q-plan-order-note';note.innerHTML='<b>Starter · WhatsApp direct</b><span>Le client compose sa commande dans le catalogue puis l’envoie directement sur WhatsApp. L’enregistrement privé des commandes et les accès équipe commencent avec Pro.</span>';
+            orderBlock.querySelector('.order-section-head')?.insertAdjacentElement('afterend',note);
+          }
           orderBlock.querySelectorAll<HTMLLabelElement>('.order-checks label').forEach(label=>{
             const input=label.querySelector<HTMLInputElement>('input[type="checkbox"]');if(!input)return;
             if((label.textContent||'').includes('Enregistrer les commandes')){input.checked=false;input.disabled=true;label.classList.add('q-plan-disabled')}
@@ -46,13 +50,15 @@ export function DashboardPlanExperience(){
           });
           const access=orderBlock.querySelector<HTMLElement>('.order-access-box');if(access)access.style.display='none';
         }else{
+          existing?.remove();
           orderBlock.querySelectorAll<HTMLInputElement>('.order-checks input').forEach(input=>input.disabled=false);
           orderBlock.querySelectorAll<HTMLElement>('.order-checks label').forEach(label=>label.classList.remove('q-plan-disabled','q-plan-required'));
           const access=orderBlock.querySelector<HTMLElement>('.order-access-box');if(access)access.style.removeProperty('display');
         }
       }
     };
-    apply();const observer=new MutationObserver(()=>setTimeout(apply,20));observer.observe(document.body,{subtree:true,childList:true,characterData:true});return()=>observer.disconnect();
+    const schedule=()=>{if(scheduled)clearTimeout(scheduled);scheduled=setTimeout(apply,25)};
+    apply();const observer=new MutationObserver(schedule);observer.observe(document.body,{subtree:true,childList:true,characterData:true});return()=>{if(scheduled)clearTimeout(scheduled);observer.disconnect()};
   },[plan]);
 
   return null;
