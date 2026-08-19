@@ -21,6 +21,7 @@ import './qatalink-v3.css';
 import './pwa.css';
 import './landing-extras.css';
 import './pricing-2026.css';
+import './legal.css';
 import './activation-engine.css';
 import './trial-lifecycle.css';
 import './mobile-money.css';
@@ -55,6 +56,7 @@ import { OrderOperationsCenter } from '@/components/order-operations-center';
 import { ProviderNameScrubber } from '@/components/provider-name-scrubber';
 import { MobileMoneyPaymentInfo } from '@/components/mobile-money-payment-info';
 import { LandingSupportExperience } from '@/components/landing-support-experience';
+import { LegalFooterLinks } from '@/components/legal-footer-links';
 
 const jakarta=Plus_Jakarta_Sans({subsets:['latin'],variable:'--font-jakarta'});
 const playfair=Playfair_Display({subsets:['latin'],style:['normal','italic'],variable:'--font-playfair'});
@@ -69,5 +71,5 @@ export const metadata={
 };
 
 export default function RootLayout({children}:{children:React.ReactNode}){
-  return <html lang="fr" suppressHydrationWarning><body className={`${jakarta.variable} ${playfair.variable}`}><ThemeProvider>{children}<ProviderNameScrubber/><MobileMoneyPaymentInfo/><LandingSupportExperience/><LandingPricingRefresh/><DashboardPlanExperience/><ItemImageGenerationControls/><ItemDescriptionGenerationControls/><StockManagementCenter/><QatalinkUxRefinements/><CatalogDeletionControls/><QrCanonicalControls/><OrderOperationsCenter/><GenerationActivityCenter/><PwaInstallButton/><MetaPixel/></ThemeProvider></body></html>;
+  return <html lang="fr" suppressHydrationWarning><body className={`${jakarta.variable} ${playfair.variable}`}><ThemeProvider>{children}<ProviderNameScrubber/><MobileMoneyPaymentInfo/><LandingSupportExperience/><LandingPricingRefresh/><DashboardPlanExperience/><ItemImageGenerationControls/><ItemDescriptionGenerationControls/><StockManagementCenter/><QatalinkUxRefinements/><CatalogDeletionControls/><QrCanonicalControls/><OrderOperationsCenter/><GenerationActivityCenter/><LegalFooterLinks/><PwaInstallButton/><MetaPixel/></ThemeProvider></body></html>;
 }
