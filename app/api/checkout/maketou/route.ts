@@ -72,6 +72,12 @@ export async function POST(req:NextRequest){
     const data=await r.json().catch(()=>null);
     if(!r.ok)return NextResponse.json({error:'Impossible de démarrer le paiement.',provider_status:r.status},{status:r.status});
 
+    const quotedAmount=Number(data?.cart?.total_price??data?.total_price??NaN);
+    if(Number.isFinite(quotedAmount)&&quotedAmount!==product.amount){
+      console.error('[Qatalink:CheckoutPriceMismatch]',{plan:p,period,expected:product.amount,provider:quotedAmount,product_id:product.id});
+      return NextResponse.json({error:'PAYMENT_PRICE_MISMATCH',message:'Ce tarif est en cours de synchronisation avec le service de paiement. Aucun paiement n’a été lancé.',expected_amount:product.amount,provider_amount:quotedAmount},{status:409});
+    }
+
     const cartId=data?.cart?.id||data?.id;
     if(cartId){
       const {error:paymentError}=await supabase.from('payments').insert({business_id:businessId,plan_code:planCodes[p],provider:'maketou',provider_cart_id:cartId,amount_minor:product.amount,currency_code:'XOF',status:'pending',customer_email:user.email||null,billing_period:period,period_months:product.months,raw_provider_response:data});
