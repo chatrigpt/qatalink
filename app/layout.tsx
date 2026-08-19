@@ -12,6 +12,7 @@ import './advanced-studio.css';
 import './vitrine-media.css';
 import './public-theme.css';
 import './public-catalog-v2.css';
+import './public-category-scroll.css';
 import './public-currency.css';
 import './public-flow.css';
 import './multipage.css';
@@ -19,6 +20,7 @@ import './vitrine.css';
 import './qatalink-v3.css';
 import './pwa.css';
 import './landing-extras.css';
+import './pricing-2026.css';
 import './activation-engine.css';
 import './trial-lifecycle.css';
 import './mobile-money.css';
@@ -29,6 +31,7 @@ import './support-chat.css';
 import './trial-conversion.css';
 import './generation-activity.css';
 import './image-generation-controls.css';
+import './business-stock.css';
 import './ux-fix.css';
 import './catalog-deletion.css';
 import './qr-canonical.css';
@@ -40,6 +43,9 @@ import { PwaInstallButton } from '@/components/pwa-install-button';
 import { MetaPixel } from '@/components/meta-pixel';
 import { GenerationActivityCenter } from '@/components/generation-activity-center';
 import { ItemImageGenerationControls } from '@/components/item-image-generation-controls';
+import { ItemDescriptionGenerationControls } from '@/components/item-description-generation-controls';
+import { StockManagementCenter } from '@/components/stock-management-center';
+import { LandingPricingRefresh } from '@/components/landing-pricing-refresh';
 import { QatalinkUxRefinements } from '@/components/qatalink-ux-refinements';
 import { CatalogDeletionControls } from '@/components/catalog-deletion-controls';
 import { QrCanonicalControls } from '@/components/qr-canonical-controls';
@@ -61,5 +67,5 @@ export const metadata={
 };
 
 export default function RootLayout({children}:{children:React.ReactNode}){
-  return <html lang="fr" suppressHydrationWarning><body className={`${jakarta.variable} ${playfair.variable}`}><ThemeProvider>{children}<ProviderNameScrubber/><MobileMoneyPaymentInfo/><LandingSupportExperience/><ItemImageGenerationControls/><QatalinkUxRefinements/><CatalogDeletionControls/><QrCanonicalControls/><OrderOperationsCenter/><GenerationActivityCenter/><PwaInstallButton/><MetaPixel/></ThemeProvider></body></html>;
+  return <html lang="fr" suppressHydrationWarning><body className={`${jakarta.variable} ${playfair.variable}`}><ThemeProvider>{children}<ProviderNameScrubber/><MobileMoneyPaymentInfo/><LandingSupportExperience/><LandingPricingRefresh/><ItemImageGenerationControls/><ItemDescriptionGenerationControls/><StockManagementCenter/><QatalinkUxRefinements/><CatalogDeletionControls/><QrCanonicalControls/><OrderOperationsCenter/><GenerationActivityCenter/><PwaInstallButton/><MetaPixel/></ThemeProvider></body></html>;
 }
