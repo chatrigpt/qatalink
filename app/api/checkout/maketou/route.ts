@@ -2,21 +2,21 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 
 const products={
-  basic:{
-    monthly:{id:'73c8f809-3d0b-4976-9ccf-6b8d2b69f362',amount:3500,months:1},
-    annual:{id:'f2c709b7-b79e-4762-adbc-4996bb91199d',amount:38500,months:12},
+  starter:{
+    monthly:{id:'73c8f809-3d0b-4976-9ccf-6b8d2b69f362',amount:9900,months:1},
+    annual:{id:'f2c709b7-b79e-4762-adbc-4996bb91199d',amount:108900,months:12},
   },
-  interactive:{
-    monthly:{id:'14ff1299-91b3-41fe-93e1-c378b8bf6e01',amount:5000,months:1},
-    annual:{id:'3cc5a39e-b51b-4de2-a07c-c672f88c4561',amount:55000,months:12},
+  pro:{
+    monthly:{id:'14ff1299-91b3-41fe-93e1-c378b8bf6e01',amount:24900,months:1},
+    annual:{id:'3cc5a39e-b51b-4de2-a07c-c672f88c4561',amount:273900,months:12},
   },
-  vitrine:{
-    monthly:{id:'7424d0a9-a4ea-46be-907c-d5406673bac5',amount:7500,months:1},
-    annual:{id:'02e1bf83-34b3-4cb2-bdb7-4ce0efce1053',amount:82500,months:12},
+  business:{
+    monthly:{id:'9f54571a-64ba-4e3f-9db9-acb3fe1cbe38',amount:49900,months:1},
+    annual:{id:'00632f66-5485-44a6-b65a-be4c4528237b',amount:548900,months:12},
   },
 } as const;
 
-const planCodes={basic:'static',interactive:'interactive',vitrine:'linkhub'} as const;
+const planCodes={starter:'static',pro:'interactive',business:'linkhub'} as const;
 const SUPABASE_URL=process.env.NEXT_PUBLIC_SUPABASE_URL||'https://rifjsvbbhsnpifgooenl.supabase.co';
 const SUPABASE_KEY=process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY||'sb_publishable_5A_EpEK4Jrwh-3-NT43RxA_0iIP9Tdl';
 
