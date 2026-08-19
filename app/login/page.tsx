@@ -67,6 +67,7 @@ export default function Login(){
       <div className="field"><label>Email</label><input className="input" type="email" value={email} onChange={e=>setEmail(e.target.value)} required/></div>
       <div className="field"><label>Mot de passe</label><input className="input" type="password" value={password} onChange={e=>setPassword(e.target.value)} required minLength={6}/></div>
       {msg&&<div className={msg.startsWith('Compte créé')?'success':'error'}>{msg}</div>}
+      {mode==='signup'&&<p className="auth-legal">En créant un compte, vous acceptez les <Link href="/cgu" target="_blank">CGU</Link> et reconnaissez avoir lu la <Link href="/confidentialite" target="_blank">Politique de confidentialité</Link>. Cela s’applique également à la création d’un nouveau compte via Google.</p>}
       <button className="btn btn-primary" disabled={loading||googleLoading}>{loading?'Patientez…':mode==='login'?'Se connecter':'Créer mon compte gratuit'}</button>
     </form>
   </div></div>
