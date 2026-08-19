@@ -1,6 +1,6 @@
 'use client';
 
-import {useEffect,useMemo,useState} from 'react';
+import {useEffect,useMemo,useRef,useState} from 'react';
 import {createPortal} from 'react-dom';
 import {AlertTriangle,Boxes,History,Link2,PackagePlus,RefreshCw,Trash2} from 'lucide-react';
 import {createSupabaseBrowserClient} from '@/lib/supabase';
@@ -14,6 +14,7 @@ const units=['unité','portion','bouteille','canette','pack','kg','g','L','cl','
 
 export function StockManagementCenter(){
   const supabase=useMemo(()=>createSupabaseBrowserClient(),[]);
+  const lastResolved=useRef('');
   const [host,setHost]=useState<Element|null>(null);
   const [desktopNav,setDesktopNav]=useState<Element|null>(null);
   const [mobileNav,setMobileNav]=useState<Element|null>(null);
@@ -32,27 +33,32 @@ export function StockManagementCenter(){
 
   useEffect(()=>{
     let cancelled=false;
+    let scheduled:ReturnType<typeof setTimeout>|null=null;
     const resolve=async()=>{
       setDesktopNav(document.querySelector('.dash-v3-nav'));
       setMobileNav(document.querySelector('.dash-v3-mobile-tabs'));
       const title=document.querySelector('.dash-v3-top h1')?.textContent?.trim()||'';
       const nextHost=title==='Articles & catégories'?document.querySelector('.dash-v3-main .dash-section'):null;
       setHost(nextHost);
-      if(!nextHost)return;
+      if(!nextHost){lastResolved.current='';return}
       const {data:{session}}=await supabase.auth.getSession();if(!session||cancelled)return;
       const {data:businesses}=await supabase.from('businesses').select('id').eq('owner_user_id',session.user.id).order('created_at',{ascending:true}).limit(1);
-      const b=businesses?.[0]?.id;if(!b)return;setBusinessId(String(b));
+      const b=businesses?.[0]?.id;if(!b)return;
       let cid=new URLSearchParams(location.search).get('catalog')||'';
       if(!cid){
         const heading=document.querySelector('.dash-toolbar h3')?.textContent?.trim()||'';
         if(heading){const {data:cs}=await supabase.from('catalogs').select('id').eq('business_id',b).eq('title',heading).order('created_at',{ascending:false}).limit(1);cid=String(cs?.[0]?.id||'')}
       }
-      if(cid){setCatalogId(cid);await loadAll(String(b),cid)}
+      if(!cid)return;
+      const key=`${String(b)}:${cid}`;
+      if(lastResolved.current===key)return;
+      lastResolved.current=key;setBusinessId(String(b));setCatalogId(cid);await loadAll(String(b),cid);
     };
-    void resolve();
-    const observer=new MutationObserver(()=>setTimeout(()=>void resolve(),40));observer.observe(document.body,{subtree:true,childList:true,characterData:true});
-    document.addEventListener('click',resolve,true);
-    return()=>{cancelled=true;observer.disconnect();document.removeEventListener('click',resolve,true)};
+    const schedule=()=>{if(scheduled)clearTimeout(scheduled);scheduled=setTimeout(()=>void resolve(),60)};
+    schedule();
+    const observer=new MutationObserver(schedule);observer.observe(document.body,{subtree:true,childList:true,characterData:true});
+    document.addEventListener('click',schedule,true);
+    return()=>{cancelled=true;if(scheduled)clearTimeout(scheduled);observer.disconnect();document.removeEventListener('click',schedule,true)};
     // eslint-disable-next-line react-hooks/exhaustive-deps
   },[supabase]);
 
@@ -119,7 +125,7 @@ export function StockManagementCenter(){
         <div className="q-stock-panel"><h4><Link2 size={17}/> Relier un plat au stock</h4><p className="q-stock-help">Exemple : “Poulet braisé” consomme 1 poulet ; “Coca 33 cl” consomme 1 bouteille.</p><div className="q-stock-form"><select className="input" value={recipe.item_id} onChange={e=>setRecipe({...recipe,item_id:e.target.value})}><option value="">Plat / boisson</option>{items.map(item=><option key={item.id} value={item.id}>{item.name}</option>)}</select><select className="input" value={recipe.stock_item_id} onChange={e=>setRecipe({...recipe,stock_item_id:e.target.value})}><option value="">Stock consommé</option>{stocks.map(stock=><option key={stock.id} value={stock.id}>{stock.name} ({stock.unit})</option>)}</select><input className="input" type="number" min="0.001" step="0.001" value={recipe.quantity} onChange={e=>setRecipe({...recipe,quantity:e.target.value})} placeholder="Qté par vente"/><button className="btn btn-primary" onClick={addRecipe} disabled={busy==='recipe'}>Enregistrer la liaison</button></div></div>
       </div>
 
-      <div className="q-stock-list"><h4>Stock actuel</h4>{stocks.length===0?<p className="q-stock-empty">Ajoutez votre premier ingrédient, boisson ou produit à suivre.</p>:stocks.map(stock=>{const low=Number(stock.quantity)<=Number(stock.low_stock_threshold);return <div className={`q-stock-row ${low?'low':''}`} key={stock.id}><div className="q-stock-name">{low&&<AlertTriangle size={15}/>}<div><b>{stock.name}</b><small>{stock.unit}</small></div></div><div className="q-stock-quantity"><input className="input" type="number" step="0.001" defaultValue={stock.quantity} onBlur={e=>{const value=Number(e.target.value);if(Number.isFinite(value)&&value!==Number(stock.quantity))adjustStock(stock,value)}}/><span>{stock.unit}</span></div><label>Seuil<input className="input" type="number" step="0.001" min="0" defaultValue={stock.low_stock_threshold} onBlur={e=>saveThreshold(stock,Number(e.target.value||0))}/></label><button className="mini-action" onClick={()=>deleteStock(stock)}><Trash2 size={13}/></button></div>})}</div>
+      <div className="q-stock-list"><h4>Stock actuel</h4>{stocks.length===0?<p className="q-stock-empty">Ajoutez votre premier ingrédient, boisson ou produit à suivre.</p>:stocks.map(stock=>{const low=Number(stock.quantity)<=Number(stock.low_stock_threshold);return <div className={`q-stock-row ${low?'low':''}`} key={stock.id}><div className="q-stock-name">{low&&<AlertTriangle size={15}/>}<div><b>{stock.name}</b><small>{stock.unit}</small></div></div><div className="q-stock-quantity"><input className="input" type="number" step="0.001" defaultValue={stock.quantity} onBlur={e=>{const value=Number(e.target.value);if(Number.isFinite(value)&&value!==Number(stock.quantity))void adjustStock(stock,value)}}/><span>{stock.unit}</span></div><label>Seuil<input className="input" type="number" step="0.001" min="0" defaultValue={stock.low_stock_threshold} onBlur={e=>void saveThreshold(stock,Number(e.target.value||0))}/></label><button className="mini-action" onClick={()=>deleteStock(stock)}><Trash2 size={13}/></button></div>})}</div>
 
       <div className="q-recipe-list"><h4>Liaisons plats → stock</h4>{recipes.filter(r=>items.some(i=>i.id===r.item_id)).length===0?<p className="q-stock-empty">Aucune liaison pour ce menu. Sans liaison, une vente ne déduit rien.</p>:recipes.filter(r=>items.some(i=>i.id===r.item_id)).map(link=>{const item=items.find(i=>i.id===link.item_id);const stock=stocks.find(s=>s.id===link.stock_item_id);return <div className="q-recipe-row" key={link.id}><span><b>{item?.name||'Article'}</b> → {link.quantity_per_item} {stock?.unit||''} de <b>{stock?.name||'Stock supprimé'}</b></span><button className="mini-action" onClick={()=>deleteRecipe(link.id)}><Trash2 size={13}/></button></div>})}</div>
 
