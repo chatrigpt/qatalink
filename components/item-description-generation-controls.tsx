@@ -38,7 +38,7 @@ export function ItemDescriptionGenerationControls(){
       const cards=Array.from(document.querySelectorAll<HTMLElement>('.item-v2-card'));
       if(!cards.length)return;
       const catalogId=await resolveCatalogId();if(!catalogId)return;
-      const {data:rows}=await supabase.from('items').select('id,name,description,sort_order').eq('catalog_id',catalogId).order('sort_order').order('created_at');
+      const {data:rows}=await supabase.from('items').select('id,name,description,description_generation_hint,sort_order').eq('catalog_id',catalogId).order('sort_order').order('created_at');
       const items=rows||[];
 
       cards.forEach((card,index)=>{
@@ -47,19 +47,27 @@ export function ItemDescriptionGenerationControls(){
         const textarea=card.querySelector<HTMLTextAreaElement>('.item-v2-fields textarea');
         if(!textarea)return;
         const wrap=document.createElement('div');wrap.className='q-description-action';
+
+        const briefLabel=document.createElement('label');briefLabel.className='q-description-brief-label';briefLabel.textContent='Décrivez brièvement ce plat / article (optionnel)';
+        const brief=document.createElement('textarea');brief.className='q-description-brief';brief.rows=2;brief.placeholder='Ex : cailles braisées, goût fumé, servies seules · ou précisez seulement les faits que l’IA peut utiliser.';brief.value=String(item.description_generation_hint||'');
+        const briefHint=document.createElement('small');briefHint.textContent='Ce texte sert de garde-fou : Qatalink ne doit utiliser que le nom, votre description cohérente et les faits renseignés ici.';
+        brief.addEventListener('blur',async()=>{
+          await supabase.from('items').update({description_generation_hint:brief.value.trim()||null,updated_at:new Date().toISOString()}).eq('id',item.id);
+        });
+
         const button=document.createElement('button');button.type='button';button.className='q-description-button';
         const hasDescription=String(item.description||textarea.value||'').trim().length>0;
-        button.textContent=hasDescription?'✨ Rendre la description plus appétissante':'✨ Générer une description';
-        const hint=document.createElement('small');hint.textContent='À partir du nom du plat/article et de votre texte actuel, sans inventer de faits.';
+        button.textContent=hasDescription?'✨ Régénérer la description':'✨ Générer une description';
+        const hint=document.createElement('small');hint.textContent='La génération privilégie strictement le nom de l’article. Si une ancienne description parle d’un autre plat, elle est ignorée.';
         button.addEventListener('click',async()=>{
           if(button.dataset.busy==='1')return;
           button.dataset.busy='1';button.disabled=true;button.textContent='Création de la description…';
           try{
             const {data:{session}}=await supabase.auth.getSession();if(!session)throw new Error('SESSION_EXPIRED');
-            const response=await fetch('/api/descriptions/generate',{method:'POST',headers:{'Content-Type':'application/json',Authorization:`Bearer ${session.access_token}`},body:JSON.stringify({item_id:item.id})});
+            const response=await fetch('/api/descriptions/generate',{method:'POST',headers:{'Content-Type':'application/json',Authorization:`Bearer ${session.access_token}`},body:JSON.stringify({item_id:item.id,current_description:textarea.value,brief:brief.value})});
             const data=await response.json().catch(()=>({}));if(!response.ok||!data.description)throw new Error(data.error||'GENERATION_FAILED');
             setReactTextareaValue(textarea,String(data.description));
-            button.textContent='✓ Description générée';
+            button.textContent='✓ Description fidèle générée';
             setTimeout(()=>{button.textContent='✨ Régénérer la description'},1600);
           }catch{
             button.textContent='Réessayer la génération';
@@ -67,7 +75,7 @@ export function ItemDescriptionGenerationControls(){
             button.dataset.busy='0';button.disabled=false;
           }
         });
-        wrap.append(button,hint);textarea.insertAdjacentElement('afterend',wrap);
+        wrap.append(briefLabel,brief,briefHint,button,hint);textarea.insertAdjacentElement('afterend',wrap);
       });
     }
 
