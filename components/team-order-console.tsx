@@ -183,6 +183,15 @@ export function TeamOrderConsole({accessKey}:{accessKey:string}){
     }catch(err:any){alert(err?.message||'Impossible de modifier le statut.')}
   }
 
+  async function cancelOrder(order:Order){
+    if(!payload?.access?.can_cancel_orders||order.status==='cancelled')return;
+    if(!window.confirm(`Valider l’annulation de la commande ${order.order_number} ?`))return;
+    try{
+      await api('status',{order_id:order.id,status:'cancelled'});
+      await load(true);
+    }catch(err:any){alert(err?.message||'Impossible de valider cette annulation.')}
+  }
+
   async function mergeSelected(){
     if(selected.length<2)return;
     setBusy('merge');
@@ -381,7 +390,8 @@ export function TeamOrderConsole({accessKey}:{accessKey:string}){
             {order.customer_note&&<p className="ops-note">Note : {order.customer_note}</p>}
             {payload.access?.can_view_revenue&&order.total_minor!==null&&order.total_minor!==undefined&&<div className="ops-total"><span>Total</span><b>{orderMoney(order.total_minor,order.currency_code||'XOF')}</b></div>}
             <footer>
-              {payload.access?.can_update_status&&<select value={order.status||'new'} onChange={e=>setStatus(order.id,e.target.value)}><option value="new">Nouvelle</option><option value="preparing">En préparation</option><option value="ready">Prête</option><option value="completed">Terminée</option><option value="cancelled">Annulée</option></select>}
+              {payload.access?.can_update_status&&order.status!=='cancelled'&&<select value={order.status||'new'} onChange={e=>setStatus(order.id,e.target.value)}><option value="new">Nouvelle</option><option value="preparing">En préparation</option><option value="ready">Prête</option><option value="completed">Terminée</option></select>}
+              {payload.access?.can_cancel_orders&&order.status!=='cancelled'&&<button className="danger" onClick={()=>cancelOrder(order)}>Valider l’annulation</button>}
               {payload.access?.can_print&&<><button onClick={()=>printOrderReceipt(order,{businessName:payload.catalog?.business_name||'Qatalink',catalogTitle:payload.catalog?.title,receiptTitle:payload.catalog?.receipt_title,receiptFooter:payload.catalog?.receipt_footer,width:'58mm'})}><Printer size={15}/>Imprimer</button>{escPosDirectSupported()&&<button onClick={()=>directPrint(order)}><Bluetooth size={15}/>Direct</button>}</>}
               {payload.access?.can_use_whatsapp&&payload.catalog?.whatsapp_number&&<button onClick={()=>whatsapp(order)}><Send size={15}/>WhatsApp</button>}
             </footer>
