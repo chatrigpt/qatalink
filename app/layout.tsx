@@ -20,7 +20,10 @@ import './vitrine.css';
 import './qatalink-v3.css';
 import './pwa.css';
 import './landing-extras.css';
+import './landing-sales.css';
 import './pricing-2026.css';
+import './turnkey.css';
+import './cle-en-main.css';
 import './legal.css';
 import './activation-engine.css';
 import './trial-lifecycle.css';
@@ -56,6 +59,8 @@ import { ProviderNameScrubber } from '@/components/provider-name-scrubber';
 import { MobileMoneyPaymentInfo } from '@/components/mobile-money-payment-info';
 import { LandingSupportExperience } from '@/components/landing-support-experience';
 import { PlanCopyAlignment } from '@/components/plan-copy-alignment';
+import { DashboardKeyInHandPrompt } from '@/components/key-in-hand-configurator';
+import { DirectPrintLabelFix } from '@/components/direct-print-label-fix';
 
 const jakarta=Plus_Jakarta_Sans({subsets:['latin'],variable:'--font-jakarta'});
 const playfair=Playfair_Display({subsets:['latin'],style:['normal','italic'],variable:'--font-playfair'});
@@ -63,12 +68,12 @@ const logo='/qatalink-icon.svg';
 
 export const metadata={
   title:'Qatalink — Catalogue & menu interactif',
-  description:'Transformez une image, un texte ou votre offre en catalogue interactif, modifiable et partageable par QR code.',
+  description:'Transformez une image, un texte ou votre offre en menu/catalogue interactif, modifiable et partageable par QR code.',
   manifest:'/manifest.webmanifest',
   icons:{icon:[{url:logo,type:'image/svg+xml'}],shortcut:logo,apple:logo},
   appleWebApp:{capable:true,statusBarStyle:'default' as const,title:'Qatalink'}
 };
 
 export default function RootLayout({children}:{children:React.ReactNode}){
-  return <html lang="fr" suppressHydrationWarning><body className={`${jakarta.variable} ${playfair.variable}`}><ThemeProvider>{children}<ProviderNameScrubber/><MobileMoneyPaymentInfo/><LandingSupportExperience/><PlanCopyAlignment/><DashboardPlanExperience/><ItemImageGenerationControls/><ItemDescriptionGenerationControls/><StockManagementCenter/><QatalinkUxRefinements/><CatalogDeletionControls/><QrCanonicalControls/><OrderOperationsCenter/><GenerationActivityCenter/><PwaInstallButton/><MetaPixel/></ThemeProvider></body></html>;
+  return <html lang="fr" suppressHydrationWarning><body className={`${jakarta.variable} ${playfair.variable}`}><ThemeProvider>{children}<ProviderNameScrubber/><MobileMoneyPaymentInfo/><LandingSupportExperience/><PlanCopyAlignment/><DashboardPlanExperience/><ItemImageGenerationControls/><ItemDescriptionGenerationControls/><StockManagementCenter/><QatalinkUxRefinements/><CatalogDeletionControls/><QrCanonicalControls/><OrderOperationsCenter/><GenerationActivityCenter/><DashboardKeyInHandPrompt/><DirectPrintLabelFix/><PwaInstallButton/><MetaPixel/></ThemeProvider></body></html>;
 }
