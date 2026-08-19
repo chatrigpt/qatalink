@@ -24,6 +24,7 @@ import './landing-sales.css';
 import './pricing-2026.css';
 import './turnkey.css';
 import './cle-en-main.css';
+import './cle-en-main-hero.css';
 import './legal.css';
 import './activation-engine.css';
 import './trial-lifecycle.css';
