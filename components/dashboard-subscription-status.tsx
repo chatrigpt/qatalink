@@ -7,7 +7,7 @@ import {createSupabaseBrowserClient} from '@/lib/supabase';
 
 type Sub={plan_code:string;status:string;current_period_start:string|null;current_period_end:string|null};
 
-function planLabel(v:string){if(v==='static')return'Basic';if(v==='interactive')return'Interactif';if(v==='linkhub')return'Vitrine';if(v==='trial')return'Essai 7 jours';return'—'}
+function planLabel(v:string){if(v==='static')return'Starter';if(v==='interactive')return'Pro';if(v==='linkhub')return'Business';if(v==='trial')return'Essai 7 jours';return'—'}
 function date(v:string|null){return v?new Intl.DateTimeFormat('fr-FR',{day:'2-digit',month:'long',year:'numeric'}).format(new Date(v)):'Sans date de fin'}
 
 export function DashboardSubscriptionStatus(){
