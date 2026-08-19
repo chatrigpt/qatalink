@@ -32,6 +32,7 @@ import './trial-conversion.css';
 import './generation-activity.css';
 import './image-generation-controls.css';
 import './business-stock.css';
+import './plan-experience.css';
 import './ux-fix.css';
 import './catalog-deletion.css';
 import './qr-canonical.css';
@@ -46,6 +47,7 @@ import { ItemImageGenerationControls } from '@/components/item-image-generation-
 import { ItemDescriptionGenerationControls } from '@/components/item-description-generation-controls';
 import { StockManagementCenter } from '@/components/stock-management-center';
 import { LandingPricingRefresh } from '@/components/landing-pricing-refresh';
+import { DashboardPlanExperience } from '@/components/dashboard-plan-experience';
 import { QatalinkUxRefinements } from '@/components/qatalink-ux-refinements';
 import { CatalogDeletionControls } from '@/components/catalog-deletion-controls';
 import { QrCanonicalControls } from '@/components/qr-canonical-controls';
@@ -67,5 +69,5 @@ export const metadata={
 };
 
 export default function RootLayout({children}:{children:React.ReactNode}){
-  return <html lang="fr" suppressHydrationWarning><body className={`${jakarta.variable} ${playfair.variable}`}><ThemeProvider>{children}<ProviderNameScrubber/><MobileMoneyPaymentInfo/><LandingSupportExperience/><LandingPricingRefresh/><ItemImageGenerationControls/><ItemDescriptionGenerationControls/><StockManagementCenter/><QatalinkUxRefinements/><CatalogDeletionControls/><QrCanonicalControls/><OrderOperationsCenter/><GenerationActivityCenter/><PwaInstallButton/><MetaPixel/></ThemeProvider></body></html>;
+  return <html lang="fr" suppressHydrationWarning><body className={`${jakarta.variable} ${playfair.variable}`}><ThemeProvider>{children}<ProviderNameScrubber/><MobileMoneyPaymentInfo/><LandingSupportExperience/><LandingPricingRefresh/><DashboardPlanExperience/><ItemImageGenerationControls/><ItemDescriptionGenerationControls/><StockManagementCenter/><QatalinkUxRefinements/><CatalogDeletionControls/><QrCanonicalControls/><OrderOperationsCenter/><GenerationActivityCenter/><PwaInstallButton/><MetaPixel/></ThemeProvider></body></html>;
 }
