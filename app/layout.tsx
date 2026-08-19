@@ -33,6 +33,7 @@ import './ux-fix.css';
 import './catalog-deletion.css';
 import './qr-canonical.css';
 import './order-ops.css';
+import './order-ops-v2.css';
 import { Plus_Jakarta_Sans, Playfair_Display } from 'next/font/google';
 import { ThemeProvider } from '@/components/theme-provider';
 import { PwaInstallButton } from '@/components/pwa-install-button';
