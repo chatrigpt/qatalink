@@ -10,27 +10,29 @@ const plans=[
   {name:'Business',price:'49 900',annual:'548 900',oldAnnual:'598 800',description:'Pour relier commandes, stock et exploitation quotidienne dans une même interface.',features:['Jusqu’à 15 catalogues/menus','Tout Pro','Gestion de stock','Liaisons plats/boissons → stock','Déduction automatique des stocks à la commande terminée','Alertes stock bas + historique','250 crédits image inclus'],featured:false},
 ];
 
+function setIfDifferent(node:Element|null,value:string){if(node&&(node.textContent||'').trim()!==value)node.textContent=value}
+
 export function LandingPricingRefresh(){
   const [target,setTarget]=useState<Element|null>(null);
 
   useEffect(()=>{
     if(location.pathname!=='/')return;
+    let scheduled:ReturnType<typeof setTimeout>|null=null;
     const refresh=()=>{
       const pricing=document.querySelector('#pricing .pricing');
-      setTarget(pricing);
+      setTarget(current=>current===pricing?current:pricing);
       pricing?.classList.add('q-pricing-host');
       const section=document.querySelector('#pricing');
-      const h2=section?.querySelector('.section-head h2');
-      const p=section?.querySelector('.section-head p');
-      if(h2)h2.textContent='Trois formules selon la façon dont vous voulez gérer vos commandes.';
-      if(p)p.textContent='Tous les catalogues sont interactifs. Starter envoie la commande sur WhatsApp ; Pro la centralise dans Qatalink ; Business ajoute le stock automatique. Annuel : 1 mois offert.';
+      setIfDifferent(section?.querySelector('.section-head h2')||null,'Trois formules selon la façon dont vous voulez gérer vos commandes.');
+      setIfDifferent(section?.querySelector('.section-head p')||null,'Tous les catalogues sont interactifs. Starter envoie la commande sur WhatsApp ; Pro la centralise dans Qatalink ; Business ajoute le stock automatique. Annuel : 1 mois offert.');
       document.querySelectorAll('#faq details').forEach(detail=>{
         const q=detail.querySelector('summary')?.textContent?.trim();const answer=detail.querySelector('p');if(!answer)return;
-        if(q==='Comment fonctionnent les illustrations ?')answer.textContent='Une illustration coûte 5 crédits. Starter inclut 50 crédits, Pro 150 et Business 250. Les abonnés peuvent ajouter des packs de crédits à tout moment.';
-        if(q==='Comment fonctionne la commande WhatsApp ?')answer.textContent='Tous les catalogues permettent de sélectionner plusieurs articles et quantités. Starter transmet la commande directement à WhatsApp. Pro et Business peuvent d’abord enregistrer la commande dans l’espace privé Qatalink puis proposer WhatsApp en complément, avec possibilité de désactiver WhatsApp par catalogue.';
+        if(q==='Comment fonctionnent les illustrations ?')setIfDifferent(answer,'Une illustration coûte 5 crédits. Starter inclut 50 crédits, Pro 150 et Business 250. Les abonnés peuvent ajouter des packs de crédits à tout moment.');
+        if(q==='Comment fonctionne la commande WhatsApp ?')setIfDifferent(answer,'Tous les catalogues permettent de sélectionner plusieurs articles et quantités. Starter transmet la commande directement à WhatsApp. Pro et Business peuvent d’abord enregistrer la commande dans l’espace privé Qatalink puis proposer WhatsApp en complément, avec possibilité de désactiver WhatsApp par catalogue.');
       });
     };
-    refresh();const observer=new MutationObserver(refresh);observer.observe(document.body,{childList:true,subtree:true});return()=>observer.disconnect();
+    const schedule=()=>{if(scheduled)clearTimeout(scheduled);scheduled=setTimeout(refresh,30)};
+    refresh();const observer=new MutationObserver(schedule);observer.observe(document.body,{childList:true,subtree:true});return()=>{if(scheduled)clearTimeout(scheduled);observer.disconnect()};
   },[]);
 
   if(!target)return null;
