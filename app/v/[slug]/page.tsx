@@ -24,10 +24,16 @@ export default async function VitrinePage({params}:{params:Promise<{slug:string}
   const {slug}=await params;
   const supabase=createClient(SUPABASE_URL,SUPABASE_KEY,{auth:{persistSession:false}});
   const {data,error}=await supabase.rpc('get_public_vitrine',{p_slug:slug});
-  if(error||!data)return <main className="public-unavailable"><div><div className="eyebrow">QATALINK</div><h1>Vitrine indisponible</h1><p>Cette vitrine n’est pas publiée ou son accès a expiré.</p></div></main>;
+  if(error||!data)return <main className="public-unavailable"><div><div className="eyebrow">QATALINK</div><h1>Vitrine indisponible</h1><p>Cette page centrale n’est pas publiée ou son accès a expiré.</p></div></main>;
 
-  const b=data.business||{}; const theme=data.theme||{}; const links=Array.isArray(data.links)?data.links:[]; const catalog=data.catalog;
-  const primary=theme.primary_color||'#C7192F'; const secondary=theme.secondary_color||'#F7E8EA'; const bg=theme.background_color||'#FFF'; const text=theme.text_color||'#171719';
+  const b=data.business||{};
+  const theme=data.theme||{};
+  const links=Array.isArray(data.links)?data.links:[];
+  const catalogs=Array.isArray(data.catalogs)&&data.catalogs.length?data.catalogs:(data.catalog?[data.catalog]:[]);
+  const primary=theme.primary_color||'#C7192F';
+  const secondary=theme.secondary_color||'#F7E8EA';
+  const bg=theme.background_color||'#FFF';
+  const text=theme.text_color||'#171719';
   const pageBg=theme.background_image_url
     ?`linear-gradient(rgba(0,0,0,${Math.max(0,Math.min(.8,Number(theme.background_image_overlay??.16)))}),rgba(0,0,0,${Math.max(0,Math.min(.8,Number(theme.background_image_overlay??.16)))})),url(${theme.background_image_url}) center/cover fixed`
     :(theme.background_mode==='gradient'&&theme.background_gradient?theme.background_gradient:bg);
@@ -39,13 +45,15 @@ export default async function VitrinePage({params}:{params:Promise<{slug:string}
       {b.cover_url&&<div className="vitrine-cover" style={{backgroundImage:`url(${b.cover_url})`}}/>}
       <div className="vitrine-profile">
         {b.logo_url&&<div className="vitrine-logo"><img src={b.logo_url} alt={`Logo ${b.name||''}`}/></div>}
-        <span className="vitrine-kicker">QATALINK VITRINE</span>
+        <span className="vitrine-kicker">QATALINK HUB</span>
         <h1>{b.profile_headline||b.name}</h1>
         <p>{b.profile_bio||b.description}</p>
       </div>
 
       <div className="vitrine-links">
-        {catalog&&<a className="vitrine-main-link" href={`/c/${encodeURIComponent(catalog.public_slug)}`}><BookOpen size={21}/><span><b>Voir {catalog.type==='menu'?'le menu':'le catalogue'}</b><small>{catalog.title}</small></span><ExternalLink size={17}/></a>}
+        {catalogs.map((catalog:any,index:number)=><a className="vitrine-main-link" key={catalog.id||catalog.public_slug||index} href={`/c/${encodeURIComponent(catalog.public_slug)}`}>
+          <BookOpen size={21}/><span><b>{catalog.title||`Catalogue ${index+1}`}</b><small>{catalog.type==='menu'?'Ouvrir le menu':'Ouvrir le catalogue'}</small></span><ExternalLink size={17}/>
+        </a>)}
         {phone&&<a className="vitrine-link platform-whatsapp" href={`https://wa.me/${phone}`} target="_blank" rel="noreferrer"><MessageCircle size={19}/><span>WhatsApp</span><ExternalLink size={15}/></a>}
         {links.map((l:any)=><a className={`vitrine-link platform-${l.kind}`} key={`${l.kind}-${l.label}-${l.sort_order}`} href={l.url} target="_blank" rel="noreferrer"><Icon kind={l.kind}/><span>{l.label}</span><ExternalLink size={15}/></a>)}
         {data.location?.maps_url&&<a className="vitrine-link platform-maps" href={data.location.maps_url} target="_blank" rel="noreferrer"><MapPin size={19}/><span>{data.location.label||data.location.address_text||'Nous trouver'}</span><ExternalLink size={15}/></a>}
