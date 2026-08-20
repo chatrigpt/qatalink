@@ -12,13 +12,19 @@ function normalizePoyoKey(value:string|undefined){let key=(value||'').trim();if(
 async function refund(supabase:any,job:any){if(job.credit_debited&&!job.credit_refunded){const {data}=await supabase.rpc('refund_failed_image_credits',{p_business_id:job.business_id,p_job_id:job.id});return data===null||data===undefined?null:Number(data)}return null}
 async function submitFallback(key:string,prompt:string){const r=await fetch('https://api.poyo.ai/api/generate/submit',{method:'POST',headers:{Authorization:`Bearer ${key}`,'Content-Type':'application/json'},body:JSON.stringify({model:'nano-banana-2-new',input:{prompt,size:'1:1',resolution:'1K'}}),cache:'no-store'});const data:any=await r.json().catch(()=>null);return {ok:r.ok&&!!data?.data?.task_id,status:r.status,data,taskId:data?.data?.task_id}}
 async function compressGeneratedImage(bytes:Buffer){
-  const optimized=await sharp(bytes,{failOn:'none'})
+  return sharp(bytes,{failOn:'none'})
     .rotate()
     .resize({width:GENERATED_IMAGE_MAX_EDGE,height:GENERATED_IMAGE_MAX_EDGE,fit:'inside',withoutEnlargement:true})
     .webp({quality:GENERATED_IMAGE_WEBP_QUALITY,effort:4,smartSubsample:true})
     .toBuffer();
-  return optimized;
 }
+async function cleanupReference(supabase:any,job:any){
+  const path=String(job?.provider_payload?.reference_storage_path||'');
+  if(!path||job?.provider_payload?.reference_cleaned)return false;
+  await supabase.storage.from('generated-assets').remove([path]).catch(()=>null);
+  return true;
+}
+function mergePayload(job:any,next:any){return {...(job?.provider_payload||{}),...(next||{})}}
 
 export async function POST(req:NextRequest){
   try{
@@ -31,15 +37,17 @@ export async function POST(req:NextRequest){
       const {data:job}=await supabase.from('item_image_generation_jobs').select('*').eq('id',jobId).maybeSingle();if(!job){results.push({job_id:jobId,status:'failed',error:'JOB_UNAVAILABLE'});continue}
       if(job.status==='completed'){results.push({job_id:job.id,item_id:job.item_id,status:'completed',image_url:job.result_image_url});continue}
       if(job.status==='failed'){results.push({job_id:job.id,item_id:job.item_id,status:'failed',error:'GENERATION_FAILED',refunded:job.credit_refunded});continue}
-      if(!job.provider_task_id){await supabase.from('item_image_generation_jobs').update({status:'failed',error_message:'MISSING_TASK',completed_at:new Date().toISOString()}).eq('id',job.id);const balance=await refund(supabase,job);results.push({job_id:job.id,item_id:job.item_id,status:'failed',error:'GENERATION_FAILED',refunded:true,balance});continue}
-      const provider=await fetch(`https://api.poyo.ai/api/generate/status/${encodeURIComponent(job.provider_task_id)}`,{headers:{Authorization:`Bearer ${key}`},cache:'no-store'});const providerData:any=await provider.json().catch(()=>null);if(provider.status===401){await supabase.from('item_image_generation_jobs').update({error_message:'POYO_AUTH_FAILED',provider_payload:{...(providerData||{}),http_status:401}}).eq('id',job.id);results.push({job_id:job.id,item_id:job.item_id,status:'processing',error:'POYO_AUTH_FAILED'});continue}if(!provider.ok){results.push({job_id:job.id,item_id:job.item_id,status:'processing'});continue}
+      if(!job.provider_task_id){await supabase.from('item_image_generation_jobs').update({status:'failed',error_message:'MISSING_TASK',completed_at:new Date().toISOString()}).eq('id',job.id);const balance=await refund(supabase,job);const cleaned=await cleanupReference(supabase,job);if(cleaned)await supabase.from('item_image_generation_jobs').update({provider_payload:{...job.provider_payload,reference_cleaned:true}}).eq('id',job.id);results.push({job_id:job.id,item_id:job.item_id,status:'failed',error:'GENERATION_FAILED',refunded:true,balance});continue}
+      const provider=await fetch(`https://api.poyo.ai/api/generate/status/${encodeURIComponent(job.provider_task_id)}`,{headers:{Authorization:`Bearer ${key}`},cache:'no-store'});const providerData:any=await provider.json().catch(()=>null);if(provider.status===401){await supabase.from('item_image_generation_jobs').update({error_message:'POYO_AUTH_FAILED',provider_payload:mergePayload(job,{...(providerData||{}),http_status:401})}).eq('id',job.id);results.push({job_id:job.id,item_id:job.item_id,status:'processing',error:'POYO_AUTH_FAILED'});continue}if(!provider.ok){results.push({job_id:job.id,item_id:job.item_id,status:'processing'});continue}
       const task=providerData?.data||{};
       if(task.status==='failed'){
         const alreadyFallback=String(job.provider||'').includes('nano-banana');
-        if(!alreadyFallback){const fb=await submitFallback(key,job.prompt);if(fb.ok){await supabase.from('item_image_generation_jobs').update({status:'processing',provider:'poyo:nano-banana-2-new',provider_task_id:fb.taskId,provider_payload:{...fb.data,fallback_used:true},error_message:null}).eq('id',job.id);results.push({job_id:job.id,item_id:job.item_id,status:'processing',fallback:true});continue}}
-        await supabase.from('item_image_generation_jobs').update({status:'failed',error_message:'GENERATION_FAILED',provider_payload:providerData||{},completed_at:new Date().toISOString()}).eq('id',job.id);const balance=await refund(supabase,job);results.push({job_id:job.id,item_id:job.item_id,status:'failed',error:'GENERATION_FAILED',refunded:true,balance});continue
+        const referenceEdit=String(job.provider||'').includes('gpt-image-2-edit');
+        if(!alreadyFallback&&!referenceEdit){const fb=await submitFallback(key,job.prompt);if(fb.ok){await supabase.from('item_image_generation_jobs').update({status:'processing',provider:'poyo:nano-banana-2-new',provider_task_id:fb.taskId,provider_payload:mergePayload(job,{...fb.data,fallback_used:true}),error_message:null}).eq('id',job.id);results.push({job_id:job.id,item_id:job.item_id,status:'processing',fallback:true});continue}}
+        const cleaned=await cleanupReference(supabase,job);
+        await supabase.from('item_image_generation_jobs').update({status:'failed',error_message:'GENERATION_FAILED',provider_payload:mergePayload(job,{...(providerData||{}),reference_cleaned:cleaned||job?.provider_payload?.reference_cleaned||false}),completed_at:new Date().toISOString()}).eq('id',job.id);const balance=await refund(supabase,job);results.push({job_id:job.id,item_id:job.item_id,status:'failed',error:'GENERATION_FAILED',refunded:true,balance});continue
       }
-      if(task.status!=='finished'){await supabase.from('item_image_generation_jobs').update({status:'processing',provider_payload:providerData}).eq('id',job.id);results.push({job_id:job.id,item_id:job.item_id,status:'processing',progress:Number(task.progress||0)});continue}
+      if(task.status!=='finished'){await supabase.from('item_image_generation_jobs').update({status:'processing',provider_payload:mergePayload(job,providerData)}).eq('id',job.id);results.push({job_id:job.id,item_id:job.item_id,status:'processing',progress:Number(task.progress||0)});continue}
       const file=Array.isArray(task.files)?task.files.find((f:any)=>f?.file_type==='image'&&f?.file_url)||task.files[0]:null;const fileUrl=file?.file_url;if(!fileUrl){results.push({job_id:job.id,item_id:job.item_id,status:'processing',progress:100});continue}
       const download=await fetch(fileUrl,{cache:'no-store'});if(!download.ok){results.push({job_id:job.id,item_id:job.item_id,status:'processing'});continue}
       const sourceBytes=Buffer.from(await download.arrayBuffer());
@@ -49,7 +57,8 @@ export async function POST(req:NextRequest){
       const upload=await supabase.storage.from('generated-assets').upload(storagePath,bytes,{contentType:'image/webp',upsert:false,cacheControl:'31536000'});if(upload.error){results.push({job_id:job.id,item_id:job.item_id,status:'processing'});continue}
       const {data:publicUrlData}=supabase.storage.from('generated-assets').getPublicUrl(storagePath);const imageUrl=publicUrlData.publicUrl;const {data:item}=await supabase.from('items').select('name').eq('id',job.item_id).maybeSingle();await supabase.from('item_images').update({is_primary:false}).eq('item_id',job.item_id).eq('is_primary',true);const {error:imageError}=await supabase.from('item_images').insert({item_id:job.item_id,image_url:imageUrl,storage_path:storagePath,alt_text:item?.name||'Illustration',is_primary:true,sort_order:0,source:'generated',prompt_used:job.prompt,generation_status:'completed'});if(imageError){await supabase.storage.from('generated-assets').remove([storagePath]);results.push({job_id:job.id,item_id:job.item_id,status:'processing'});continue}
       const compression={format:'webp',quality:GENERATED_IMAGE_WEBP_QUALITY,max_edge:GENERATED_IMAGE_MAX_EDGE,source_bytes:sourceBytes.length,stored_bytes:bytes.length,reduction_percent:sourceBytes.length?Math.round((1-bytes.length/sourceBytes.length)*100):0};
-      await supabase.from('item_image_generation_jobs').update({status:'completed',result_image_url:imageUrl,provider_payload:{...(providerData||{}),compression},error_message:null,completed_at:new Date().toISOString()}).eq('id',job.id);results.push({job_id:job.id,item_id:job.item_id,status:'completed',image_url:imageUrl,credit_cost:job.credit_cost||5,compression});
+      const cleaned=await cleanupReference(supabase,job);
+      await supabase.from('item_image_generation_jobs').update({status:'completed',result_image_url:imageUrl,provider_payload:mergePayload(job,{...(providerData||{}),compression,reference_cleaned:cleaned||job?.provider_payload?.reference_cleaned||false}),error_message:null,completed_at:new Date().toISOString()}).eq('id',job.id);results.push({job_id:job.id,item_id:job.item_id,status:'completed',image_url:imageUrl,credit_cost:job.credit_cost||5,compression,reference_used:!!job?.provider_payload?.reference_image_url});
     }
     return NextResponse.json({success:true,results});
   }catch(error){console.error('[Qatalink:ImageStatus]',error);return NextResponse.json({success:false,error:'STATUS_FAILED'},{status:500})}
