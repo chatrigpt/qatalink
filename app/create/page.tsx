@@ -2,7 +2,7 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { useEffect, useMemo, useState } from 'react';
-import { Building2, FileImage, FileText, Hotel, House, Plus, Scissors, ShoppingBag, Sparkles, UtensilsCrossed } from 'lucide-react';
+import { Building2, FileImage, FileText, Hotel, House, Plus, Scissors, ShoppingBag, Sparkles, UtensilsCrossed, X } from 'lucide-react';
 import { createSupabaseBrowserClient } from '@/lib/supabase';
 import { PricingGate } from '@/components/pricing-gate';
 
@@ -10,11 +10,14 @@ type Mode='image'|'text'|'blank';
 type Preset={id:string;label:string;business_type:string;catalog_type:string;default_catalog_title:string;default_categories:string[];default_theme:any};
 type Sub={plan_code:string;status:string;current_period_end:string|null};
 
+const MAX_SOURCE_IMAGES=8;
+const MAX_SOURCE_IMAGE_BYTES=10*1024*1024;
 const presetIcons:Record<string,React.ReactNode>={restaurant:<UtensilsCrossed size={20}/>,hotel:<Hotel size={20}/>,spa_beauty:<Scissors size={20}/>,real_estate:<House size={20}/>,retail:<ShoppingBag size={20}/>};
 const countryCodes=[
   ['CI','🇨🇮','+225','Côte d’Ivoire'],['SN','🇸🇳','+221','Sénégal'],['BF','🇧🇫','+226','Burkina Faso'],['BJ','🇧🇯','+229','Bénin'],['TG','🇹🇬','+228','Togo'],['ML','🇲🇱','+223','Mali'],['NE','🇳🇪','+227','Niger'],['GH','🇬🇭','+233','Ghana'],['NG','🇳🇬','+234','Nigeria'],['FR','🇫🇷','+33','France'],['BE','🇧🇪','+32','Belgique'],['GB','🇬🇧','+44','Royaume-Uni'],['US','🇺🇸','+1','États-Unis / Canada']
 ] as const;
 function digitsOnly(v:string){return v.replace(/\D/g,'')}
+function fileKey(file:File){return `${file.name}:${file.size}:${file.lastModified}`}
 
 export default function Create(){
   const [mode,setMode]=useState<Mode>('image');
@@ -22,7 +25,7 @@ export default function Create(){
   const [title,setTitle]=useState('');
   const [titleTouched,setTitleTouched]=useState(false);
   const [text,setText]=useState('');
-  const [file,setFile]=useState<File|null>(null);
+  const [files,setFiles]=useState<File[]>([]);
   const [autoImages,setAutoImages]=useState(false);
   const [msg,setMsg]=useState('');
   const [loading,setLoading]=useState(false);
@@ -76,6 +79,20 @@ export default function Create(){
 
   useEffect(()=>{if(!selectedPreset)return;if(!titleTouched)setTitle(businessName.trim()||selectedPreset.default_catalog_title)},[presetId,businessName,selectedPreset,titleTouched]);
 
+  function addSourceFiles(list:FileList|null){
+    if(!list)return;
+    const incoming=Array.from(list);
+    const valid=incoming.filter(file=>file.type.startsWith('image/')&&file.size<=MAX_SOURCE_IMAGE_BYTES);
+    const rejected=incoming.length-valid.length;
+    const map=new Map(files.map(file=>[fileKey(file),file]));
+    for(const file of valid)if(map.size<MAX_SOURCE_IMAGES)map.set(fileKey(file),file);
+    const next=Array.from(map.values()).slice(0,MAX_SOURCE_IMAGES);
+    setFiles(next);
+    if(rejected)setMsg('Certaines images ont été ignorées : utilisez uniquement des images de moins de 10 Mo.');
+    else if(files.length+valid.length>MAX_SOURCE_IMAGES)setMsg(`Vous pouvez utiliser jusqu’à ${MAX_SOURCE_IMAGES} images pour un même catalogue.`);
+    else setMsg('');
+  }
+
   async function authSession(){const {data:{session}}=await supabase.auth.getSession();if(!session){window.location.href='/login?next=/create';throw new Error('Session expirée')}return session}
 
   async function persistCatalog(session:any,catalog:any,sourceType:Mode){
@@ -98,13 +115,28 @@ export default function Create(){
         catalogPayload={schema:'qatalink_catalog_v2',source_type:'manual',business:businessContext,catalog:{title:title.trim()||selectedPreset?.default_catalog_title||'Catalogue principal',type:selectedPreset?.catalog_type||'catalog',notes:''},categories:cats};
       }else{
         let source:any;
-        if(mode==='text'){if(!text.trim())throw new Error('Ajoutez le contenu de votre menu ou catalogue.');source={text:text.trim()}}
-        else{if(!file)throw new Error('Ajoutez une image.');const safe=file.name.replace(/[^a-zA-Z0-9._-]+/g,'-');const path=`${user.id}/${Date.now()}-${safe}`;const up=await supabase.storage.from('ocr-source').upload(path,file,{upsert:false,contentType:file.type||'image/jpeg'});if(up.error)throw new Error('Impossible d’importer cette image. Réessayez.');const {data:urlData}=supabase.storage.from('ocr-source').getPublicUrl(path);source={image_url:urlData.publicUrl,file_name:file.name,mime_type:file.type}}
-        setMsg(mode==='image'?'Analyse de votre image…':'Organisation de votre contenu…');
+        if(mode==='text'){
+          if(!text.trim())throw new Error('Ajoutez le contenu de votre menu ou catalogue.');
+          source={text:text.trim()};
+        }else{
+          if(!files.length)throw new Error('Ajoutez au moins une image.');
+          const imageUrls:string[]=[];
+          for(let index=0;index<files.length;index++){
+            const file=files[index];
+            const safe=file.name.replace(/[^a-zA-Z0-9._-]+/g,'-');
+            const path=`${user.id}/${Date.now()}-${index}-${safe}`;
+            const up=await supabase.storage.from('ocr-source').upload(path,file,{upsert:false,contentType:file.type||'image/jpeg'});
+            if(up.error)throw new Error(`Impossible d’importer « ${file.name} ». Réessayez.`);
+            const {data:urlData}=supabase.storage.from('ocr-source').getPublicUrl(path);
+            imageUrls.push(urlData.publicUrl);
+          }
+          source={image_urls:imageUrls,file_names:files.map(file=>file.name)};
+        }
+        setMsg(mode==='image'?`Analyse de ${files.length} image${files.length>1?'s':''}…`:'Organisation de votre contenu…');
         const ocr=await fetch('/api/ocr',{method:'POST',headers:{'Content-Type':'application/json',Authorization:`Bearer ${session.access_token}`},body:JSON.stringify({input_type:mode,source,business_context:businessContext,preset:{id:presetId,label:selectedPreset?.label,categories:selectedPreset?.default_categories||[]}})});
         const ocrData=await ocr.json();
         if(ocr.status===402){setHasAccess(false);setPretrial(false);setTrialActive(false);setGate(true);throw new Error('Votre essai est terminé. Activez une formule pour continuer.')}
-        if(!ocr.ok||!ocrData?.catalog)throw new Error(ocrData?.message||ocrData?.error||'Impossible d’organiser ce contenu. Vérifiez votre image ou votre texte puis réessayez.');
+        if(!ocr.ok||!ocrData?.catalog)throw new Error(ocrData?.message||ocrData?.error||'Impossible d’organiser ce contenu. Vérifiez vos images ou votre texte puis réessayez.');
         catalogPayload=ocrData.catalog;catalogPayload.business={...(catalogPayload.business||{}),...businessContext};catalogPayload.catalog={...(catalogPayload.catalog||{}),title:title.trim()||selectedPreset?.default_catalog_title||effectiveBusinessName,type:selectedPreset?.catalog_type||catalogPayload.catalog?.type||'catalog'};
       }
       setMsg('Création de votre catalogue…');const saved=await persistCatalog(session,catalogPayload,mode);localStorage.setItem('qatalink_import_preview',JSON.stringify({status:'completed',catalog_id:saved.catalog_id,source:mode,preset_id:presetId}));
@@ -116,13 +148,13 @@ export default function Create(){
   if(!ready)return <div className="auth-wrap"><div className="auth-card"><b>Préparation de votre espace…</b></div></div>;
   return <div className="auth-wrap create-wrap"><div className="auth-card create-card activation-create-card">
     <Link href="/dashboard" className="brand"><Image src="/qatalink-logo.png" width={34} height={34} alt="Qatalink"/>qatalink</Link>
-    <div className="create-activation-head"><span className="eyebrow">OBJECTIF : PREMIER CATALOGUE EN LIGNE</span><h1>Transformez ce que vous avez déjà</h1><p>{trialActive?'Tout est ouvert pendant 7 jours. Commencez par obtenir un résultat visible, vous personnaliserez le reste ensuite.':pretrial?'Votre essai complet de 7 jours démarrera seulement quand ce premier catalogue sera créé. Vous ne perdez aucun temps avant le premier résultat.':'Importez une carte, collez un texte ou partez de zéro. Qatalink construit la première version pour vous.'}</p></div>
+    <div className="create-activation-head"><span className="eyebrow">OBJECTIF : PREMIER CATALOGUE EN LIGNE</span><h1>Transformez ce que vous avez déjà</h1><p>{trialActive?'Tout est ouvert pendant 7 jours. Commencez par obtenir un résultat visible, vous personnaliserez le reste ensuite.':pretrial?'Votre essai complet de 7 jours démarrera seulement quand ce premier catalogue sera créé. Vous ne perdez aucun temps avant le premier résultat.':'Importez plusieurs pages, collez un texte ou partez de zéro. Qatalink construit la première version pour vous.'}</p></div>
 
     <form className="form activation-create-form" onSubmit={start}>
       <section className="create-step-card"><div className="create-step-label"><span>1</span><div><b>Choisissez votre activité</b><small>Qatalink adapte automatiquement les catégories et le parcours client.</small></div></div><div className="preset-grid">{presets.map(p=><button key={p.id} type="button" className={'preset-card '+(presetId===p.id?'active':'')} onClick={()=>{setPresetId(p.id);setTitleTouched(false)}}><span>{presetIcons[p.id]||<Building2 size={20}/>}</span><b>{p.label}</b><small>{(p.default_categories||[]).slice(0,3).join(' · ')}</small></button>)}</div></section>
 
-      <section className="create-step-card"><div className="create-step-label"><span>2</span><div><b>Donnez-nous votre contenu</b><small>Pas besoin de tout paramétrer avant de voir le résultat.</small></div></div><div className="create-modes"><button type="button" className={'create-mode '+(mode==='image'?'active':'')} onClick={()=>setMode('image')}><FileImage size={19}/><span>Depuis une image</span></button><button type="button" className={'create-mode '+(mode==='text'?'active':'')} onClick={()=>setMode('text')}><FileText size={19}/><span>Depuis un texte</span></button><button type="button" className={'create-mode '+(mode==='blank'?'active':'')} onClick={()=>setMode('blank')}><Plus size={19}/><span>Créer de zéro</span></button></div>
-        {mode==='image'&&<div className="upload create-upload"><input type="file" accept="image/*" onChange={e=>setFile(e.target.files?.[0]||null)}/><p>{file?file.name:'Photo, capture ou scan de votre menu/catalogue.'}</p></div>}
+      <section className="create-step-card"><div className="create-step-label"><span>2</span><div><b>Donnez-nous votre contenu</b><small>Vous pouvez utiliser plusieurs photos si votre menu/catalogue tient sur plusieurs pages.</small></div></div><div className="create-modes"><button type="button" className={'create-mode '+(mode==='image'?'active':'')} onClick={()=>setMode('image')}><FileImage size={19}/><span>Depuis des images</span></button><button type="button" className={'create-mode '+(mode==='text'?'active':'')} onClick={()=>setMode('text')}><FileText size={19}/><span>Depuis un texte</span></button><button type="button" className={'create-mode '+(mode==='blank'?'active':'')} onClick={()=>setMode('blank')}><Plus size={19}/><span>Créer de zéro</span></button></div>
+        {mode==='image'&&<><div className="upload create-upload create-upload-multi"><input type="file" accept="image/*" multiple onChange={e=>{addSourceFiles(e.target.files);e.currentTarget.value=''}}/><p>{files.length?`${files.length} image${files.length>1?'s':''} sélectionnée${files.length>1?'s':''}`:`Photo, capture ou scan · jusqu’à ${MAX_SOURCE_IMAGES} pages.`}</p></div>{files.length>0&&<div className="create-source-files">{files.map((file,index)=><span key={fileKey(file)}><b>{index+1}</b><em>{file.name}</em><button type="button" aria-label={`Retirer ${file.name}`} onClick={()=>setFiles(current=>current.filter(entry=>fileKey(entry)!==fileKey(file)))}><X size={12}/></button></span>)}</div>}<small className="create-multi-help">Qatalink lit les images comme les pages d’un même catalogue et rassemble les informations sans répéter les doublons évidents. 10 Mo max par image.</small></>}
         {mode==='text'&&<textarea className="input" rows={11} placeholder={'Collez votre contenu ici. Exemple :\nPLATS\nPoulet braisé — 3 500 F\nPoisson braisé — 5 000 F\n\nBOISSONS\nBissap — 1 000 F'} value={text} onChange={e=>setText(e.target.value)}/>}
         {mode==='blank'&&<div className="blank-create-note"><Plus size={22}/><div><b>Structure {selectedPreset?.label||'personnalisée'} prête</b><span>{(selectedPreset?.default_categories||['Catégorie 1']).join(' · ')}. Vous pourrez tout renommer, supprimer ou compléter ensuite.</span></div></div>}
       </section>
@@ -134,7 +166,7 @@ export default function Create(){
       {loading&&<div className="activation-progress" aria-live="polite"><div className={progressStep>=1?'done active':''}><span>1</span><b>Lecture du contenu</b></div><div className={progressStep>=2?'done active':''}><span>2</span><b>Organisation du catalogue</b></div><div className={progressStep>=3?'done active':''}><span>3</span><b>Préparation du rendu</b></div><p>{msg||'Traitement en cours…'}</p></div>}
       {!loading&&msg&&<div className="error">{msg}</div>}
       <button className="btn btn-primary create-value-cta" disabled={loading}>{loading?'Votre catalogue prend forme…':'Créer et voir mon catalogue'}</button>
-      <small className="create-value-note">{pretrial?'Vos 7 jours commencent uniquement après cette création. ':''}Vous pourrez modifier les prix, photos, catégories, couleurs et textes après la génération.</small>
+      <small className="create-value-note">{pretrial?'Vos 7 jours commencent uniquement après cette création. ':''}Vous pourrez ensuite compléter le catalogue avec d’autres images ou un nouveau bloc de texte sans repartir de zéro.</small>
     </form>
   </div><PricingGate open={gate} onClose={()=>setGate(false)} title={trialActive?'Votre essai est en cours':'Choisissez une formule pour continuer'} trialActive={trialActive} trialExpiresAt={trialExpiresAt}/></div>
 }
