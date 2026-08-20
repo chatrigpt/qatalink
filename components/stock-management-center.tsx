@@ -17,8 +17,9 @@ export function StockManagementCenter(){
   const supabase=useMemo(()=>createSupabaseBrowserClient(),[]);
   const lastResolved=useRef('');
   const [host,setHost]=useState<Element|null>(null);
-  const [desktopNav,setDesktopNav]=useState<Element|null>(null);
-  const [mobileNav,setMobileNav]=useState<Element|null>(null);
+  const [desktopSlot,setDesktopSlot]=useState<Element|null>(null);
+  const [mobileSlot,setMobileSlot]=useState<Element|null>(null);
+  const [stockView,setStockView]=useState(false);
   const [catalogId,setCatalogId]=useState('');
   const [businessId,setBusinessId]=useState('');
   const [plan,setPlan]=useState('');
@@ -43,25 +44,71 @@ export function StockManagementCenter(){
   useEffect(()=>{
     let cancelled=false;
     let scheduled:ReturnType<typeof setTimeout>|null=null;
+
+    const ensureSlot=(container:Element|null,kind:'desktop'|'mobile')=>{
+      if(!container)return null;
+      const className=`q-stock-nav-slot q-stock-nav-slot-${kind}`;
+      let slot=container.querySelector(`.q-stock-nav-slot-${kind}`) as HTMLElement|null;
+      const articleButton=Array.from(container.querySelectorAll<HTMLButtonElement>('button')).find(button=>{
+        const text=(button.textContent||'').trim();
+        return text==='Articles'||text.startsWith('Articles');
+      });
+      if(!articleButton)return slot;
+      if(!slot){slot=document.createElement('span');slot.className=className;articleButton.insertAdjacentElement('afterend',slot)}
+      return slot;
+    };
+
     const resolve=async()=>{
-      setDesktopNav(document.querySelector('.dash-v3-nav'));
-      setMobileNav(document.querySelector('.dash-v3-mobile-tabs'));
-      const title=document.querySelector('.dash-v3-top h1')?.textContent?.trim()||'';
-      const nextHost=title==='Articles & catégories'?document.querySelector('.dash-v3-main .dash-section'):null;
-      setHost(nextHost);
-      if(!nextHost){lastResolved.current='';return}
+      const desktopNav=document.querySelector('.dash-v3-nav');
+      const mobileNav=document.querySelector('.dash-v3-mobile-tabs');
+      setDesktopSlot(ensureSlot(desktopNav,'desktop'));
+      setMobileSlot(ensureSlot(mobileNav,'mobile'));
+
+      const params=new URLSearchParams(location.search);
+      const wantsStock=params.get('tab')==='items'&&params.get('view')==='stock';
+      setStockView(wantsStock);
+      const titleEl=document.querySelector<HTMLElement>('.dash-v3-top h1');
+      const title=titleEl?.textContent?.trim()||'';
+      const articleSection=document.querySelector<HTMLElement>('.dash-v3-main .dash-section');
+
+      document.querySelectorAll<HTMLElement>('.dash-v3-main .q-stock-view-active').forEach(el=>{if(el!==articleSection)el.classList.remove('q-stock-view-active')});
+      if(wantsStock&&articleSection&&(title==='Articles & catégories'||title==='Stock & inventaire')){
+        articleSection.classList.add('q-stock-view-active');
+        if(titleEl&&titleEl.textContent!=='Stock & inventaire')titleEl.textContent='Stock & inventaire';
+        setHost(articleSection);
+      }else{
+        articleSection?.classList.remove('q-stock-view-active');
+        if(titleEl&&title==='Stock & inventaire')titleEl.textContent='Articles & catégories';
+        setHost(null);
+        lastResolved.current='';
+        return;
+      }
+
       const {data:{session}}=await supabase.auth.getSession();if(!session||cancelled)return;
       const {data:businesses}=await supabase.from('businesses').select('id').eq('owner_user_id',session.user.id).order('created_at',{ascending:true}).limit(1);
       const b=businesses?.[0]?.id;if(!b)return;
-      let cid=new URLSearchParams(location.search).get('catalog')||'';
-      if(!cid){const heading=document.querySelector('.dash-toolbar h3')?.textContent?.trim()||'';if(heading){const {data:cs}=await supabase.from('catalogs').select('id').eq('business_id',b).eq('title',heading).order('created_at',{ascending:false}).limit(1);cid=String(cs?.[0]?.id||'')}}
+      let cid=params.get('catalog')||'';
+      if(!cid){
+        const {data:cs}=await supabase.from('catalogs').select('id').eq('business_id',b).order('created_at',{ascending:false}).limit(1);
+        cid=String(cs?.[0]?.id||'');
+      }
       if(!cid)return;
       const key=`${String(b)}:${cid}`;if(lastResolved.current===key)return;
       lastResolved.current=key;setBusinessId(String(b));setCatalogId(cid);await loadAll(String(b),cid);
     };
+
     const schedule=()=>{if(scheduled)clearTimeout(scheduled);scheduled=setTimeout(()=>void resolve(),60)};
-    schedule();const observer=new MutationObserver(schedule);observer.observe(document.body,{subtree:true,childList:true,characterData:true});document.addEventListener('click',schedule,true);
-    return()=>{cancelled=true;if(scheduled)clearTimeout(scheduled);observer.disconnect();document.removeEventListener('click',schedule,true)};
+    const onStockView=()=>schedule();
+    schedule();
+    const observer=new MutationObserver(schedule);observer.observe(document.body,{subtree:true,childList:true,characterData:true});
+    document.addEventListener('click',schedule,true);
+    window.addEventListener('qatalink-stock-view',onStockView);
+    window.addEventListener('popstate',onStockView);
+    return()=>{
+      cancelled=true;if(scheduled)clearTimeout(scheduled);observer.disconnect();document.removeEventListener('click',schedule,true);window.removeEventListener('qatalink-stock-view',onStockView);window.removeEventListener('popstate',onStockView);
+      document.querySelectorAll('.q-stock-nav-slot').forEach(el=>el.remove());
+      document.querySelectorAll('.q-stock-view-active').forEach(el=>el.classList.remove('q-stock-view-active'));
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   },[supabase]);
 
@@ -79,7 +126,15 @@ export function StockManagementCenter(){
     if(!recipe.item_id&&itemRows?.[0]?.id)setRecipe(v=>({...v,item_id:itemRows[0].id}));if(!recipe.stock_item_id&&stockRows?.[0]?.id)setRecipe(v=>({...v,stock_item_id:stockRows[0].id}));
   }
 
-  function openStock(){const articleButton=Array.from(document.querySelectorAll<HTMLButtonElement>('.dash-v3-nav button,.dash-v3-mobile-tabs button')).find(button=>(button.textContent||'').includes('Articles'));articleButton?.click();setTimeout(()=>document.querySelector('.q-stock-section')?.scrollIntoView({behavior:'smooth',block:'start'}),160)}
+  function openStock(){
+    const articleButton=Array.from(document.querySelectorAll<HTMLButtonElement>('.dash-v3-nav button')).find(button=>(button.textContent||'').trim()==='Articles')||Array.from(document.querySelectorAll<HTMLButtonElement>('.dash-v3-mobile-tabs button')).find(button=>(button.textContent||'').includes('Articles'));
+    articleButton?.click();
+    setTimeout(()=>{
+      const params=new URLSearchParams(location.search);params.set('tab','items');params.set('view','stock');if(catalogId&&!params.get('catalog'))params.set('catalog',catalogId);
+      window.history.replaceState({},'',`/dashboard?${params.toString()}`);setStockView(true);window.dispatchEvent(new Event('qatalink-stock-view'));
+      setTimeout(()=>document.querySelector('.dash-v3-top')?.scrollIntoView({behavior:'smooth',block:'start'}),80);
+    },80);
+  }
 
   async function addStock(){if(!businessEnabled||!businessId||!newStock.name.trim())return;setBusy('new');const {error}=await supabase.from('inventory_stock_items').insert({business_id:businessId,name:newStock.name.trim(),unit:newStock.unit,quantity:Number(newStock.quantity||0),low_stock_threshold:Math.max(0,Number(newStock.threshold||0)),active:true});setBusy('');if(error){alert(error.message);return}setNewStock({name:'',unit:'unité',quantity:'0',threshold:'0'});await loadAll()}
   async function adjustStock(stock:Stock,newQuantity:number){if(!businessEnabled)return;setBusy(`stock:${stock.id}`);const {error}=await supabase.rpc('set_inventory_stock_quantity',{p_stock_id:stock.id,p_quantity:newQuantity,p_note:'Ajustement depuis le dashboard Qatalink'});setBusy('');if(error)alert(error.message);else await loadAll()}
@@ -89,29 +144,12 @@ export function StockManagementCenter(){
   async function deleteRecipe(id:string){await supabase.from('inventory_recipe_components').delete().eq('id',id);await loadAll()}
 
   function resetImport(){setImportRows([]);setImportWarnings([]);setImportError('');setImportText('');setImportImage('');setImportFileName('')}
-  function readImportFile(file:File){
-    if(!file.type.startsWith('image/')){setImportError('Choisissez une image ou une capture de votre fiche de stock.');return}
-    if(file.size>8*1024*1024){setImportError('Image trop lourde. Utilisez un fichier de moins de 8 Mo.');return}
-    const reader=new FileReader();reader.onload=()=>{setImportImage(String(reader.result||''));setImportFileName(file.name);setImportRows([]);setImportError('')};reader.readAsDataURL(file);
-  }
-  async function analyzeImport(){
-    if(!businessId)return;setBusy('stock-import');setImportError('');setImportRows([]);setImportWarnings([]);
-    try{
-      const {data:{session}}=await supabase.auth.getSession();if(!session)throw new Error('SESSION_EXPIRED');
-      const response=await fetch('/api/stock/import',{method:'POST',headers:{'Content-Type':'application/json',Authorization:`Bearer ${session.access_token}`},body:JSON.stringify({business_id:businessId,input_type:importMode,text:importMode==='text'?importText:undefined,image_url:importMode==='image'?importImage:undefined})});
-      const data=await response.json().catch(()=>({}));if(!response.ok)throw new Error(data.error||'IMPORT_FAILED');
-      setImportRows((data.items||[]) as ImportRow[]);setImportWarnings(Array.isArray(data.warnings)?data.warnings:[]);
-    }catch(error:any){setImportError(error?.message==='NO_STOCK_ROWS_FOUND'?'Aucune ligne de stock exploitable n’a été trouvée.':"Impossible d'analyser cette source. Vérifiez le texte ou l'image et réessayez.")}
-    finally{setBusy('')}
-  }
-  async function commitImport(){
-    if(!businessId||!importRows.length)return;setBusy('stock-commit');setImportError('');
-    const rows=importRows.filter(row=>row.name.trim()).map(row=>({business_id:businessId,name:row.name.trim(),unit:units.includes(row.unit)?row.unit:'unité',quantity:Math.max(0,Number(row.quantity)||0),low_stock_threshold:Math.max(0,Number(row.low_stock_threshold)||0),active:true}));
-    const {error}=await supabase.from('inventory_stock_items').insert(rows);setBusy('');if(error){setImportError(error.message);return}setImportOpen(false);resetImport();await loadAll();
-  }
+  function readImportFile(file:File){if(!file.type.startsWith('image/')){setImportError('Choisissez une image ou une capture de votre fiche de stock.');return}if(file.size>8*1024*1024){setImportError('Image trop lourde. Utilisez un fichier de moins de 8 Mo.');return}const reader=new FileReader();reader.onload=()=>{setImportImage(String(reader.result||''));setImportFileName(file.name);setImportRows([]);setImportError('')};reader.readAsDataURL(file)}
+  async function analyzeImport(){if(!businessId)return;setBusy('stock-import');setImportError('');setImportRows([]);setImportWarnings([]);try{const {data:{session}}=await supabase.auth.getSession();if(!session)throw new Error('SESSION_EXPIRED');const response=await fetch('/api/stock/import',{method:'POST',headers:{'Content-Type':'application/json',Authorization:`Bearer ${session.access_token}`},body:JSON.stringify({business_id:businessId,input_type:importMode,text:importMode==='text'?importText:undefined,image_url:importMode==='image'?importImage:undefined})});const data=await response.json().catch(()=>({}));if(!response.ok)throw new Error(data.error||'IMPORT_FAILED');setImportRows((data.items||[]) as ImportRow[]);setImportWarnings(Array.isArray(data.warnings)?data.warnings:[])}catch(error:any){setImportError(error?.message==='NO_STOCK_ROWS_FOUND'?'Aucune ligne de stock exploitable n’a été trouvée.':"Impossible d'analyser cette source. Vérifiez le texte ou l'image et réessayez.")}finally{setBusy('')}}
+  async function commitImport(){if(!businessId||!importRows.length)return;setBusy('stock-commit');setImportError('');const rows=importRows.filter(row=>row.name.trim()).map(row=>({business_id:businessId,name:row.name.trim(),unit:units.includes(row.unit)?row.unit:'unité',quantity:Math.max(0,Number(row.quantity)||0),low_stock_threshold:Math.max(0,Number(row.low_stock_threshold)||0),active:true}));const {error}=await supabase.from('inventory_stock_items').insert(rows);setBusy('');if(error){setImportError(error.message);return}setImportOpen(false);resetImport();await loadAll()}
   function patchImportRow(index:number,patch:Partial<ImportRow>){setImportRows(rows=>rows.map((row,i)=>i===index?{...row,...patch}:row))}
 
-  const navButton=<button type="button" className="q-stock-nav" onClick={openStock}><Boxes size={16}/><span>Stock</span></button>;
+  const navButton=<button type="button" className={`q-stock-nav ${stockView?'active':''}`} onClick={openStock}><Boxes size={16}/><span>Stock</span></button>;
   const importModal=importOpen&&createPortal(<div className="q-stock-import-backdrop" onMouseDown={e=>{if(e.target===e.currentTarget)setImportOpen(false)}}><section className="q-stock-import-modal"><header><div><span className="eyebrow">IMPORT STOCK BUSINESS</span><h2>Importer une fiche de stock</h2><p>Collez un inventaire complet ou envoyez une photo. Qatalink extrait les lignes puis vous laisse tout vérifier avant l’enregistrement.</p></div><button onClick={()=>setImportOpen(false)} aria-label="Fermer"><X/></button></header><div className="q-stock-import-tabs"><button className={importMode==='text'?'active':''} onClick={()=>{setImportMode('text');setImportRows([])}}><FileText size={16}/>Texte complet</button><button className={importMode==='image'?'active':''} onClick={()=>{setImportMode('image');setImportRows([])}}><ImageUp size={16}/>Photo / capture</button></div>{importMode==='text'?<textarea className="q-stock-import-text" value={importText} onChange={e=>setImportText(e.target.value)} placeholder={'Exemple :\nPoulet entier - 45 unités - seuil 10\nCoca 33 cl - 72 bouteilles - seuil 12\nRiz - 30 kg - seuil 5'}/>:<label className="q-stock-import-drop"><UploadCloud size={30}/><b>{importFileName||'Choisir une photo de votre stock'}</b><span>Photo de feuille, capture d’écran ou fiche d’inventaire · 8 Mo max</span><input type="file" accept="image/*" onChange={e=>{const file=e.target.files?.[0];if(file)readImportFile(file)}}/></label>}<button className="btn btn-primary q-stock-analyze" disabled={busy==='stock-import'||(importMode==='text'?!importText.trim():!importImage)} onClick={analyzeImport}>{busy==='stock-import'?'Analyse en cours…':'Analyser et préparer l’import'}</button>{importError&&<div className="q-stock-import-error">{importError}</div>}{importWarnings.length>0&&<div className="q-stock-import-warnings">{importWarnings.map((warning,i)=><span key={i}>⚠ {warning}</span>)}</div>}{importRows.length>0&&<><div className="q-stock-preview-head"><div><b>{importRows.length} ligne(s) détectée(s)</b><span>Vérifiez les noms, quantités, unités et seuils avant import.</span></div></div><div className="q-stock-preview">{importRows.map((row,index)=><div className="q-stock-preview-row" key={`${index}-${row.name}`}><input className="input" value={row.name} onChange={e=>patchImportRow(index,{name:e.target.value})}/><input className="input" type="number" min="0" step="0.001" value={row.quantity} onChange={e=>patchImportRow(index,{quantity:Number(e.target.value)})}/><select className="input" value={row.unit} onChange={e=>patchImportRow(index,{unit:e.target.value})}>{units.map(unit=><option key={unit}>{unit}</option>)}</select><input className="input" type="number" min="0" step="0.001" value={row.low_stock_threshold} onChange={e=>patchImportRow(index,{low_stock_threshold:Number(e.target.value)})}/><button className="mini-action" onClick={()=>setImportRows(rows=>rows.filter((_,i)=>i!==index))}><Trash2 size={13}/></button></div>)}</div><div className="q-stock-import-actions"><button className="btn btn-ghost" onClick={resetImport}>Recommencer</button><button className="btn btn-primary" onClick={commitImport} disabled={busy==='stock-commit'}>{busy==='stock-commit'?'Import en cours…':`Importer ${importRows.length} ligne(s)`}</button></div></>}</section></div>,document.body);
 
   const content=<section className="dash-card q-stock-section">
@@ -124,5 +162,5 @@ export function StockManagementCenter(){
     </>}
   </section>;
 
-  return <>{desktopNav&&createPortal(navButton,desktopNav)}{mobileNav&&createPortal(navButton,mobileNav)}{host&&createPortal(content,host)}{importModal}</>;
+  return <>{desktopSlot&&createPortal(navButton,desktopSlot)}{mobileSlot&&createPortal(navButton,mobileSlot)}{host&&createPortal(content,host)}{importModal}</>;
 }
