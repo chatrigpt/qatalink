@@ -37,6 +37,7 @@ import './trial-conversion.css';
 import './generation-activity.css';
 import './image-generation-controls.css';
 import './business-stock.css';
+import './catalog-completion.css';
 import './plan-experience.css';
 import './ux-fix.css';
 import './catalog-deletion.css';
@@ -52,6 +53,7 @@ import { GenerationActivityCenter } from '@/components/generation-activity-cente
 import { ItemImageGenerationControls } from '@/components/item-image-generation-controls';
 import { ItemDescriptionGenerationControls } from '@/components/item-description-generation-controls';
 import { StockManagementCenter } from '@/components/stock-management-center';
+import { CatalogCompletionControls } from '@/components/catalog-completion-controls';
 import { DashboardPlanExperience } from '@/components/dashboard-plan-experience';
 import { QatalinkUxRefinements } from '@/components/qatalink-ux-refinements';
 import { CatalogDeletionControls } from '@/components/catalog-deletion-controls';
@@ -78,5 +80,5 @@ export const metadata={
 };
 
 export default function RootLayout({children}:{children:React.ReactNode}){
-  return <html lang="fr" suppressHydrationWarning><body className={`${jakarta.variable} ${playfair.variable}`}><ThemeProvider>{children}<ProviderNameScrubber/><MobileMoneyPaymentInfo/><LandingSupportExperience/><PlanCopyAlignment/><DashboardPlanExperience/><ItemImageGenerationControls/><ItemDescriptionGenerationControls/><StockManagementCenter/><QatalinkUxRefinements/><CatalogDeletionControls/><QrCanonicalControls/><OrderOperationsCenter/><OpsStockAlerts/><GenerationActivityCenter/><DashboardKeyInHandPrompt/><DirectPrintLabelFix/><PwaInstallButton/><MetaPixel/></ThemeProvider></body></html>;
+  return <html lang="fr" suppressHydrationWarning><body className={`${jakarta.variable} ${playfair.variable}`}><ThemeProvider>{children}<ProviderNameScrubber/><MobileMoneyPaymentInfo/><LandingSupportExperience/><PlanCopyAlignment/><DashboardPlanExperience/><ItemImageGenerationControls/><ItemDescriptionGenerationControls/><StockManagementCenter/><CatalogCompletionControls/><QatalinkUxRefinements/><CatalogDeletionControls/><QrCanonicalControls/><OrderOperationsCenter/><OpsStockAlerts/><GenerationActivityCenter/><DashboardKeyInHandPrompt/><DirectPrintLabelFix/><PwaInstallButton/><MetaPixel/></ThemeProvider></body></html>;
 }
