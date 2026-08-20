@@ -15,6 +15,7 @@ import { TrialConversionCoach } from '@/components/trial-conversion-coach';
 import { TrialCreditAccess } from '@/components/trial-credit-access';
 import { DashboardUtilityControls } from '@/components/dashboard-utility-controls';
 import { TrialLifecycleBanner } from '@/components/trial-lifecycle-banner';
+import { QrCanonicalControls } from '@/components/qr-canonical-controls';
 
 export default function DashboardPage(){
   return <>
@@ -22,6 +23,7 @@ export default function DashboardPage(){
     <DashboardSafeBoundary critical><DashboardAppV3/></DashboardSafeBoundary>
     <DashboardSafeBoundary><TrialLifecycleBanner/></DashboardSafeBoundary>
     <DashboardSafeBoundary><DashboardUtilityControls/></DashboardSafeBoundary>
+    <DashboardSafeBoundary><QrCanonicalControls/></DashboardSafeBoundary>
     <DashboardSafeBoundary><DashboardActivationEngine/></DashboardSafeBoundary>
     <DashboardSafeBoundary><DashboardAnalytics/></DashboardSafeBoundary>
     <DashboardSafeBoundary><DashboardAdvancedControls/></DashboardSafeBoundary>
