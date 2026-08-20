@@ -6,6 +6,7 @@ export const runtime='nodejs';
 const SUPABASE_URL=process.env.NEXT_PUBLIC_SUPABASE_URL||'https://rifjsvbbhsnpifgooenl.supabase.co';
 const SUPABASE_KEY=process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY||'sb_publishable_5A_EpEK4Jrwh-3-NT43RxA_0iIP9Tdl';
 const FAL_OPENAI_URL='https://fal.run/openrouter/router/openai/v1/chat/completions';
+const MAX_SOURCE_IMAGES=8;
 
 const schemaInstruction=`Return ONLY valid JSON. No markdown, no code fences, no commentary.
 Use exactly this structure:
@@ -22,6 +23,8 @@ Use exactly this structure:
 }
 Rules:
 - Preserve every readable item and price; never silently omit an item.
+- When several images are provided, they are pages or complementary views of the SAME menu/catalogue. Combine all unique information into one coherent catalogue.
+- Deduplicate only obvious exact repetitions caused by overlapping pages. Never merge distinct sizes, variants, formulas or products just because their names are similar.
 - Prices must be numbers only, without currency symbols or separators.
 - If the source uses FCFA/CFA, use XOF.
 - Keep descriptions empty when not present instead of inventing facts.
@@ -71,20 +74,24 @@ export async function POST(req:NextRequest){
     const inputType=body?.input_type==='text'?'text':'image';
     const context=body?.business_context||{};
     const preset=body?.preset||{};
+    const completionMode=body?.completion_mode===true;
     const presetContext=`Selected Qatalink preset: ${preset?.label||preset?.id||'none'}. Preferred category vocabulary when appropriate: ${Array.isArray(preset?.categories)?preset.categories.join(', '):'none'}. Treat this as business-sector context, but never discard explicit source categories or invent products/services that are not in the source.`;
+    const completionContext=completionMode?'This source is a SUPPLEMENT to an existing catalogue. Extract only what is actually present in this supplement, keeping enough category context to merge it later. Do not invent missing older items.':'';
     let userContent:any;
 
     if(inputType==='image'){
-      const imageUrl=body?.source?.image_url||body?.image_url;
-      if(!imageUrl)return NextResponse.json({success:false,error:'image_url required'},{status:400});
+      const candidates=Array.isArray(body?.source?.image_urls)?body.source.image_urls:[body?.source?.image_url||body?.image_url];
+      const imageUrls=[...new Set(candidates.map((value:any)=>String(value||'').trim()).filter(Boolean))].slice(0,MAX_SOURCE_IMAGES);
+      if(!imageUrls.length)return NextResponse.json({success:false,error:'image_url or image_urls required'},{status:400});
+      const sourceLabel=imageUrls.length===1?'cette image':`ces ${imageUrls.length} images/pages`;
       userContent=[
-        {type:'text',text:`Analyse cette image de menu/catalogue et transforme-la dans le schéma Qatalink. Contexte entreprise: ${JSON.stringify(context)}. ${presetContext} ${schemaInstruction}`},
-        {type:'image_url',image_url:imageUrl}
+        {type:'text',text:`Analyse ${sourceLabel} de menu/catalogue et transforme tout le contenu lisible dans le schéma Qatalink. Les images fournies appartiennent au même catalogue et doivent être réunies dans un résultat unique, sans doublons évidents entre pages. Contexte entreprise: ${JSON.stringify(context)}. ${presetContext} ${completionContext} ${schemaInstruction}`},
+        ...imageUrls.map((imageUrl:string)=>({type:'image_url',image_url:imageUrl}))
       ];
     }else{
       const text=String(body?.source?.text||body?.text||'').trim();
       if(!text)return NextResponse.json({success:false,error:'text required'},{status:400});
-      userContent=`Structure ce texte massif de menu/catalogue dans le schéma Qatalink. Contexte entreprise: ${JSON.stringify(context)}. ${presetContext}\n\nSOURCE:\n${text}\n\n${schemaInstruction}`;
+      userContent=`Structure ce texte massif de menu/catalogue dans le schéma Qatalink. Contexte entreprise: ${JSON.stringify(context)}. ${presetContext} ${completionContext}\n\nSOURCE:\n${text}\n\n${schemaInstruction}`;
     }
 
     const provider=await fetch(FAL_OPENAI_URL,{
@@ -110,7 +117,7 @@ export async function POST(req:NextRequest){
     catalog.schema='qatalink_catalog_v2';
     catalog.source_type=inputType;
 
-    return NextResponse.json({success:true,catalog,usage:providerData?.usage||null,pretrial});
+    return NextResponse.json({success:true,catalog,usage:providerData?.usage||null,pretrial,image_count:inputType==='image'?(Array.isArray(body?.source?.image_urls)?Math.min(body.source.image_urls.length,MAX_SOURCE_IMAGES):1):0});
   }catch(e:any){
     return NextResponse.json({success:false,error:e?.message||'OCR failed'},{status:500});
   }
