@@ -72,21 +72,34 @@ export async function disconnectEscPosPrinter(){
   activePort=null;
 }
 
-export async function ensureEscPosPrinter(baudRate=9600){
+export async function ensureEscPosPrinter(baudRate=9600,requestIfMissing=false){
   if(activePort?.writable)return activePort;
   const serial=navSerial();if(!serial)throw new Error('DIRECT_PRINT_UNSUPPORTED');
   const ports=await serial.getPorts().catch(()=>[]);
-  if(ports?.length){activePort=ports[0];if(!activePort.writable)await activePort.open({baudRate});return activePort}
+  if(ports?.length){
+    activePort=ports[0];
+    if(!activePort.writable)await activePort.open({baudRate});
+    return activePort;
+  }
+  if(requestIfMissing){
+    const port=await serial.requestPort();
+    if(!port.writable)await port.open({baudRate});
+    activePort=port;
+    return activePort;
+  }
   throw new Error('PRINTER_NOT_CONNECTED');
 }
 
 export async function printEscPosReceipt(order:PrintableOrder,opts:PrinterOptions){
-  const port=await ensureEscPosPrinter(opts.baudRate||9600);
+  // This function is called from the user's "Impression directe" click. If no
+  // previously authorized serial printer exists, request the port right there
+  // instead of forcing a separate "Connecter imprimante" step first.
+  const port=await ensureEscPosPrinter(opts.baudRate||9600,true);
   if(!port?.writable)throw new Error('PRINTER_NOT_CONNECTED');
   const currency=order.currency_code||'XOF';
   const chunks:Uint8Array[]=[];
-  chunks.push(cmd(0x1b,0x40)); // initialize
-  chunks.push(cmd(0x1b,0x74,0x02)); // CP850 on most ESC/POS-compatible printers
+  chunks.push(cmd(0x1b,0x40));
+  chunks.push(cmd(0x1b,0x74,0x02));
   chunks.push(cmd(0x1b,0x61,0x01),cmd(0x1b,0x45,0x01));
   chunks.push(text(`${clean(opts.receiptTitle||opts.businessName)}\n`));
   chunks.push(cmd(0x1b,0x45,0x00));
