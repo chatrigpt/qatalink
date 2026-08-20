@@ -36,6 +36,7 @@ export async function POST(req:NextRequest){
     if(catalogError||!catalog)return NextResponse.json({success:false,error:'Catalogue introuvable.'},{status:404});
     const {data:business}=await supabase.from('businesses').select('id,owner_user_id,currency_code').eq('id',catalog.business_id).maybeSingle();
     if(!business||business.owner_user_id!==user.id)return NextResponse.json({success:false,error:'Forbidden'},{status:403});
+    const businessCurrency=String(business.currency_code||'XOF');
 
     const {data:subRows}=await supabase.from('subscriptions').select('plan_code,status,current_period_end').eq('business_id',business.id).order('created_at',{ascending:false}).limit(20);
     const now=Date.now();
@@ -100,7 +101,7 @@ export async function POST(req:NextRequest){
       }
       const currentOrder=nextItemOrderByCategory.get(category.id)||0;
       const metadata={image_prompt:incomingPrompt,sku:raw?.sku||'',source_warning:raw?.warning||null};
-      const {data:created,error}=await supabase.from('items').insert({catalog_id:catalogId,category_id:category.id,name,slug:`${slugify(name)}-${crypto.randomUUID().slice(0,6)}`,item_type:'product',short_description:incomingDescription||null,description:incomingDescription||null,price_minor:incomingPrice,currency_code:raw?.currency_code||business.currency_code||'XOF',is_available:raw?.available!==false,sort_order:currentOrder+1,metadata,raw_extracted_text:null}).select('id,category_id,name,description,price_minor,currency_code,metadata,sort_order').single();
+      const {data:created,error}=await supabase.from('items').insert({catalog_id:catalogId,category_id:category.id,name,slug:`${slugify(name)}-${crypto.randomUUID().slice(0,6)}`,item_type:'product',short_description:incomingDescription||null,description:incomingDescription||null,price_minor:incomingPrice,currency_code:raw?.currency_code||businessCurrency,is_available:raw?.available!==false,sort_order:currentOrder+1,metadata,raw_extracted_text:null}).select('id,category_id,name,description,price_minor,currency_code,metadata,sort_order').single();
       if(error||!created)throw new Error(error?.message||'Impossible d’ajouter un article.');
       nextItemOrderByCategory.set(category.id,currentOrder+1);itemByCategoryAndName.set(itemKey,created);itemsAdded++;addedItemIds.push(created.id);
     }
