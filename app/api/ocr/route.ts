@@ -81,12 +81,12 @@ export async function POST(req:NextRequest){
 
     if(inputType==='image'){
       const candidates=Array.isArray(body?.source?.image_urls)?body.source.image_urls:[body?.source?.image_url||body?.image_url];
-      const imageUrls=[...new Set(candidates.map((value:any)=>String(value||'').trim()).filter(Boolean))].slice(0,MAX_SOURCE_IMAGES);
+      const imageUrls:string[]=Array.from(new Set<string>(candidates.map((value:any)=>String(value||'').trim()).filter((value:string)=>value.length>0))).slice(0,MAX_SOURCE_IMAGES);
       if(!imageUrls.length)return NextResponse.json({success:false,error:'image_url or image_urls required'},{status:400});
       const sourceLabel=imageUrls.length===1?'cette image':`ces ${imageUrls.length} images/pages`;
       userContent=[
         {type:'text',text:`Analyse ${sourceLabel} de menu/catalogue et transforme tout le contenu lisible dans le schéma Qatalink. Les images fournies appartiennent au même catalogue et doivent être réunies dans un résultat unique, sans doublons évidents entre pages. Contexte entreprise: ${JSON.stringify(context)}. ${presetContext} ${completionContext} ${schemaInstruction}`},
-        ...imageUrls.map((imageUrl:string)=>({type:'image_url',image_url:imageUrl}))
+        ...imageUrls.map(imageUrl=>({type:'image_url',image_url:imageUrl}))
       ];
     }else{
       const text=String(body?.source?.text||body?.text||'').trim();
