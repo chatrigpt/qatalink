@@ -16,6 +16,7 @@ type PromptInput={
   description:string;
   seedPrompt:string;
   customPrompt:string;
+  hasReferenceImage:boolean;
 };
 
 function normalizePoyoKey(value:string|undefined){
@@ -52,17 +53,20 @@ function buildPrompt(input:PromptInput){
   const custom=input.customPrompt
     ?`\nUSER VISUAL DIRECTION — follow this request closely while keeping the result realistic, premium and faithful to the item:\n${input.customPrompt}\n`
     :'';
+  const reference=input.hasReferenceImage
+    ?`\nREFERENCE IMAGE — mandatory visual anchor:\nA user-provided reference image is attached. Use it as the visual source of truth for the item. Preserve recognizable identity, shape, ingredients, packaging, colors, materials and distinctive details whenever they are visible. The user text may request a new scene, angle, background or presentation, but do not silently replace the referenced item with a different one. Ignore irrelevant background clutter from the reference unless the user explicitly asks to keep it.\n`
+    :'';
 
-  return `Create an exceptionally realistic, high-end commercial image for a Qatalink digital catalogue item. The result must look like professional advertising photography, not generic AI art.\n\nBusiness: ${input.businessName||'Business'}\nSector: ${input.businessType||'general retail/service'}\nCatalogue: ${input.catalogTitle||'Catalogue'}\nCategory: ${input.categoryName||'General'}\nItem: ${input.itemName}\nItem description: ${input.description||'No additional description'}\nExisting visual hint: ${input.seedPrompt||'None'}\nMarket context: Côte d’Ivoire. ${localHint}${custom}\nQUALITY AND REALISM — mandatory:\n- Photorealistic, premium commercial photography quality, crisp micro-detail and clean high-definition rendering.\n- Physically believable light, shadows, reflections, skin, fabric, food, materials and surfaces.\n- Rich, vibrant and appetizing colors while remaining natural and believable; avoid neon oversaturation and fake HDR.\n- Strong subject separation, polished composition, realistic depth of field and excellent clarity at small mobile catalogue-card size.\n- No cheap CGI look, no plastic textures, no cartoon styling, no flat icon look, no blurry or muddy details, no obvious AI artifacts.\n- Keep anatomy, hands, faces, product geometry and object proportions natural and correct.\n\nSUBJECT-SPECIFIC DIRECTION:\n- If this is food or a drink: use premium food photography, authentic ingredients and presentation, appetizing texture, fresh highlights and restaurant-quality plating.\n- If this is a physical product/object: use premium studio or editorial product photography, faithful geometry, materials, finish and useful context without distracting props.\n- If this is a service or intangible offer: create a photorealistic real-world scene that instantly shows the service being performed or experienced; use a credible professional environment and people only when they help explain the service. Do not use a generic icon or abstract illustration.\n- If the item belongs to another category, choose the most realistic commercial-photography interpretation that makes the offer immediately understandable.\n\nCOMPOSITION:\n- Square 1:1 composition, subject clearly visible and not cropped awkwardly.\n- Represent the exact item faithfully; do not substitute a different product, dish or service.\n- No unrelated props that could confuse the item identity.\n- No added text, letters, prices, captions, watermark or invented logo.\n- The final image should feel premium, contemporary, vibrant and ready for a professional sales catalogue.`;
+  return `Create an exceptionally realistic, high-end commercial image for a Qatalink digital catalogue item. The result must look like professional advertising photography, not generic AI art.\n\nBusiness: ${input.businessName||'Business'}\nSector: ${input.businessType||'general retail/service'}\nCatalogue: ${input.catalogTitle||'Catalogue'}\nCategory: ${input.categoryName||'General'}\nItem: ${input.itemName}\nItem description: ${input.description||'No additional description'}\nExisting visual hint: ${input.seedPrompt||'None'}\nMarket context: Côte d’Ivoire. ${localHint}${reference}${custom}\nQUALITY AND REALISM — mandatory:\n- Photorealistic, premium commercial photography quality, crisp micro-detail and clean high-definition rendering.\n- Physically believable light, shadows, reflections, skin, fabric, food, materials and surfaces.\n- Rich, vibrant and appetizing colors while remaining natural and believable; avoid neon oversaturation and fake HDR.\n- Strong subject separation, polished composition, realistic depth of field and excellent clarity at small mobile catalogue-card size.\n- No cheap CGI look, no plastic textures, no cartoon styling, no flat icon look, no blurry or muddy details, no obvious AI artifacts.\n- Keep anatomy, hands, faces, product geometry and object proportions natural and correct.\n\nSUBJECT-SPECIFIC DIRECTION:\n- If this is food or a drink: use premium food photography, authentic ingredients and presentation, appetizing texture, fresh highlights and restaurant-quality plating.\n- If this is a physical product/object: use premium studio or editorial product photography, faithful geometry, materials, finish and useful context without distracting props.\n- If this is a service or intangible offer: create a photorealistic real-world scene that instantly shows the service being performed or experienced; use a credible professional environment and people only when they help explain the service. Do not use a generic icon or abstract illustration.\n- If the item belongs to another category, choose the most realistic commercial-photography interpretation that makes the offer immediately understandable.\n\nCOMPOSITION:\n- Square 1:1 composition, subject clearly visible and not cropped awkwardly.\n- Represent the exact item faithfully; do not substitute a different product, dish or service.\n- No unrelated props that could confuse the item identity.\n- No added text, letters, prices, captions, watermark or invented logo.\n- The final image should feel premium, contemporary, vibrant and ready for a professional sales catalogue.`;
 }
 
-async function submitModel(key:string,model:string,prompt:string){
-  const input=model==='gpt-image-2'
-    ?{prompt,quality:'low' as const,size:'1:1',resolution:'1K'}
-    :{prompt,size:'1:1',resolution:'1K'};
+async function submitModel(key:string,model:string,prompt:string,imageUrls:string[]=[]){
+  const input:any={prompt,size:'1:1',resolution:'1K'};
+  if(model==='gpt-image-2'||model==='gpt-image-2-edit')input.quality='low';
+  if(model==='gpt-image-2-edit')input.image_urls=imageUrls;
 
-  if(model==='gpt-image-2'){
-    console.info('[Qatalink:PoyoSubmit]',{model,quality:'low',resolution:'1K',size:'1:1'});
+  if(model==='gpt-image-2'||model==='gpt-image-2-edit'){
+    console.info('[Qatalink:PoyoSubmit]',{model,quality:'low',resolution:'1K',size:'1:1',reference_images:imageUrls.length});
   }
 
   const r=await fetch('https://api.poyo.ai/api/generate/submit',{method:'POST',headers:{Authorization:`Bearer ${key}`,'Content-Type':'application/json'},body:JSON.stringify({model,input}),cache:'no-store'});
@@ -87,24 +91,32 @@ export async function POST(req:NextRequest){
     if(!ids.length)return NextResponse.json({success:false,error:'NO_ITEMS'},{status:400});
     const generationMode=body?.generation_mode==='custom'?'custom':'auto';
     const customPrompt=generationMode==='custom'?cleanText(body?.custom_prompt):'';
+    const referenceImageUrl=generationMode==='custom'?cleanText(body?.reference_image_url,2400):'';
+    const referenceStoragePath=generationMode==='custom'?cleanText(body?.reference_storage_path,1200):'';
     if(generationMode==='custom'&&ids.length!==1)return NextResponse.json({success:false,error:'CUSTOM_ONE_ITEM_ONLY',message:'La description personnalisée s’utilise sur une image à la fois.'},{status:400});
     if(generationMode==='custom'&&!customPrompt)return NextResponse.json({success:false,error:'CUSTOM_PROMPT_REQUIRED',message:'Décrivez l’image que vous souhaitez obtenir.'},{status:400});
+    if(referenceImageUrl){
+      const expectedPrefix=`${SUPABASE_URL}/storage/v1/object/public/generated-assets/${user.id}/references/`;
+      if(!referenceImageUrl.startsWith(expectedPrefix)||!referenceStoragePath.startsWith(`${user.id}/references/`))return NextResponse.json({success:false,error:'INVALID_REFERENCE_IMAGE'},{status:400});
+    }
+
+    const cleanupReference=async()=>{if(referenceStoragePath)await supabase.storage.from('generated-assets').remove([referenceStoragePath]).catch(()=>null)};
 
     const {data:requestedItems,error:requestedError}=await supabase.from('items').select('id,catalog_id').in('id',ids);
-    if(requestedError||!requestedItems?.length||requestedItems.length!==ids.length)return NextResponse.json({success:false,error:'ITEMS_UNAVAILABLE'},{status:403});
+    if(requestedError||!requestedItems?.length||requestedItems.length!==ids.length){await cleanupReference();return NextResponse.json({success:false,error:'ITEMS_UNAVAILABLE'},{status:403})}
     const catalogIds=[...new Set(requestedItems.map((i:any)=>i.catalog_id))];
     const {data:requestedCatalogs}=await supabase.from('catalogs').select('id,business_id').in('id',catalogIds);
-    if(!requestedCatalogs?.length)return NextResponse.json({success:false,error:'CATALOG_UNAVAILABLE'},{status:404});
+    if(!requestedCatalogs?.length){await cleanupReference();return NextResponse.json({success:false,error:'CATALOG_UNAVAILABLE'},{status:404})}
     const businessIds=[...new Set(requestedCatalogs.map((c:any)=>c.business_id))];
-    if(businessIds.length!==1)return NextResponse.json({success:false,error:'ONE_BUSINESS_PER_BATCH',message:'Générez les images d’une entreprise à la fois.'},{status:400});
+    if(businessIds.length!==1){await cleanupReference();return NextResponse.json({success:false,error:'ONE_BUSINESS_PER_BATCH',message:'Générez les images d’une entreprise à la fois.'},{status:400})}
     const businessId=String(businessIds[0]);
 
     const {data:subs}=await supabase.from('subscriptions').select('plan_code,status,current_period_end').eq('business_id',businessId).in('status',['active','trialing']).order('created_at',{ascending:false}).limit(1);
     const sub=subs?.[0];const hasAccess=!!sub&&(!sub.current_period_end||new Date(sub.current_period_end).getTime()>Date.now());
-    if(!hasAccess)return NextResponse.json({success:false,error:'SUBSCRIPTION_REQUIRED'},{status:402});
+    if(!hasAccess){await cleanupReference();return NextResponse.json({success:false,error:'SUBSCRIPTION_REQUIRED'},{status:402})}
     const {data:wallet}=await supabase.from('credit_wallets').select('balance').eq('business_id',businessId).maybeSingle();
     const required=ids.length*IMAGE_CREDIT_COST;const currentBalance=Number(wallet?.balance||0);
-    if(currentBalance<required)return NextResponse.json({success:false,error:'INSUFFICIENT_CREDITS',message:`Il faut ${required} crédits pour générer ${ids.length} image(s).`,balance:currentBalance,required},{status:402});
+    if(currentBalance<required){await cleanupReference();return NextResponse.json({success:false,error:'INSUFFICIENT_CREDITS',message:`Il faut ${required} crédits pour générer ${ids.length} image(s).`,balance:currentBalance,required},{status:402})}
 
     const {data:business}=await supabase.from('businesses').select('name,business_type').eq('id',businessId).single();
     const jobs:any[]=[];let lastBalance=currentBalance;
@@ -123,9 +135,11 @@ export async function POST(req:NextRequest){
         description:item.description||item.short_description||'',
         seedPrompt:item.metadata?.image_prompt||'',
         customPrompt,
+        hasReferenceImage:!!referenceImageUrl,
       });
 
-      const {data:job,error:jobError}=await supabase.from('item_image_generation_jobs').insert({business_id:businessId,item_id:item.id,prompt,status:'pending',provider:'poyo:gpt-image-2',credit_cost:IMAGE_CREDIT_COST}).select('id').single();
+      const initialProvider=referenceImageUrl?'poyo:gpt-image-2-edit':'poyo:gpt-image-2';
+      const {data:job,error:jobError}=await supabase.from('item_image_generation_jobs').insert({business_id:businessId,item_id:item.id,prompt,status:'pending',provider:initialProvider,credit_cost:IMAGE_CREDIT_COST}).select('id').single();
       if(jobError||!job){jobs.push({item_id:itemId,item_name:item.name,error:'JOB_CREATE_FAILED'});continue}
       const {data:balanceAfter,error:creditError}=await supabase.rpc('consume_image_credits',{p_business_id:businessId,p_job_id:job.id,p_cost:IMAGE_CREDIT_COST});
       if(creditError){
@@ -134,19 +148,22 @@ export async function POST(req:NextRequest){
       }
       lastBalance=Number(balanceAfter??lastBalance-IMAGE_CREDIT_COST);
 
-      let submitted=await submitModel(poyoKey,'gpt-image-2',prompt);let provider='poyo:gpt-image-2';
-      if(!submitted.ok&&submitted.status!==401&&submitted.status!==403){submitted=await submitModel(poyoKey,'nano-banana-2-new',prompt);provider='poyo:nano-banana-2-new'}
+      const primaryModel=referenceImageUrl?'gpt-image-2-edit':'gpt-image-2';
+      let submitted=await submitModel(poyoKey,primaryModel,prompt,referenceImageUrl?[referenceImageUrl]:[]);let provider=`poyo:${primaryModel}`;
+      if(!referenceImageUrl&&!submitted.ok&&submitted.status!==401&&submitted.status!==403){submitted=await submitModel(poyoKey,'nano-banana-2-new',prompt);provider='poyo:nano-banana-2-new'}
       if(!submitted.ok){
         const authFailure=submitted.status===401||submitted.status===403;
-        const safePayload={...(submitted.data||{}),http_status:submitted.status,poyo_diagnostics:diagnostics,request_input:submitted.input};
+        const safePayload={...(submitted.data||{}),http_status:submitted.status,poyo_diagnostics:diagnostics,request_input:submitted.input,reference_image_url:referenceImageUrl||null,reference_storage_path:referenceStoragePath||null};
         await supabase.from('item_image_generation_jobs').update({status:'failed',provider,error_message:String(submitted.error||'GENERATION_FAILED'),provider_payload:safePayload,completed_at:new Date().toISOString()}).eq('id',job.id);
         const {data:refunded}=await supabase.rpc('refund_failed_image_credits',{p_business_id:businessId,p_job_id:job.id});if(refunded!==null&&refunded!==undefined)lastBalance=Number(refunded);
+        if(referenceStoragePath)await cleanupReference();
         console.error('[Qatalink:Poyo]',{status:submitted.status,error:submitted.error,...diagnostics});
         jobs.push({item_id:itemId,item_name:item.name,job_id:job.id,error:authFailure?'POYO_AUTH_FAILED':'GENERATION_FAILED',provider_status:submitted.status,refunded:true,diagnostics:authFailure?diagnostics:undefined});continue
       }
-      await supabase.from('item_image_generation_jobs').update({status:'processing',provider,provider_task_id:submitted.taskId,provider_payload:{...submitted.data,fallback_used:provider.includes('nano-banana'),generation_mode:generationMode,poyo_diagnostics:diagnostics,request_input:submitted.input}}).eq('id',job.id);
-      jobs.push({item_id:itemId,item_name:item.name,job_id:job.id,task_id:submitted.taskId,status:'processing',credit_cost:IMAGE_CREDIT_COST,balance:lastBalance});
+      await supabase.from('item_image_generation_jobs').update({status:'processing',provider,provider_task_id:submitted.taskId,provider_payload:{...submitted.data,fallback_used:provider.includes('nano-banana'),generation_mode:generationMode,poyo_diagnostics:diagnostics,request_input:submitted.input,reference_image_url:referenceImageUrl||null,reference_storage_path:referenceStoragePath||null,reference_ephemeral:!!referenceStoragePath}}).eq('id',job.id);
+      jobs.push({item_id:itemId,item_name:item.name,job_id:job.id,task_id:submitted.taskId,status:'processing',credit_cost:IMAGE_CREDIT_COST,balance:lastBalance,reference_used:!!referenceImageUrl});
     }
-    return NextResponse.json({success:true,jobs,credit_cost_per_image:IMAGE_CREDIT_COST,balance:lastBalance,business_id:businessId,generated_count:ids.length,generation_profile:'gpt-image-2:low:1K'});
+    if(referenceStoragePath&&!jobs.some(job=>job.status==='processing'))await cleanupReference();
+    return NextResponse.json({success:true,jobs,credit_cost_per_image:IMAGE_CREDIT_COST,balance:lastBalance,business_id:businessId,generated_count:ids.length,generation_profile:referenceImageUrl?'gpt-image-2-edit:low:1K':'gpt-image-2:low:1K'});
   }catch(error){console.error('[Qatalink:ImagesGenerate]',error);return NextResponse.json({success:false,error:'GENERATION_FAILED'},{status:500})}
 }
