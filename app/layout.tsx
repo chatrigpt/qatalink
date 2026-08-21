@@ -10,6 +10,7 @@ import './dashboard-integrations.css';
 import './analytics.css';
 import './advanced-studio.css';
 import './vitrine-media.css';
+import './vibecoder.css';
 import './public-theme.css';
 import './public-catalog-v2.css';
 import './public-category-scroll.css';
@@ -66,6 +67,7 @@ import { PlanCopyAlignment } from '@/components/plan-copy-alignment';
 import { DashboardKeyInHandPrompt } from '@/components/key-in-hand-configurator';
 import { DirectPrintLabelFix } from '@/components/direct-print-label-fix';
 import { OpsStockAlerts } from '@/components/ops-stock-alerts';
+import { DashboardVibecoder } from '@/components/dashboard-vibecoder';
 
 const jakarta=Plus_Jakarta_Sans({subsets:['latin'],variable:'--font-jakarta'});
 const playfair=Playfair_Display({subsets:['latin'],style:['normal','italic'],variable:'--font-playfair'});
@@ -80,5 +82,5 @@ export const metadata={
 };
 
 export default function RootLayout({children}:{children:React.ReactNode}){
-  return <html lang="fr" suppressHydrationWarning><body className={`${jakarta.variable} ${playfair.variable}`}><ThemeProvider>{children}<ProviderNameScrubber/><MobileMoneyPaymentInfo/><LandingSupportExperience/><PlanCopyAlignment/><DashboardPlanExperience/><ItemImageGenerationControls/><ItemDescriptionGenerationControls/><StockManagementCenter/><CatalogCompletionControls/><QatalinkUxRefinements/><CatalogDeletionControls/><QrCanonicalControls/><OrderOperationsCenter/><OpsStockAlerts/><GenerationActivityCenter/><DashboardKeyInHandPrompt/><DirectPrintLabelFix/><PwaInstallButton/><MetaPixel/></ThemeProvider></body></html>;
+  return <html lang="fr" suppressHydrationWarning><body className={`${jakarta.variable} ${playfair.variable}`}><ThemeProvider>{children}<ProviderNameScrubber/><MobileMoneyPaymentInfo/><LandingSupportExperience/><PlanCopyAlignment/><DashboardPlanExperience/><ItemImageGenerationControls/><ItemDescriptionGenerationControls/><StockManagementCenter/><CatalogCompletionControls/><QatalinkUxRefinements/><CatalogDeletionControls/><QrCanonicalControls/><OrderOperationsCenter/><OpsStockAlerts/><GenerationActivityCenter/><DashboardKeyInHandPrompt/><DirectPrintLabelFix/><DashboardVibecoder/><PwaInstallButton/><MetaPixel/></ThemeProvider></body></html>;
 }
