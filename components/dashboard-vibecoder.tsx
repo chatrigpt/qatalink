@@ -1,0 +1,41 @@
+'use client';
+
+import {ExternalLink,ImagePlus,Paperclip,Sparkles,Upload,X} from 'lucide-react';
+import {useEffect,useMemo,useState} from 'react';
+import {createSupabaseBrowserClient} from '@/lib/supabase';
+
+type Catalog={id:string;title:string;public_slug:string;hub_public_slug:string};
+type VibePlan={summary:string;reference_target:string;catalog_theme:Record<string,any>;hub:Record<string,any>;buttons:Array<Record<string,any>>};
+
+const examples=[
+  'Fais un menu premium sombre, avec une grille visuelle, des titres élégants et un fond noir légèrement dégradé.',
+  'Garde le menu clair mais rends la page centrale plus moderne : boutons très arrondis, glossy, rouge et noir.',
+  'Inspire-toi de l’image jointe pour les couleurs et l’ambiance, sans utiliser directement l’image en fond.',
+  'Mets les boutons de la page centrale dans leurs couleurs de marque, avec un rendu plus brillant et très lisible.'
+];
+
+export function DashboardVibecoder(){
+  const supabase=useMemo(()=>createSupabaseBrowserClient(),[]);
+  const [ready,setReady]=useState(false);const [open,setOpen]=useState(false);const [session,setSession]=useState<any>(null);const [catalogs,setCatalogs]=useState<Catalog[]>([]);const [catalogId,setCatalogId]=useState('');const [prompt,setPrompt]=useState('');const [referenceUrl,setReferenceUrl]=useState('');const [referenceName,setReferenceName]=useState('');const [plan,setPlan]=useState<VibePlan|null>(null);const [menuUrl,setMenuUrl]=useState('');const [hubUrl,setHubUrl]=useState('');const [busy,setBusy]=useState('');const [notice,setNotice]=useState('');
+
+  useEffect(()=>{if(typeof window==='undefined'||!location.pathname.startsWith('/dashboard'))return;setReady(true);void bootstrap()},[]);
+  async function bootstrap(){const {data:{session:s}}=await supabase.auth.getSession();if(!s)return;setSession(s);const params=new URLSearchParams(location.search);const requested=params.get('catalog')||'';const {data:rows}=await supabase.from('catalogs').select('id,title,public_slug,hub_public_slug').eq('is_active',true).order('created_at',{ascending:false});const list=(rows||[]) as Catalog[];setCatalogs(list);setCatalogId(list.some(c=>c.id===requested)?requested:list[0]?.id||'')}
+
+  async function uploadReference(file:File){if(!session||!catalogId)return;setBusy('upload');setNotice('');const safe=file.name.replace(/[^a-zA-Z0-9._-]+/g,'-');const path=`${session.user.id}/vibe-references/${catalogId}/${Date.now()}-${safe}`;const up=await supabase.storage.from('catalog-assets').upload(path,file,{contentType:file.type||'image/jpeg'});if(up.error){setNotice(up.error.message);setBusy('');return}const {data:u}=supabase.storage.from('catalog-assets').getPublicUrl(path);setReferenceUrl(u.publicUrl);setReferenceName(file.name);setBusy('');setPlan(null)}
+
+  async function prepare(){if(!session||!catalogId||!prompt.trim())return;setBusy('plan');setNotice('');setPlan(null);const r=await fetch('/api/vibe/design',{method:'POST',headers:{'Content-Type':'application/json',Authorization:`Bearer ${session.access_token}`},body:JSON.stringify({catalog_id:catalogId,prompt:prompt.trim(),reference_image_url:referenceUrl})});const d=await r.json().catch(()=>({}));if(!r.ok){setNotice(d.error||'Impossible de préparer les modifications.');setBusy('');return}setPlan(d.plan);setMenuUrl(d.menu_url||'');setHubUrl(d.hub_url||'');setBusy('');}
+
+  async function apply(){if(!session||!catalogId||!plan)return;setBusy('apply');setNotice('');const r=await fetch('/api/vibe/design',{method:'POST',headers:{'Content-Type':'application/json',Authorization:`Bearer ${session.access_token}`},body:JSON.stringify({catalog_id:catalogId,prompt:prompt.trim(),reference_image_url:referenceUrl,plan,apply:true})});const d=await r.json().catch(()=>({}));if(!r.ok){setNotice(d.error||'Impossible d’appliquer les modifications.');setBusy('');return}setMenuUrl(d.menu_url||menuUrl);setHubUrl(d.hub_url||hubUrl);setNotice('Modifications appliquées et publiées. Rechargez un aperçu déjà ouvert pour les voir.');setBusy('');}
+
+  function reset(){setPrompt('');setReferenceUrl('');setReferenceName('');setPlan(null);setNotice('')}
+  if(!ready||!catalogId)return null;
+  const changedTheme=plan?Object.keys(plan.catalog_theme||{}):[];const changedHub=plan?Object.keys(plan.hub||{}):[];const changedButtons=plan?.buttons?.length||0;
+
+  return <><button className="vibe-trigger" onClick={()=>setOpen(true)}><Sparkles size={17}/><span>Vibecoder</span></button>{open&&<div className="vibe-backdrop"><section className="vibe-panel"><header><div><span>QATALINK VIBE</span><h2>Vibecodez votre catalogue</h2><p>Décrivez le résultat souhaité comme à un designer. Qatalink prépare les changements avant publication.</p></div><button onClick={()=>setOpen(false)}><X/></button></header><div className="vibe-body"><section className="vibe-card"><label className="vibe-label">Catalogue concerné</label><select className="input" value={catalogId} onChange={e=>{setCatalogId(e.target.value);setPlan(null)}}>{catalogs.map(c=><option key={c.id} value={c.id}>{c.title}</option>)}</select></section>
+  <section className="vibe-card"><label className="vibe-label">Décrivez ce que vous voulez changer</label><textarea className="input vibe-prompt" rows={6} value={prompt} onChange={e=>{setPrompt(e.target.value);setPlan(null)}} placeholder="Ex : garde le logo et les produits, mais rends le menu plus premium avec un fond crème, des cartes arrondies et une page centrale rouge glossy. Les boutons Instagram et WhatsApp doivent garder leurs couleurs de marque."/><div className="vibe-examples">{examples.map((x,i)=><button key={i} onClick={()=>{setPrompt(x);setPlan(null)}}>{x}</button>)}</div></section>
+  <section className="vibe-card"><div className="vibe-card-head"><div><b>Référence visuelle facultative</b><small>Logo, flyer, capture d’écran, packaging, menu ou inspiration. Elle sert de référence ; elle n’est utilisée directement que si vous le demandez.</small></div><Paperclip size={20}/></div>{referenceUrl&&<div className="vibe-reference"><img src={referenceUrl} alt="Référence"/><div><b>{referenceName||'Image de référence'}</b><button onClick={()=>{setReferenceUrl('');setReferenceName('');setPlan(null)}}>Retirer</button></div></div>}<label className="btn btn-ghost vibe-upload"><Upload size={15}/>{busy==='upload'?'Import…':'Ajouter une image de référence'}<input hidden type="file" accept="image/*" onChange={e=>{const f=e.target.files?.[0];if(f)void uploadReference(f);e.currentTarget.value=''}}/></label></section>
+  {notice&&<div className="vibe-notice">{notice}</div>}
+  {!plan?<button className="btn btn-primary vibe-main" disabled={busy==='plan'||busy==='upload'||!prompt.trim()} onClick={prepare}><Sparkles size={16}/>{busy==='plan'?'Préparation du design…':'Préparer les modifications'}</button>:<section className="vibe-card vibe-plan"><div className="vibe-plan-title"><Sparkles size={19}/><div><b>Proposition prête</b><p>{plan.summary}</p></div></div><div className="vibe-impact"><span>{changedTheme.length} réglage(s) menu</span><span>{changedHub.length} réglage(s) page centrale</span><span>{changedButtons} bouton(s) personnalisé(s)</span>{plan.reference_target!=='none'&&<span>Image : {plan.reference_target}</span>}</div><details><summary>Voir le détail technique</summary><pre>{JSON.stringify(plan,null,2)}</pre></details><div className="vibe-actions"><button className="btn btn-primary" disabled={busy==='apply'} onClick={apply}>{busy==='apply'?'Publication…':'Appliquer & publier'}</button><button className="btn btn-ghost" onClick={()=>setPlan(null)}>Modifier la demande</button></div></section>}
+  {(menuUrl||hubUrl)&&<section className="vibe-card vibe-preview-links"><b>Vérifier le résultat</b><div>{menuUrl&&<a className="btn btn-ghost" href={menuUrl} target="_blank" rel="noreferrer"><ExternalLink size={14}/>Menu public</a>}{hubUrl&&<a className="btn btn-ghost" href={hubUrl} target="_blank" rel="noreferrer"><ExternalLink size={14}/>Page centrale</a>}</div></section>}
+  <button className="vibe-reset" onClick={reset}>Réinitialiser la demande</button></div></section></div>}</>;
+}
