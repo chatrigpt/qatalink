@@ -1,6 +1,6 @@
 'use client';
 
-import {useMemo,useState} from 'react';
+import {useEffect,useMemo,useRef,useState} from 'react';
 import {ArrowLeft,Check,Clock3,PackageCheck,X} from 'lucide-react';
 
 const WEBHOOK='https://digitaladn225.app.n8n.cloud/webhook/qrcodedigital';
@@ -33,20 +33,21 @@ export function KeyInHandButton({source,label='Bénéficier d’une solution cl�
   const [sending,setSending]=useState(false);
   const [error,setError]=useState('');
   const [form,setForm]=useState({name:'',phone:'',business:'',sector:'',deadline:'Le plus tôt possible',assets:'Oui, logo, photos et tarifs sont prêts',budget:'À définir selon la solution',problem:'',notes:''});
+  const leadId=useRef('');
+  const draftTimer=useRef<ReturnType<typeof setTimeout>|null>(null);
 
   const chosen=useMemo(()=>selected.map(index=>OPTIONS[index]).filter(Boolean),[selected]);
+  function ensureLeadId(){if(!leadId.current)leadId.current=crypto.randomUUID();return leadId.current}
   function toggle(index:number){setSelected(current=>current.includes(index)?current.filter(value=>value!==index):[...current,index])}
-  function close(){setOpen(false);setTimeout(()=>{setStep('options');setError('')},180)}
+  function close(){setOpen(false);if(draftTimer.current)clearTimeout(draftTimer.current);setTimeout(()=>{setStep('options');setError('');leadId.current=''},180)}
   function update(name:keyof typeof form,value:string){setForm(current=>({...current,[name]:value}))}
 
-  async function submit(){
-    if(!form.name.trim()||!form.phone.trim()){setError('Votre nom et votre numéro de téléphone sont nécessaires pour vous recontacter.');return}
-    setSending(true);setError('');
+  function makePayload(status:'draft'|'new'){
     const params=new URLSearchParams(window.location.search);
-    const body=new URLSearchParams({
+    return new URLSearchParams({
       event:'qr_code_lead',
-      lead_id:crypto.randomUUID(),
-      status:'new',
+      lead_id:ensureLeadId(),
+      status,
       saved_at:new Date().toISOString(),
       name:form.name.trim(),
       phone:form.phone.trim(),
@@ -55,8 +56,8 @@ export function KeyInHandButton({source,label='Bénéficier d’une solution cl�
       offer:'Je souhaite commander une solution Qatalink clé-en-main',
       problem:form.problem.trim(),
       products:chosen.join(' | ')||'Je souhaite être conseillé sur la configuration',
-      deadline:form.deadline,
-      assets:form.assets,
+      deadline:form.deadline||'Le plus tôt possible',
+      assets:form.assets||'Oui, logo, photos et tarifs sont prêts',
       budget:form.budget,
       notes:[`Source : ${source}`,form.notes.trim()].filter(Boolean).join(' — '),
       page_url:window.location.href,
@@ -66,8 +67,25 @@ export function KeyInHandButton({source,label='Bénéficier d’une solution cl�
       utm_campaign:params.get('utm_campaign')||'',
       user_agent:navigator.userAgent,
     });
+  }
+
+  async function postLead(status:'draft'|'new'){
+    await fetch(WEBHOOK,{method:'POST',mode:'no-cors',headers:{'Content-Type':'application/x-www-form-urlencoded;charset=UTF-8'},body:makePayload(status).toString(),keepalive:true});
+  }
+
+  useEffect(()=>{
+    if(!open||step!=='contact')return;
+    if(draftTimer.current)clearTimeout(draftTimer.current);
+    draftTimer.current=setTimeout(()=>{postLead('draft').catch(()=>{})},700);
+    return()=>{if(draftTimer.current)clearTimeout(draftTimer.current)};
+  },[open,step,selected,form.name,form.phone,form.business,form.sector,form.deadline,form.assets,form.budget,form.problem,form.notes]);
+
+  async function submit(){
+    if(!form.name.trim()||!form.phone.trim()){setError('Votre nom et votre numéro de téléphone sont nécessaires pour vous recontacter.');return}
+    setSending(true);setError('');
     try{
-      await fetch(WEBHOOK,{method:'POST',mode:'no-cors',headers:{'Content-Type':'application/x-www-form-urlencoded;charset=UTF-8'},body:body.toString(),keepalive:true});
+      if(draftTimer.current)clearTimeout(draftTimer.current);
+      await postLead('new');
       setStep('sent');
     }catch{
       setError('Impossible d’envoyer votre demande pour le moment. Vérifiez votre connexion puis réessayez.');
@@ -75,10 +93,10 @@ export function KeyInHandButton({source,label='Bénéficier d’une solution cl�
   }
 
   return <>
-    <button className={className} onClick={()=>{setOpen(true);setStep('options');setError('')}}>{label}</button>
+    <button className={className} onClick={()=>{setOpen(true);setStep('options');setError('');ensureLeadId()}}>{label}</button>
     {open&&<div className="turnkey-backdrop" onMouseDown={event=>{if(event.target===event.currentTarget)close()}}>
       <section className="turnkey-modal">
-        <header><div><span className="eyebrow">SOLUTION QATALINK CLÉ-EN-MAIN</span><h2>{step==='options'?'Choisissez ce dont vous avez besoin.':step==='contact'?'Parlez-nous de votre activité.':'Demande envoyée.'}</h2><p>{step==='options'?'Sélectionnez les éléments à mettre en place. Vous renseignerez ensuite vos coordonnées pour être recontacté par Digital ADN.':step==='contact'?'Ces informations nous permettent de préparer une configuration adaptée avant de vous rappeler.':'Digital ADN a reçu votre demande et pourra vous recontacter avec les options sélectionnées.'}</p></div><button onClick={close} aria-label="Fermer"><X/></button></header>
+        <header><div><span className="eyebrow">SOLUTION QATALINK CLÉ-EN-MAIN</span><h2>{step==='options'?'Choisissez ce dont vous avez besoin.':step==='contact'?'Parlez-nous de votre activité.':'Demande envoyée.'}</h2><p>{step==='options'?'Sélectionnez les éléments à mettre en place. Vous renseignerez ensuite vos coordonnées pour être recontacté par Digital ADN.':step==='contact'?'Ces informations nous permettent de préparer une configuration adaptée avant de vous rappeler. Votre demande est sauvegardée comme brouillon pendant que vous complétez le formulaire.':'Digital ADN a reçu votre demande et pourra vous recontacter avec les options sélectionnées.'}</p></div><button onClick={close} aria-label="Fermer"><X/></button></header>
 
         {step==='options'&&<>
           <div className="turnkey-options">{OPTIONS.map((option,index)=><button type="button" key={option} className={selected.includes(index)?'selected':''} onClick={()=>toggle(index)}><span className="turnkey-check">{selected.includes(index)&&<Check size={14}/>}</span><span>{option}</span></button>)}</div>
