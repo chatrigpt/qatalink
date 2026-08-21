@@ -65,9 +65,14 @@ export default async function CatalogHubPage({params}:{params:Promise<{slug:stri
   const primary=theme.primary_color||'#C7192F';
   const bg=theme.background_color||'#FFF';
   const text=theme.text_color||'#171719';
-  const pageBg=theme.background_image_url
+  const themePageBg=theme.background_image_url
     ?`linear-gradient(rgba(0,0,0,${Math.max(0,Math.min(.8,Number(theme.background_image_overlay??.16)))}),rgba(0,0,0,${Math.max(0,Math.min(.8,Number(theme.background_image_overlay??.16)))})),url(${theme.background_image_url}) center/cover fixed`
     :(theme.background_mode==='gradient'&&theme.background_gradient?theme.background_gradient:bg);
+  const hubBgColor=hub.background_color||bg;
+  const hubOverlay=Math.max(0,Math.min(.8,Number(hub.background_overlay??theme.background_image_overlay??.16)));
+  const pageBg=hub.background_image_url
+    ?`linear-gradient(rgba(0,0,0,${hubOverlay}),rgba(0,0,0,${hubOverlay})),url(${hub.background_image_url}) center/cover fixed`
+    :(hub.background_mode==='gradient'&&hub.background_gradient?hub.background_gradient:hub.background_mode==='solid'?hubBgColor:themePageBg);
   const buttonA=hub.button_color||primary;
   const buttonB=hub.button_color_2||theme.secondary_color||'#7A0E1D';
   const buttonText=hub.button_text_color||'#FFFFFF';
@@ -77,7 +82,7 @@ export default async function CatalogHubPage({params}:{params:Promise<{slug:stri
   const logo=hub.logo_url||business.logo_url;
   const cover=hub.cover_url||business.cover_url;
   const phone=String(business.whatsapp_number||'').replace(/\D/g,'');
-  const vars={'--v-primary':primary,'--v-bg':bg,'--v-text':text,'--hub-radius':buttonRadius} as React.CSSProperties;
+  const vars={'--v-primary':primary,'--v-bg':hubBgColor,'--v-text':text,'--hub-radius':buttonRadius} as React.CSSProperties;
   const btnStyle={background:buttonBg,color:buttonText,borderRadius:buttonRadius} as React.CSSProperties;
   const whatsappConfig=links.find((link:any)=>String(link.kind)==='whatsapp');
   const visibleLinks=links.filter((link:any)=>String(link.kind)!=='whatsapp');
