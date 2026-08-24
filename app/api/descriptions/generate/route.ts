@@ -11,6 +11,19 @@ const DESCRIPTION_CREDIT_COST=1.5;
 
 function clean(value:unknown,max=1200){return String(value??'').replace(/\s+/g,' ').trim().slice(0,max)}
 
+async function refundDescriptionCredits(supabase:any,businessId:string,referenceId:string){
+  try{
+    await supabase.rpc('refund_ai_credits',{
+      p_business_id:businessId,
+      p_kind:'description_generation',
+      p_reference_id:referenceId,
+      p_refund_kind:'description_generation_refund'
+    });
+  }catch{
+    // A refund failure must never mask the original generation/save error.
+  }
+}
+
 export async function POST(req:NextRequest){
   let charged:{supabase:any,businessId:string,referenceId:string}|null=null;
   try{
@@ -83,18 +96,18 @@ export async function POST(req:NextRequest){
       cache:'no-store'
     });
     const providerData:any=await provider.json().catch(()=>null);
-    if(!provider.ok){await supabase.rpc('refund_ai_credits',{p_business_id:business.id,p_kind:'description_generation',p_reference_id:referenceId,p_refund_kind:'description_generation_refund'}).catch(()=>null);charged=null;return NextResponse.json({success:false,error:'DESCRIPTION_GENERATION_FAILED'},{status:502});}
+    if(!provider.ok){await refundDescriptionCredits(supabase,business.id,referenceId);charged=null;return NextResponse.json({success:false,error:'DESCRIPTION_GENERATION_FAILED'},{status:502});}
     let description=clean(providerData?.choices?.[0]?.message?.content,600);
     description=description.replace(/^```(?:text)?\s*/i,'').replace(/\s*```$/,'').replace(/^['“”"]|['“”"]$/g,'').trim();
-    if(!description){await supabase.rpc('refund_ai_credits',{p_business_id:business.id,p_kind:'description_generation',p_reference_id:referenceId,p_refund_kind:'description_generation_refund'}).catch(()=>null);charged=null;return NextResponse.json({success:false,error:'EMPTY_DESCRIPTION'},{status:502});}
+    if(!description){await refundDescriptionCredits(supabase,business.id,referenceId);charged=null;return NextResponse.json({success:false,error:'EMPTY_DESCRIPTION'},{status:502});}
 
     const {error:updateError}=await supabase.from('items').update({description,short_description:description,description_generation_hint:brief||null,updated_at:new Date().toISOString()}).eq('id',item.id);
-    if(updateError){await supabase.rpc('refund_ai_credits',{p_business_id:business.id,p_kind:'description_generation',p_reference_id:referenceId,p_refund_kind:'description_generation_refund'}).catch(()=>null);charged=null;return NextResponse.json({success:false,error:'DESCRIPTION_SAVE_FAILED'},{status:500});}
+    if(updateError){await refundDescriptionCredits(supabase,business.id,referenceId);charged=null;return NextResponse.json({success:false,error:'DESCRIPTION_SAVE_FAILED'},{status:500});}
 
     charged=null;
     return NextResponse.json({success:true,item_id:item.id,description,brief,credit_cost:DESCRIPTION_CREDIT_COST,balance:Number(balanceAfter)});
   }catch(error){
-    if(charged){await charged.supabase.rpc('refund_ai_credits',{p_business_id:charged.businessId,p_kind:'description_generation',p_reference_id:charged.referenceId,p_refund_kind:'description_generation_refund'}).catch(()=>null)}
+    if(charged){await refundDescriptionCredits(charged.supabase,charged.businessId,charged.referenceId)}
     console.error('[Qatalink:DescriptionGenerate]',error);
     return NextResponse.json({success:false,error:'DESCRIPTION_GENERATION_FAILED'},{status:500});
   }
