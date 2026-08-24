@@ -73,39 +73,39 @@ function wrapCanvas(ctx:CanvasRenderingContext2D,value:string,maxWidth:number){
 async function shareReceiptImage(order:PrintableOrder,opts:PrinterOptions){
   if(typeof document==='undefined'||typeof navigator==='undefined')throw new Error('MOBILE_SHARE_UNSUPPORTED');
   const width=384;
-  const padding=22;
+  const padding=14;
   const work=document.createElement('canvas');
-  work.width=width;work.height=2400;
+  work.width=width;work.height=2800;
   const ctx=work.getContext('2d');if(!ctx)throw new Error('CANVAS_UNAVAILABLE');
   ctx.fillStyle='#fff';ctx.fillRect(0,0,work.width,work.height);ctx.fillStyle='#000';ctx.textBaseline='top';
-  let y=20;
-  const center=(value:string,size=18,bold=false,gap=7)=>{ctx.font=`${bold?'700':'400'} ${size}px Arial, sans-serif`;ctx.textAlign='center';for(const line of wrapCanvas(ctx,value,width-padding*2)){ctx.fillText(line,width/2,y);y+=size+4}y+=gap};
-  const left=(value:string,size=16,bold=false,gap=4)=>{ctx.font=`${bold?'700':'400'} ${size}px Arial, sans-serif`;ctx.textAlign='left';for(const line of wrapCanvas(ctx,value,width-padding*2)){ctx.fillText(line,padding,y);y+=size+4}y+=gap};
-  const divider=()=>{y+=5;ctx.strokeStyle='#000';ctx.setLineDash([6,5]);ctx.beginPath();ctx.moveTo(padding,y);ctx.lineTo(width-padding,y);ctx.stroke();ctx.setLineDash([]);y+=10};
-  const leftRight=(l:string,r:string,size=16,bold=false)=>{ctx.font=`${bold?'700':'400'} ${size}px Arial, sans-serif`;ctx.textAlign='left';const room=width-padding*2-Math.min(140,ctx.measureText(r).width)-12;const lLines=wrapCanvas(ctx,l,Math.max(120,room));ctx.textAlign='right';ctx.fillText(r,width-padding,y);ctx.textAlign='left';for(let i=0;i<lLines.length;i++)ctx.fillText(lLines[i],padding,y+i*(size+4));y+=Math.max(1,lLines.length)*(size+4)+5};
+  let y=18;
+  const center=(value:string,size=20,bold=false,gap=7)=>{ctx.font=`${bold?'700':'400'} ${size}px Arial, sans-serif`;ctx.textAlign='center';for(const line of wrapCanvas(ctx,value,width-padding*2)){ctx.fillText(line,width/2,y);y+=size+5}y+=gap};
+  const left=(value:string,size=18,bold=false,gap=4)=>{ctx.font=`${bold?'700':'400'} ${size}px Arial, sans-serif`;ctx.textAlign='left';for(const line of wrapCanvas(ctx,value,width-padding*2)){ctx.fillText(line,padding,y);y+=size+5}y+=gap};
+  const divider=()=>{y+=6;ctx.strokeStyle='#000';ctx.lineWidth=1.4;ctx.setLineDash([6,5]);ctx.beginPath();ctx.moveTo(padding,y);ctx.lineTo(width-padding,y);ctx.stroke();ctx.setLineDash([]);y+=11};
+  const leftRight=(l:string,r:string,size=18,bold=false)=>{ctx.font=`${bold?'700':'400'} ${size}px Arial, sans-serif`;ctx.textAlign='left';const rightWidth=Math.min(154,ctx.measureText(r).width);const room=width-padding*2-rightWidth-10;const lLines=wrapCanvas(ctx,l,Math.max(128,room));ctx.textAlign='right';ctx.fillText(r,width-padding,y);ctx.textAlign='left';for(let i=0;i<lLines.length;i++)ctx.fillText(lLines[i],padding,y+i*(size+5));y+=Math.max(1,lLines.length)*(size+5)+5};
 
-  center(clean(opts.receiptTitle||opts.businessName),24,true,4);
-  if(opts.catalogTitle)center(clean(opts.catalogTitle),16,false,2);
-  center(`Commande ${clean(order.order_number)}`,17,true,1);
-  center(new Date(order.created_at).toLocaleString('fr-FR'),14,false,3);
+  center(clean(opts.receiptTitle||opts.businessName),27,true,4);
+  if(opts.catalogTitle)center(clean(opts.catalogTitle),19,false,2);
+  center(`Commande ${clean(order.order_number)}`,20,true,1);
+  center(new Date(order.created_at).toLocaleString('fr-FR'),16,false,4);
   divider();
-  if(order.table_number)left(`Table : ${clean(order.table_number)}`,15,true,2);
-  if(order.delivery_address)left(`Livraison : ${clean(order.delivery_address)}`,15,false,2);
-  if(opts.sourceOrderNumbers?.length)left(`Commandes : ${opts.sourceOrderNumbers.join(', ')}`,14,false,2);
+  if(order.table_number)left(`Table : ${clean(order.table_number)}`,18,true,2);
+  if(order.delivery_address)left(`Livraison : ${clean(order.delivery_address)}`,17,false,2);
+  if(opts.sourceOrderNumbers?.length)left(`Commandes : ${opts.sourceOrderNumbers.join(', ')}`,16,false,2);
   if(order.table_number||order.delivery_address||opts.sourceOrderNumbers?.length)divider();
 
   const currency=order.currency_code||'XOF';
   for(const item of order.items||[]){
     const lineTotal=item.line_total_minor!==null&&item.line_total_minor!==undefined?orderMoney(item.line_total_minor,currency):'';
-    leftRight(`${item.quantity} × ${item.name}`,lineTotal,16,true);
-    if(item.unit_price_minor!==null&&item.unit_price_minor!==undefined)left(`${orderMoney(item.unit_price_minor,currency)} l’unité`,12,false,1);
+    leftRight(`${item.quantity} × ${item.name}`,lineTotal,18,true);
+    if(item.unit_price_minor!==null&&item.unit_price_minor!==undefined)left(`${orderMoney(item.unit_price_minor,currency)} l’unité`,14,false,2);
   }
   divider();
-  if(order.total_minor!==null&&order.total_minor!==undefined)leftRight('TOTAL',orderMoney(order.total_minor,currency),22,true);
-  if(order.customer_note){divider();left('Note :',14,true,1);left(order.customer_note,14,false,2)}
+  if(order.total_minor!==null&&order.total_minor!==undefined)leftRight('TOTAL',orderMoney(order.total_minor,currency),24,true);
+  if(order.customer_note){divider();left('Note :',16,true,1);left(order.customer_note,16,false,2)}
   divider();
-  center(clean(opts.receiptFooter||'Commande enregistrée avec Qatalink'),13,false,0);
-  y+=12;
+  center(clean(opts.receiptFooter||'Commande enregistrée avec Qatalink'),15,false,0);
+  y+=14;
 
   const out=document.createElement('canvas');out.width=width;out.height=Math.max(220,Math.ceil(y));
   const outCtx=out.getContext('2d');if(!outCtx)throw new Error('CANVAS_UNAVAILABLE');
