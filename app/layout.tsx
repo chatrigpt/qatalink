@@ -82,6 +82,7 @@ import { DashboardNavOrder } from '@/components/dashboard-nav-order';
 import { OpsPosOrderTaking } from '@/components/ops-pos-order-taking';
 import { OpsOrderSourceBadges } from '@/components/ops-order-source-badges';
 import { DashboardForecastBeta } from '@/components/dashboard-forecast-beta';
+import { ForecastCopyRefinement } from '@/components/forecast-copy-refinement';
 import { OpsDeliveryTracking } from '@/components/ops-delivery-tracking';
 import { PublicDeliveryTrackingHandoff } from '@/components/public-delivery-tracking-handoff';
 import { BusinessBetaMarketing } from '@/components/business-beta-marketing';
@@ -102,5 +103,5 @@ export const metadata={
 };
 
 export default function RootLayout({children}:{children:React.ReactNode}){
-  return <html lang="fr" suppressHydrationWarning><body className={`${jakarta.variable} ${playfair.variable}`}><ThemeProvider>{children}<ProviderNameScrubber/><MobileMoneyPaymentInfo/><LandingSupportExperience/><LandingHeaderExperience/><PlanCopyAlignment/><DashboardPlanExperience/><ItemImageGenerationControls/><ItemDescriptionGenerationControls/><StockManagementCenter/><CatalogCompletionControls/><AutomaticImageAssignment/><CreateAutoIllustrations/><QatalinkUxRefinements/><CatalogDeletionControls/><QrCanonicalControls/><OrderOperationsCenter/><OpsStockAlerts/><OpsPosOrderTaking/><OpsOrderSourceBadges/><OpsDeliveryTracking/><PublicDeliveryTrackingHandoff/><DashboardForecastBeta/><DashboardSettingsExtras/><DashboardPosCenter/><BusinessBetaMarketing/><GenerationActivityCenter/><DashboardKeyInHandPrompt/><DirectPrintLabelFix/><DashboardVibecoder/><DashboardNavOrder/><PwaInstallButton/><MetaPixel/></ThemeProvider></body></html>;
+  return <html lang="fr" suppressHydrationWarning><body className={`${jakarta.variable} ${playfair.variable}`}><ThemeProvider>{children}<ProviderNameScrubber/><MobileMoneyPaymentInfo/><LandingSupportExperience/><LandingHeaderExperience/><PlanCopyAlignment/><DashboardPlanExperience/><ItemImageGenerationControls/><ItemDescriptionGenerationControls/><StockManagementCenter/><CatalogCompletionControls/><AutomaticImageAssignment/><CreateAutoIllustrations/><QatalinkUxRefinements/><CatalogDeletionControls/><QrCanonicalControls/><OrderOperationsCenter/><OpsStockAlerts/><OpsPosOrderTaking/><OpsOrderSourceBadges/><OpsDeliveryTracking/><PublicDeliveryTrackingHandoff/><DashboardForecastBeta/><ForecastCopyRefinement/><DashboardSettingsExtras/><DashboardPosCenter/><BusinessBetaMarketing/><GenerationActivityCenter/><DashboardKeyInHandPrompt/><DirectPrintLabelFix/><DashboardVibecoder/><DashboardNavOrder/><PwaInstallButton/><MetaPixel/></ThemeProvider></body></html>;
 }
