@@ -57,20 +57,25 @@ export function ItemDescriptionGenerationControls(){
 
         const button=document.createElement('button');button.type='button';button.className='q-description-button';
         const hasDescription=String(item.description||textarea.value||'').trim().length>0;
-        button.textContent=hasDescription?'✨ Régénérer la description':'✨ Générer une description';
-        const hint=document.createElement('small');hint.textContent='La génération privilégie strictement le nom de l’article. Si une ancienne description parle d’un autre plat, elle est ignorée.';
+        button.textContent=hasDescription?'✨ Régénérer la description · 1,5 crédit':'✨ Générer une description · 1,5 crédit';
+        button.title='Chaque génération de description utilise 1,5 crédit IA.';
+        const hint=document.createElement('small');hint.textContent='Coût : 1,5 crédit IA par génération. La génération privilégie strictement le nom de l’article et n’invente pas de faits non fournis.';
         button.addEventListener('click',async()=>{
           if(button.dataset.busy==='1')return;
           button.dataset.busy='1';button.disabled=true;button.textContent='Création de la description…';
           try{
             const {data:{session}}=await supabase.auth.getSession();if(!session)throw new Error('SESSION_EXPIRED');
             const response=await fetch('/api/descriptions/generate',{method:'POST',headers:{'Content-Type':'application/json',Authorization:`Bearer ${session.access_token}`},body:JSON.stringify({item_id:item.id,current_description:textarea.value,brief:brief.value})});
-            const data=await response.json().catch(()=>({}));if(!response.ok||!data.description)throw new Error(data.error||'GENERATION_FAILED');
+            const data=await response.json().catch(()=>({}));
+            if(!response.ok||!data.description){
+              if(data?.error==='INSUFFICIENT_CREDITS')throw new Error('Crédits insuffisants : 1,5 crédit est requis pour cette génération.');
+              throw new Error(data?.message||data?.error||'GENERATION_FAILED');
+            }
             setReactTextareaValue(textarea,String(data.description));
             button.textContent='✓ Description fidèle générée';
-            setTimeout(()=>{button.textContent='✨ Régénérer la description'},1600);
-          }catch{
-            button.textContent='Réessayer la génération';
+            setTimeout(()=>{button.textContent='✨ Régénérer la description · 1,5 crédit'},1600);
+          }catch(error:any){
+            button.textContent=String(error?.message||'').startsWith('Crédits insuffisants')?'Crédits insuffisants · 1,5 requis':'Réessayer · 1,5 crédit';
           }finally{
             button.dataset.busy='0';button.disabled=false;
           }
