@@ -7,6 +7,7 @@ const ORDER=[
   'Catalogues',
   'Articles',
   'Stock',
+  'Prévisions',
   'Studio avancé',
   'Vitrine & médias',
   'Parcours client',
@@ -40,14 +41,15 @@ function reorder(container:Element|null){
     if(label.startsWith('Catalogues'))return 1;
     if(label.startsWith('Articles'))return 2;
     if(label.startsWith('Stock'))return 3;
-    if(label.startsWith('Studio avancé'))return 4;
-    if(label.startsWith('Vitrine & médias'))return 5;
-    if(label.startsWith('Parcours client'))return 6;
-    if(label.startsWith('Apparence'))return 7;
-    if(label.startsWith('QR & partage'))return 8;
-    if(label.startsWith('Statistiques'))return 9;
-    if(label.startsWith('Abonnement'))return 10;
-    if(label.startsWith('Administration'))return 11;
+    if(label.startsWith('Prévisions'))return 4;
+    if(label.startsWith('Studio avancé'))return 5;
+    if(label.startsWith('Vitrine & médias'))return 6;
+    if(label.startsWith('Parcours client'))return 7;
+    if(label.startsWith('Apparence'))return 8;
+    if(label.startsWith('QR & partage'))return 9;
+    if(label.startsWith('Statistiques'))return 10;
+    if(label.startsWith('Abonnement'))return 11;
+    if(label.startsWith('Administration'))return 12;
     return 50;
   };
   const sorted=[...children].sort((a,b)=>rank(a)-rank(b));
