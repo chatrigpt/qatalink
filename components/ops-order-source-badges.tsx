@@ -9,7 +9,7 @@ export function OpsOrderSourceBadges(){
     if(!window.location.pathname.startsWith('/ops/'))return;
     const accessKey=decodeURIComponent(window.location.pathname.split('/')[2]||'');
     const storageKey=`qatalink_ops_pin_${accessKey}`;
-    let stopped=false;let timer:any;
+    let stopped=false;let timer:any;let first:any;
     async function refresh(){
       const pin=sessionStorage.getItem(storageKey)||'';if(!pin)return;
       try{
@@ -20,13 +20,12 @@ export function OpsOrderSourceBadges(){
           const num=card.querySelector('header b')?.textContent?.trim()||'';const source=map.get(num);if(!source)return;
           let meta=card.querySelector<HTMLElement>('.ops-order-meta');if(!meta){meta=document.createElement('div');meta.className='ops-order-meta';card.querySelector('header')?.insertAdjacentElement('afterend',meta)}
           let badge=meta.querySelector<HTMLElement>('.ops-source-badge');if(!badge){badge=document.createElement('span');badge.className='ops-source-badge';meta.prepend(badge)}
-          badge.dataset.source=source;badge.textContent=`Source : ${LABELS[source]||source}`;
+          const next=`Source : ${LABELS[source]||source}`;if(badge.textContent!==next)badge.textContent=next;badge.dataset.source=source;
         });
       }catch{}
     }
-    refresh();timer=setInterval(refresh,5000);
-    const observer=new MutationObserver(()=>refresh());observer.observe(document.body,{subtree:true,childList:true});
-    return()=>{stopped=true;clearInterval(timer);observer.disconnect()};
+    first=setTimeout(refresh,700);timer=setInterval(refresh,5000);
+    return()=>{stopped=true;clearTimeout(first);clearInterval(timer)};
   },[]);
   return null;
 }
