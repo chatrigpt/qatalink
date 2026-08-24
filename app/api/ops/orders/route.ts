@@ -57,7 +57,7 @@ export async function POST(req:NextRequest){
         p_access_key:accessKey,
         p_pin:pin,
         p_items:items,
-        p_source:String(body?.source||'pos'),
+        p_source:'pos',
         p_flow_mode:String(body?.flow_mode||''),
         p_table:String(body?.table||''),
         p_customer_name:String(body?.customer_name||''),
