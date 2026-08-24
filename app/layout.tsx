@@ -17,6 +17,7 @@ import './public-catalog-v2.css';
 import './public-category-scroll.css';
 import './public-currency.css';
 import './public-flow.css';
+import './delivery-location-capture.css';
 import './multipage.css';
 import './vitrine.css';
 import './qatalink-v3.css';
@@ -90,6 +91,7 @@ import { DashboardForecastWizard } from '@/components/dashboard-forecast-wizard'
 import { ForecastCopyRefinement } from '@/components/forecast-copy-refinement';
 import { OpsDeliveryTracking } from '@/components/ops-delivery-tracking';
 import { PublicDeliveryTrackingHandoff } from '@/components/public-delivery-tracking-handoff';
+import { PublicDeliveryLocationCapture } from '@/components/public-delivery-location-capture';
 import { BusinessBetaMarketing } from '@/components/business-beta-marketing';
 import { DashboardPosCenter } from '@/components/dashboard-pos-center';
 import { DashboardSettingsExtras } from '@/components/dashboard-settings-extras';
@@ -109,5 +111,5 @@ export const metadata={
 };
 
 export default function RootLayout({children}:{children:React.ReactNode}){
-  return <html lang="fr" suppressHydrationWarning><body className={`${jakarta.variable} ${playfair.variable}`}><ThemeProvider>{children}<ProviderNameScrubber/><MobileMoneyPaymentInfo/><LandingSupportExperience/><LandingHeaderExperience/><PlanCopyAlignment/><DashboardPlanExperience/><ItemImageGenerationControls/><ItemDescriptionGenerationControls/><StockManagementCenter/><CatalogCompletionControls/><AutomaticImageAssignment/><CreateAutoIllustrations/><QatalinkUxRefinements/><CatalogDeletionControls/><QrCanonicalControls/><OrderSourceShareControls/><OrderOperationsCenter/><OpsStockAlerts/><OpsPosOrderTaking/><OpsOrderSourceBadges/><OrderSourceAnalytics/><OpsDeliveryTracking/><PublicDeliveryTrackingHandoff/><DashboardForecastWizard/><ForecastCopyRefinement/><DashboardSettingsExtras/><DashboardPosCenter/><BusinessBetaMarketing/><AiCreditExperience/><GenerationActivityCenter/><DashboardKeyInHandPrompt/><DirectPrintLabelFix/><DashboardVibecoder/><DashboardNavOrder/><PwaInstallButton/><MetaPixel/></ThemeProvider></body></html>;
+  return <html lang="fr" suppressHydrationWarning><body className={`${jakarta.variable} ${playfair.variable}`}><ThemeProvider>{children}<ProviderNameScrubber/><MobileMoneyPaymentInfo/><LandingSupportExperience/><LandingHeaderExperience/><PlanCopyAlignment/><DashboardPlanExperience/><ItemImageGenerationControls/><ItemDescriptionGenerationControls/><StockManagementCenter/><CatalogCompletionControls/><AutomaticImageAssignment/><CreateAutoIllustrations/><QatalinkUxRefinements/><CatalogDeletionControls/><QrCanonicalControls/><OrderSourceShareControls/><OrderOperationsCenter/><OpsStockAlerts/><OpsPosOrderTaking/><OpsOrderSourceBadges/><OrderSourceAnalytics/><OpsDeliveryTracking/><PublicDeliveryTrackingHandoff/><PublicDeliveryLocationCapture/><DashboardForecastWizard/><ForecastCopyRefinement/><DashboardSettingsExtras/><DashboardPosCenter/><BusinessBetaMarketing/><AiCreditExperience/><GenerationActivityCenter/><DashboardKeyInHandPrompt/><DirectPrintLabelFix/><DashboardVibecoder/><DashboardNavOrder/><PwaInstallButton/><MetaPixel/></ThemeProvider></body></html>;
 }
