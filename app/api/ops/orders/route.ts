@@ -44,6 +44,12 @@ export async function POST(req:NextRequest){
       return NextResponse.json({success:true,...data});
     }
 
+    if(action==='sources'){
+      const {data,error}=await supabase.rpc('get_catalog_team_order_sources',{p_access_key:accessKey,p_pin:pin,p_limit:Math.min(200,Math.max(1,Number(body?.limit||150)))});
+      if(error)return NextResponse.json({success:false,error:error.message||'ACCESS_DENIED'},{status:403});
+      return NextResponse.json({success:true,sources:data||[]});
+    }
+
     if(action==='pos_create'){
       const items=Array.isArray(body?.items)?body.items:[];
       if(!items.length)return NextResponse.json({success:false,error:'EMPTY_ORDER'},{status:400});
