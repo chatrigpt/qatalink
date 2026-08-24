@@ -47,6 +47,9 @@ import './order-ops.css';
 import './order-ops-v2.css';
 import './ops-color-ui.css';
 import './ops-pos.css';
+import './forecast-beta.css';
+import './delivery-tracking.css';
+import './business-beta-marketing.css';
 import { Plus_Jakarta_Sans, Playfair_Display } from 'next/font/google';
 import { ThemeProvider } from '@/components/theme-provider';
 import { PwaInstallButton } from '@/components/pwa-install-button';
@@ -72,6 +75,10 @@ import { DashboardVibecoder } from '@/components/dashboard-vibecoder';
 import { DashboardNavOrder } from '@/components/dashboard-nav-order';
 import { OpsPosOrderTaking } from '@/components/ops-pos-order-taking';
 import { OpsOrderSourceBadges } from '@/components/ops-order-source-badges';
+import { DashboardForecastBeta } from '@/components/dashboard-forecast-beta';
+import { OpsDeliveryTracking } from '@/components/ops-delivery-tracking';
+import { PublicDeliveryTrackingHandoff } from '@/components/public-delivery-tracking-handoff';
+import { BusinessBetaMarketing } from '@/components/business-beta-marketing';
 
 const jakarta=Plus_Jakarta_Sans({subsets:['latin'],variable:'--font-jakarta'});
 const playfair=Playfair_Display({subsets:['latin'],style:['normal','italic'],variable:'--font-playfair'});
@@ -86,5 +93,5 @@ export const metadata={
 };
 
 export default function RootLayout({children}:{children:React.ReactNode}){
-  return <html lang="fr" suppressHydrationWarning><body className={`${jakarta.variable} ${playfair.variable}`}><ThemeProvider>{children}<ProviderNameScrubber/><MobileMoneyPaymentInfo/><LandingSupportExperience/><PlanCopyAlignment/><DashboardPlanExperience/><ItemImageGenerationControls/><ItemDescriptionGenerationControls/><StockManagementCenter/><CatalogCompletionControls/><QatalinkUxRefinements/><CatalogDeletionControls/><QrCanonicalControls/><OrderOperationsCenter/><OpsStockAlerts/><OpsPosOrderTaking/><OpsOrderSourceBadges/><GenerationActivityCenter/><DashboardKeyInHandPrompt/><DirectPrintLabelFix/><DashboardVibecoder/><DashboardNavOrder/><PwaInstallButton/><MetaPixel/></ThemeProvider></body></html>;
+  return <html lang="fr" suppressHydrationWarning><body className={`${jakarta.variable} ${playfair.variable}`}><ThemeProvider>{children}<ProviderNameScrubber/><MobileMoneyPaymentInfo/><LandingSupportExperience/><PlanCopyAlignment/><DashboardPlanExperience/><ItemImageGenerationControls/><ItemDescriptionGenerationControls/><StockManagementCenter/><CatalogCompletionControls/><QatalinkUxRefinements/><CatalogDeletionControls/><QrCanonicalControls/><OrderOperationsCenter/><OpsStockAlerts/><OpsPosOrderTaking/><OpsOrderSourceBadges/><OpsDeliveryTracking/><PublicDeliveryTrackingHandoff/><DashboardForecastBeta/><BusinessBetaMarketing/><GenerationActivityCenter/><DashboardKeyInHandPrompt/><DirectPrintLabelFix/><DashboardVibecoder/><DashboardNavOrder/><PwaInstallButton/><MetaPixel/></ThemeProvider></body></html>;
 }
