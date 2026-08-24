@@ -11,6 +11,19 @@ const MENU_MAGIC_CREDIT_COST=3;
 
 type ButtonStyle='solid'|'gradient'|'glossy'|'metallic';
 
+async function refundMenuMagicCredits(supabase:any,businessId:string,referenceId:string){
+  try{
+    await supabase.rpc('refund_ai_credits',{
+      p_business_id:businessId,
+      p_kind:'menu_magic',
+      p_reference_id:referenceId,
+      p_refund_kind:'menu_magic_refund'
+    });
+  }catch{
+    // A refund failure must never mask the original Menu magique error.
+  }
+}
+
 function cleanJson(raw:string){
   const s=String(raw||'').trim().replace(/^```(?:json)?/i,'').replace(/```$/,'').trim();
   const a=s.indexOf('{'),b=s.lastIndexOf('}');
@@ -121,13 +134,13 @@ export async function POST(req:NextRequest){
     if(referenceImageUrl)payload.image_urls=[referenceImageUrl];
     const r=await fetch('https://fal.run/openrouter/router/vision',{method:'POST',headers:{Authorization:`Key ${falKey}`,'Content-Type':'application/json'},body:JSON.stringify(payload),cache:'no-store'});
     const d:any=await r.json().catch(()=>null);
-    if(!r.ok){await supabase.rpc('refund_ai_credits',{p_business_id:catalog.business_id,p_kind:'menu_magic',p_reference_id:creditReference,p_refund_kind:'menu_magic_refund'}).catch(()=>null);charged=null;return NextResponse.json({error:d?.error||'Menu magique n’a pas répondu.'},{status:r.status});}
-    let rawPlan:any;try{rawPlan=JSON.parse(cleanJson(d?.output||''))}catch{await supabase.rpc('refund_ai_credits',{p_business_id:catalog.business_id,p_kind:'menu_magic',p_reference_id:creditReference,p_refund_kind:'menu_magic_refund'}).catch(()=>null);charged=null;return NextResponse.json({error:'Menu magique a renvoyé une proposition illisible.'},{status:422})}
+    if(!r.ok){await refundMenuMagicCredits(supabase,String(catalog.business_id),creditReference);charged=null;return NextResponse.json({error:d?.error||'Menu magique n’a pas répondu.'},{status:r.status});}
+    let rawPlan:any;try{rawPlan=JSON.parse(cleanJson(d?.output||''))}catch{await refundMenuMagicCredits(supabase,String(catalog.business_id),creditReference);charged=null;return NextResponse.json({error:'Menu magique a renvoyé une proposition illisible.'},{status:422})}
     const plan=sanitizePlan(rawPlan,allowedButtonIds,referenceImageUrl);
     charged=null;
     return NextResponse.json({success:true,plan,credit_cost:MENU_MAGIC_CREDIT_COST,balance:Number(balanceAfter),menu_url:`https://qatalink.com/c/${catalog.public_slug}`,hub_url:`https://qatalink.com/h/${catalog.hub_public_slug}`});
   }catch(e:any){
-    if(charged){await charged.supabase.rpc('refund_ai_credits',{p_business_id:charged.businessId,p_kind:'menu_magic',p_reference_id:charged.referenceId,p_refund_kind:'menu_magic_refund'}).catch(()=>null)}
+    if(charged){await refundMenuMagicCredits(charged.supabase,charged.businessId,charged.referenceId)}
     return NextResponse.json({error:e?.message||'Menu magique indisponible'},{status:500})
   }
 }
