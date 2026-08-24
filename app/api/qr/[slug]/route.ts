@@ -5,7 +5,7 @@ const PUBLIC_ORIGIN='https://qatalink.com';
 
 export async function GET(req:NextRequest,{params}:{params:Promise<{slug:string}>}){
   const {slug}=await params;
-  const target=`${PUBLIC_ORIGIN}/c/${encodeURIComponent(slug)}`;
+  const target=`${PUBLIC_ORIGIN}/c/${encodeURIComponent(slug)}?src=qr`;
   const remote=`https://api.qrserver.com/v1/create-qr-code/?size=900x900&format=png&margin=18&data=${encodeURIComponent(target)}&color=111111&bgcolor=ffffff`;
   const r=await fetch(remote,{cache:'no-store'});
   if(!r.ok)return NextResponse.json({error:'QR generation failed'},{status:502});
