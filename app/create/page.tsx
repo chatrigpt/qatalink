@@ -69,6 +69,7 @@ export default function Create(){
       const existingPhone=String(existing?.whatsapp_number||'').replace(/\D/g,'');
       if(existingPhone){const match=countryCodes.find(c=>existingPhone.startsWith(digitsOnly(c[2])));if(match){setDialCode(match[2]);setWhatsappLocal(existingPhone.slice(digitsOnly(match[2]).length))}else setWhatsappLocal(existingPhone)}
       setPretrial(eligibleForFirstTrial);
+      if(eligibleForFirstTrial)setAutoImages(true);
       setHasAccess(valid||eligibleForFirstTrial);
       setTrialActive(trial);
       setTrialExpiresAt(trial?candidate?.current_period_end||null:null);
@@ -140,7 +141,7 @@ export default function Create(){
         catalogPayload=ocrData.catalog;catalogPayload.business={...(catalogPayload.business||{}),...businessContext};catalogPayload.catalog={...(catalogPayload.catalog||{}),title:title.trim()||selectedPreset?.default_catalog_title||effectiveBusinessName,type:selectedPreset?.catalog_type||catalogPayload.catalog?.type||'catalog'};
       }
       setMsg('Création de votre catalogue…');const saved=await persistCatalog(session,catalogPayload,mode);localStorage.setItem('qatalink_import_preview',JSON.stringify({status:'completed',catalog_id:saved.catalog_id,source:mode,preset_id:presetId}));
-      if(autoImages&&Array.isArray(saved.item_ids)&&saved.item_ids.length){setMsg(`Création de ${saved.item_ids.length} illustration(s)…`);const gen=await fetch('/api/images/generate',{method:'POST',headers:{'Content-Type':'application/json',Authorization:`Bearer ${session.access_token}`},body:JSON.stringify({item_ids:saved.item_ids})});const genData=await gen.json();if(!gen.ok&&genData?.error==='INSUFFICIENT_CREDITS')setMsg('Catalogue créé. Il vous manque des crédits pour lancer toutes les illustrations.');if(gen.ok&&Array.isArray(genData.jobs)){const jobIds=genData.jobs.map((j:any)=>j.job_id).filter(Boolean);localStorage.setItem('qatalink_pending_image_jobs',JSON.stringify(jobIds))}}
+      if(autoImages&&Array.isArray(saved.item_ids)&&saved.item_ids.length){setMsg(saved.free_illustrations?`Création de vos ${Math.min(saved.item_ids.length,6)} illustration(s) offerte(s)…`:`Création de ${saved.item_ids.length} illustration(s)…`);const gen=await fetch('/api/images/generate',{method:'POST',headers:{'Content-Type':'application/json',Authorization:`Bearer ${session.access_token}`},body:JSON.stringify({item_ids:saved.item_ids})});const genData=await gen.json();if(!gen.ok&&genData?.error==='INSUFFICIENT_CREDITS')setMsg('Catalogue créé. Il vous manque des crédits pour lancer toutes les illustrations.');if(gen.ok&&Array.isArray(genData.jobs)){const jobIds=genData.jobs.map((j:any)=>j.job_id).filter(Boolean);localStorage.setItem('qatalink_pending_image_jobs',JSON.stringify(jobIds))}}
       window.location.href=`/dashboard?tab=overview&catalog=${encodeURIComponent(saved.catalog_id)}&created=1`;
     }catch(err:any){setMsg(err?.message||'Une erreur est survenue. Réessayez.');setLoading(false)}
   }
@@ -159,14 +160,14 @@ export default function Create(){
         {mode==='blank'&&<div className="blank-create-note"><Plus size={22}/><div><b>Structure {selectedPreset?.label||'personnalisée'} prête</b><span>{(selectedPreset?.default_categories||['Catégorie 1']).join(' · ')}. Vous pourrez tout renommer, supprimer ou compléter ensuite.</span></div></div>}
       </section>
 
-      {mode!=='blank'&&<label className="auto-image-option"><input type="checkbox" checked={autoImages} onChange={e=>setAutoImages(e.target.checked)}/><Sparkles size={18}/><span><b>Créer aussi les illustrations automatiquement</b><small>Optionnel · 5 crédits par image. Vous pourrez aussi les générer plus tard.</small></span></label>}
+      {mode!=='blank'&&<label className="auto-image-option"><input type="checkbox" checked={autoImages} onChange={e=>setAutoImages(e.target.checked)}/><Sparkles size={18}/><span><b>Créer aussi les illustrations automatiquement</b><small>{pretrial?'Premier catalogue : jusqu’à 6 illustrations offertes. L’option est activée par défaut.':'Optionnel · 5 crédits par image. Vous pourrez aussi les générer plus tard.'}</small></span></label>}
 
       <details className="create-identity-optional"><summary>Ajouter mon identité maintenant <span>optionnel</span></summary><div className="create-identity-grid"><div className="field"><label>Nom de l’entreprise</label><input className="input" value={businessName} onChange={e=>setBusinessName(e.target.value)} placeholder="Ex : Chez Awa, Glow Beauty…"/></div><div className="field"><label>Nom du catalogue</label><input className="input" value={title} onChange={e=>{setTitleTouched(true);setTitle(e.target.value)}} placeholder={selectedPreset?.default_catalog_title||'Catalogue principal'}/></div><div className="field wide"><label>WhatsApp de l’entreprise</label><div style={{display:'grid',gridTemplateColumns:'minmax(138px,.45fr) minmax(0,1fr)',gap:8}}><select className="input" value={dialCode} onChange={e=>setDialCode(e.target.value)}>{countryCodes.map(c=><option key={c[0]} value={c[2]}>{c[1]} {c[2]}</option>)}</select><input className="input" inputMode="tel" value={whatsappLocal} onChange={e=>setWhatsappLocal(digitsOnly(e.target.value))} placeholder="0700000000"/></div><small className="field-help">Vous pourrez compléter ces informations plus tard dans Paramètres.</small></div></div></details>
 
       {loading&&<div className="activation-progress" aria-live="polite"><div className={progressStep>=1?'done active':''}><span>1</span><b>Lecture du contenu</b></div><div className={progressStep>=2?'done active':''}><span>2</span><b>Organisation du catalogue</b></div><div className={progressStep>=3?'done active':''}><span>3</span><b>Préparation du rendu</b></div><p>{msg||'Traitement en cours…'}</p></div>}
       {!loading&&msg&&<div className="error">{msg}</div>}
       <button className="btn btn-primary create-value-cta" disabled={loading}>{loading?'Votre catalogue prend forme…':'Créer et voir mon catalogue'}</button>
-      <small className="create-value-note">{pretrial?'Vos 7 jours commencent uniquement après cette création. ':''}Vous pourrez ensuite compléter le catalogue avec d’autres images ou un nouveau bloc de texte sans repartir de zéro.</small>
+      <small className="create-value-note">{pretrial?'Vos 7 jours commencent uniquement après cette création et vos 6 premières illustrations sont offertes. ':''}Vous pourrez ensuite compléter le catalogue avec d’autres images ou un nouveau bloc de texte sans repartir de zéro.</small>
     </form>
   </div><PricingGate open={gate} onClose={()=>setGate(false)} title={trialActive?'Votre essai est en cours':'Choisissez une formule pour continuer'} trialActive={trialActive} trialExpiresAt={trialExpiresAt}/></div>
 }
