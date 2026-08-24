@@ -2,7 +2,7 @@
 
 import {useEffect} from 'react';
 
-const LABELS:Record<string,string>={catalog:'QR / catalogue',qr:'QR code',pos:'Caisse',shared_link:'Lien partagé',whatsapp:'WhatsApp',phone:'Téléphone',manual:'Saisie manuelle',other:'Autre'};
+const LABELS:Record<string,string>={catalog:'Catalogue / accès direct',qr:'QR code',pos:'Caisse',shared_link:'Lien partagé',hub:'Page centrale',whatsapp:'WhatsApp',phone:'Téléphone',manual:'Saisie manuelle',other:'Autre'};
 
 export function OpsOrderSourceBadges(){
   useEffect(()=>{
