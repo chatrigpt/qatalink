@@ -1,7 +1,7 @@
 'use client';
 import Link from 'next/link';
 import Image from 'next/image';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { createSupabaseBrowserClient } from '@/lib/supabase';
 
 function GoogleIcon(){
@@ -24,6 +24,8 @@ export default function Login(){
   const [loading,setLoading]=useState(false);
   const [googleLoading,setGoogleLoading]=useState(false);
   const supabase=createSupabaseBrowserClient();
+
+  useEffect(()=>{const requested=new URLSearchParams(window.location.search).get('mode');if(requested==='signup')setMode('signup')},[]);
 
   async function signInWithGoogle(){
     setMsg('');
@@ -51,7 +53,7 @@ export default function Login(){
   return <div className="auth-wrap"><div className="auth-card">
     <Link href="/" className="brand"><Image src="/qatalink-logo.png" width={34} height={34} alt="Qatalink"/>qatalink</Link>
     <h1>{mode==='login'?'Bon retour 👋':'Créez votre compte gratuit'}</h1>
-    <p style={{color:'var(--muted)'}}>{mode==='login'?'Connectez-vous pour reprendre votre catalogue.':'Aucune carte requise. Après l’inscription, vous revenez directement à la création de votre catalogue.'}</p>
+    <p style={{color:'var(--muted)'}}>{mode==='login'?'Connectez-vous pour reprendre votre catalogue.':'Aucune carte requise. Après l’inscription, vous revenez directement à votre tableau de bord.'}</p>
 
     <button type="button" className="btn btn-ghost" style={{width:'100%',marginTop:18,display:'flex',alignItems:'center',justifyContent:'center',gap:10}} onClick={signInWithGoogle} disabled={googleLoading||loading}>
       <GoogleIcon/>{googleLoading?'Connexion à Google…':'Continuer avec Google'}
