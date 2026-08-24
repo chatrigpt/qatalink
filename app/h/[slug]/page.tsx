@@ -106,7 +106,7 @@ export default async function CatalogHubPage({params}:{params:Promise<{slug:stri
       </div>
 
       <div className={`vitrine-links hub-buttons hub-style-${buttonStyle}`}>
-        <a className="vitrine-main-link hub-custom-button" style={btnStyle} href={`/c/${encodeURIComponent(catalog.public_slug)}`}>
+        <a className="vitrine-main-link hub-custom-button" style={btnStyle} href={`/c/${encodeURIComponent(catalog.public_slug)}?src=hub`}>
           <BookOpen size={21}/><span><b>{catalog.title||'Menu / catalogue'}</b><small>{catalog.type==='menu'?'Voir le menu':'Voir le catalogue'}</small></span><ExternalLink size={17}/>
         </a>
         {whatsappConfig?<a className="vitrine-link hub-custom-button" style={styleFor(whatsappConfig)} href={whatsappConfig.url} target="_blank" rel="noreferrer"><LinkIcon link={whatsappConfig}/><span>{whatsappConfig.label||'WhatsApp'}</span><ExternalLink size={15}/></a>:phone&&<a className="vitrine-link hub-custom-button" style={styleFor({kind:'whatsapp'})} href={`https://wa.me/${phone}`} target="_blank" rel="noreferrer"><LinkIcon link={{kind:'whatsapp'}}/><span>WhatsApp</span><ExternalLink size={15}/></a>}
