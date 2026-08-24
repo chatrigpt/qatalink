@@ -5,6 +5,21 @@ export const runtime='nodejs';
 
 const SUPABASE_URL=process.env.NEXT_PUBLIC_SUPABASE_URL||'https://rifjsvbbhsnpifgooenl.supabase.co';
 const SUPABASE_KEY=process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY||'';
+const ALLOWED_SOURCES=new Set(['qr','shared_link','hub','whatsapp','catalog']);
+
+function inferSource(req:NextRequest,body:any){
+  const explicit=String(body?.source||'').trim().toLowerCase();
+  if(ALLOWED_SOURCES.has(explicit))return explicit;
+  try{
+    const referer=req.headers.get('referer')||'';
+    if(referer){
+      const url=new URL(referer);
+      const src=String(url.searchParams.get('src')||'').trim().toLowerCase();
+      if(ALLOWED_SOURCES.has(src))return src;
+    }
+  }catch{}
+  return 'catalog';
+}
 
 export async function POST(req:NextRequest){
   try{
@@ -13,10 +28,11 @@ export async function POST(req:NextRequest){
     const items=Array.isArray(body?.items)?body.items:[];
     const flowMode=body?.flow_mode?String(body.flow_mode):null;
     const flowFields=body?.flow_fields&&typeof body.flow_fields==='object'?body.flow_fields:{};
+    const source=inferSource(req,body);
     if(!slug||!items.length)return NextResponse.json({success:false,error:'INVALID_ORDER'},{status:400});
 
     const supabase=createClient(SUPABASE_URL,SUPABASE_KEY,{auth:{persistSession:false,autoRefreshToken:false,detectSessionInUrl:false}});
-    const {data,error}=await supabase.rpc('create_public_order',{p_slug:slug,p_items:items,p_flow_mode:flowMode,p_flow_fields:flowFields});
+    const {data,error}=await supabase.rpc('create_public_order',{p_slug:slug,p_items:items,p_flow_mode:flowMode,p_flow_fields:flowFields,p_source:source});
     if(error){
       const msg=String(error.message||'');
       const status=msg.includes('CATALOG_UNAVAILABLE')?404:msg.includes('ORDER_CAPTURE_DISABLED')?409:msg.includes('ITEMS_UNAVAILABLE')?409:400;
