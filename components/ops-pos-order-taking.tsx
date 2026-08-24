@@ -4,15 +4,6 @@ import {useEffect,useMemo,useState} from 'react';
 import {createPortal} from 'react-dom';
 import {Minus,Plus,Search,ShoppingCart,X} from 'lucide-react';
 
-const SOURCE_OPTIONS=[
-  ['pos','Caisse'],
-  ['qr','QR code'],
-  ['shared_link','Lien partagé'],
-  ['whatsapp','WhatsApp'],
-  ['phone','Téléphone'],
-  ['manual','Saisie manuelle'],
-  ['other','Autre'],
-] as const;
 const MODE_OPTIONS=['Sur place','À emporter','Livraison','Retrait','Autre'];
 
 type PosItem={id:string;category_id:string;name:string;description?:string;price_minor:number;currency_code:string;image_url?:string|null};
@@ -35,7 +26,6 @@ export function OpsPosOrderTaking(){
   const [query,setQuery]=useState('');
   const [category,setCategory]=useState('all');
   const [cart,setCart]=useState<Record<string,number>>({});
-  const [source,setSource]=useState('pos');
   const [flowMode,setFlowMode]=useState('Sur place');
   const [table,setTable]=useState('');
   const [customerName,setCustomerName]=useState('');
@@ -92,12 +82,12 @@ export function OpsPosOrderTaking(){
     setBusy(true);setError('');
     try{
       const data=await api('pos_create',{
-        items:selectedItems.map(item=>({item_id:item.id,quantity:cart[item.id]})),source,flow_mode:flowMode,table,customer_name:customerName,customer_phone:customerPhone,note,
+        items:selectedItems.map(item=>({item_id:item.id,quantity:cart[item.id]})),flow_mode:flowMode,table,customer_name:customerName,customer_phone:customerPhone,note,
       });
-      setCart({});setTable('');setCustomerName('');setCustomerPhone('');setNote('');setSource('pos');setFlowMode('Sur place');
+      setCart({});setTable('');setCustomerName('');setCustomerPhone('');setNote('');setFlowMode('Sur place');
       setActive(false);
       setTimeout(()=>document.querySelector<HTMLButtonElement>('.ops-header .ops-refresh')?.click(),120);
-      alert(`Commande ${data?.order?.order_number||''} enregistrée.`);
+      alert(`Commande ${data?.order?.order_number||''} enregistrée · Source : Caisse`);
     }catch(err:any){setError(err?.message||'Impossible d’enregistrer la commande.')}finally{setBusy(false)}
   }
 
@@ -105,7 +95,7 @@ export function OpsPosOrderTaking(){
 
   const tabButton=createPortal(<button className={active?'active ops-pos-tab':'ops-pos-tab'} onClick={openPos}><ShoppingCart size={15}/>Prise de commande</button>,tabHost);
   const panel=createPortal(active?<section className="ops-pos-panel">
-    <header className="ops-pos-head"><div><span>CAISSE</span><h2>Prise de commande</h2><p>Composez la commande du client directement depuis le catalogue.</p></div><button onClick={()=>setActive(false)} aria-label="Fermer"><X/></button></header>
+    <header className="ops-pos-head"><div><span>CAISSE</span><h2>Prise de commande</h2><p>Composez la commande du client directement depuis le catalogue. La source est enregistrée automatiquement comme « Caisse ».</p></div><button onClick={()=>setActive(false)} aria-label="Fermer"><X/></button></header>
     {loading?<div className="ops-pos-loading">Chargement du catalogue…</div>:error&&!payload?<div className="ops-pos-error">{error}</div>:<div className="ops-pos-layout">
       <div className="ops-pos-products">
         <div className="ops-pos-tools"><label><Search size={16}/><input value={query} onChange={e=>setQuery(e.target.value)} placeholder="Rechercher un article"/></label><select value={category} onChange={e=>setCategory(e.target.value)}><option value="all">Toutes les catégories</option>{(payload?.categories||[]).map(cat=><option key={cat.id} value={cat.id}>{cat.name}</option>)}</select></div>
@@ -115,7 +105,8 @@ export function OpsPosOrderTaking(){
         <div className="ops-pos-cart-title"><ShoppingCart/><div><b>Commande en cours</b><span>{selectedItems.reduce((n,item)=>n+(cart[item.id]||0),0)} article(s)</span></div></div>
         <div className="ops-pos-cart-lines">{selectedItems.length?selectedItems.map(item=><div key={item.id}><span>{cart[item.id]} × {item.name}</span><b>{money(item.price_minor*(cart[item.id]||0),item.currency_code||'XOF')}</b></div>):<p>Ajoutez des produits depuis le catalogue.</p>}</div>
         <div className="ops-pos-total"><span>Total</span><b>{money(total,payload?.catalog?.currency_code||'XOF')}</b></div>
-        <div className="ops-pos-fields"><label>Source de la commande<select value={source} onChange={e=>setSource(e.target.value)}>{SOURCE_OPTIONS.map(([value,label])=><option key={value} value={value}>{label}</option>)}</select></label><label>Mode<select value={flowMode} onChange={e=>setFlowMode(e.target.value)}>{MODE_OPTIONS.map(value=><option key={value}>{value}</option>)}</select></label><label>Table / référence<input value={table} onChange={e=>setTable(e.target.value)} placeholder="Ex : Table 12"/></label><label>Nom du client<input value={customerName} onChange={e=>setCustomerName(e.target.value)} placeholder="Optionnel"/></label><label>Téléphone<input value={customerPhone} onChange={e=>setCustomerPhone(e.target.value)} inputMode="tel" placeholder="Optionnel"/></label><label>Note<textarea value={note} onChange={e=>setNote(e.target.value)} placeholder="Cuisson, préférence, précision…"/></label></div>
+        <div className="ops-pos-source-fixed"><span>Source</span><strong>● Caisse</strong><small>Détectée automatiquement depuis le point de vente.</small></div>
+        <div className="ops-pos-fields"><label>Mode<select value={flowMode} onChange={e=>setFlowMode(e.target.value)}>{MODE_OPTIONS.map(value=><option key={value}>{value}</option>)}</select></label><label>Table / référence<input value={table} onChange={e=>setTable(e.target.value)} placeholder="Ex : Table 12"/></label><label>Nom du client<input value={customerName} onChange={e=>setCustomerName(e.target.value)} placeholder="Optionnel"/></label><label>Téléphone<input value={customerPhone} onChange={e=>setCustomerPhone(e.target.value)} inputMode="tel" placeholder="Optionnel"/></label><label>Note<textarea value={note} onChange={e=>setNote(e.target.value)} placeholder="Cuisson, préférence, précision…"/></label></div>
         {error&&<div className="ops-pos-error">{error}</div>}
         <button className="ops-pos-submit" disabled={!selectedItems.length||busy} onClick={createOrder}>{busy?'Enregistrement…':`Enregistrer la commande · ${money(total,payload?.catalog?.currency_code||'XOF')}`}</button>
       </aside>
