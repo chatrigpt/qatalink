@@ -54,6 +54,7 @@ import './delivery-tracking.css';
 import './business-beta-marketing.css';
 import './point-of-sale.css';
 import './landing-header-experience.css';
+import './ai-credits.css';
 import { Plus_Jakarta_Sans, Playfair_Display } from 'next/font/google';
 import { ThemeProvider } from '@/components/theme-provider';
 import { PwaInstallButton } from '@/components/pwa-install-button';
