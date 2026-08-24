@@ -121,7 +121,14 @@ export async function POST(req:NextRequest){
       trial=trialData||null;
     }
 
-    return NextResponse.json({success:true,catalog_id:catalogRow.id,public_slug:catalogRow.public_slug,item_ids:itemIds,preset_id:presetId||null,trial_started:!!trial?.started,trial_ends_at:trial?.current_period_end||validSub?.current_period_end||null});
+    let firstCatalogSetup:any=null;
+    if((catalogCount||0)===0){
+      const businessType=String(preset?.business_type||payload?.business?.business_type||owned?.[0]?.business_type||'other');
+      const {data:setupData,error:setupError}=await supabase.rpc('qatalink_apply_first_catalog_setup',{p_business_id:businessId,p_catalog_id:catalogRow.id,p_business_type:businessType});
+      if(!setupError)firstCatalogSetup=setupData;
+    }
+
+    return NextResponse.json({success:true,catalog_id:catalogRow.id,public_slug:catalogRow.public_slug,item_ids:itemIds,preset_id:presetId||null,trial_started:!!trial?.started,trial_ends_at:trial?.current_period_end||validSub?.current_period_end||null,first_catalog_setup:firstCatalogSetup,free_illustrations:Number(firstCatalogSetup?.free_illustrations||0),bonus_credits:Number(firstCatalogSetup?.bonus_credits||0)});
   }catch(e:any){
     return NextResponse.json({success:false,error:e?.message||'Import failed'},{status:500});
   }
