@@ -17,14 +17,29 @@ function ensureFeature(card:HTMLElement|null,text:string,className:string){
   if(creditRow)features.insertBefore(row,creditRow);else features.appendChild(row);
 }
 
+function ensureAiCreditLegend(root:ParentNode){
+  const pricing=root.querySelector<HTMLElement>('#pricing');if(!pricing||pricing.querySelector('[data-ai-credit-legend]'))return;
+  const head=pricing.querySelector<HTMLElement>('.section-head');if(!head)return;
+  const legend=document.createElement('div');legend.dataset.aiCreditLegend='1';legend.className='ai-credit-pricing-legend';
+  legend.innerHTML='<b>Crédits IA Qatalink</b><span>Illustration : <strong>5 crédits</strong></span><span>Description : <strong>1,5 crédit</strong></span><span>Menu magique : <strong>3 crédits</strong></span><span>Prévisions Business : <strong>15 crédits</strong></span><small>Les crédits inclus dans votre formule servent aux fonctionnalités d’intelligence artificielle. Vous choisissez quand les utiliser.</small>';
+  head.insertAdjacentElement('afterend',legend);
+}
+
+function addAiFeature(card:HTMLElement|null){
+  ensureFeature(card,'<span><b>Crédits utilisables pour l’IA</b><small>Images 5 · descriptions 1,5 · Menu magique 3 · prévisions Business 15 crédits par utilisation.</small></span>','q-ai-credit-usage-feature');
+}
+
 export function PlanCopyAlignment(){
   useEffect(()=>{
     let timer:ReturnType<typeof setTimeout>|null=null;
     const apply=()=>{
       if(location.pathname==='/'){
         const pricingCopy=document.querySelector<HTMLElement>('#pricing .section-head p');
-        if(pricingCopy)pricingCopy.textContent='Tous les catalogues sont interactifs. Starter envoie la commande sur WhatsApp ; Pro centralise les commandes et ajoute une page centrale type Linktree pour regrouper jusqu’à 5 menus/catalogues ; Business étend cette organisation jusqu’à 15 catalogues et ajoute la gestion de stock.';
-        ensureFeature(findCard(document,'Pro'),'Page centrale type Linktree pour regrouper jusqu’à 5 menus/catalogues','q-pro-hub-feature');
+        if(pricingCopy)pricingCopy.textContent='Tous les catalogues sont interactifs. Les crédits inclus dans chaque formule alimentent les fonctions IA de Qatalink : illustrations, descriptions, Menu magique et, avec Business, les prévisions.';
+        ensureAiCreditLegend(document);
+        const starter=findCard(document,'Starter'),pro=findCard(document,'Pro'),business=findCard(document,'Business');
+        addAiFeature(starter);addAiFeature(pro);addAiFeature(business);
+        ensureFeature(pro,'Page centrale type Linktree pour regrouper jusqu’à 5 menus/catalogues','q-pro-hub-feature');
         document.querySelectorAll<HTMLDetailsElement>('#faq details').forEach(detail=>{
           const summary=detail.querySelector<HTMLElement>('summary');
           const answer=detail.querySelector<HTMLElement>('p');
@@ -35,7 +50,10 @@ export function PlanCopyAlignment(){
         });
       }
       const modal=document.querySelector<HTMLElement>('.paywall-plans');
-      if(modal)ensureFeature(findCard(modal,'Pro'),'Page centrale type Linktree pour regrouper jusqu’à 5 menus/catalogues','q-pro-hub-paywall-feature');
+      if(modal){
+        ensureFeature(findCard(modal,'Pro'),'Page centrale type Linktree pour regrouper jusqu’à 5 menus/catalogues','q-pro-hub-paywall-feature');
+        ['Starter','Pro','Business'].forEach(name=>addAiFeature(findCard(modal,name)));
+      }
     };
     const schedule=()=>{if(timer)clearTimeout(timer);timer=setTimeout(apply,30)};
     apply();
