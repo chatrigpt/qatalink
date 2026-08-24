@@ -38,6 +38,30 @@ export async function POST(req:NextRequest){
       return NextResponse.json({success:true,result:data});
     }
 
+    if(action==='pos_catalog'){
+      const {data,error}=await supabase.rpc('get_catalog_team_pos_catalog',{p_access_key:accessKey,p_pin:pin});
+      if(error)return NextResponse.json({success:false,error:error.message||'ACCESS_DENIED'},{status:403});
+      return NextResponse.json({success:true,...data});
+    }
+
+    if(action==='pos_create'){
+      const items=Array.isArray(body?.items)?body.items:[];
+      if(!items.length)return NextResponse.json({success:false,error:'EMPTY_ORDER'},{status:400});
+      const {data,error}=await supabase.rpc('create_catalog_team_pos_order',{
+        p_access_key:accessKey,
+        p_pin:pin,
+        p_items:items,
+        p_source:String(body?.source||'pos'),
+        p_flow_mode:String(body?.flow_mode||''),
+        p_table:String(body?.table||''),
+        p_customer_name:String(body?.customer_name||''),
+        p_customer_phone:String(body?.customer_phone||''),
+        p_note:String(body?.note||''),
+      });
+      if(error)return NextResponse.json({success:false,error:error.message||'ORDER_CREATE_FAILED'},{status:403});
+      return NextResponse.json({success:true,order:data});
+    }
+
     const {data,error}=await supabase.rpc('get_catalog_team_orders',{p_access_key:accessKey,p_pin:pin,p_limit:Math.min(200,Math.max(1,Number(body?.limit||100)))});
     if(error)return NextResponse.json({success:false,error:error.message||'ACCESS_DENIED'},{status:403});
     return NextResponse.json({success:true,...data});
