@@ -16,3 +16,5 @@ SaaS de menus et catalogues interactifs, générables depuis une image ou du tex
 4. Pour Vercel, recopier les mêmes variables dans les variables d’environnement du projet (`NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, `MAKETOU_API_KEY`, `NEXT_PUBLIC_APP_URL`).
 
 > Ne jamais exposer `MAKETOU_API_KEY` dans le navigateur.
+
+<!-- deploy-check: 2026-08-24T23:11:00Z -->
