@@ -1,11 +1,13 @@
 import {NextRequest,NextResponse} from 'next/server';
 import {createClient} from '@supabase/supabase-js';
+import {randomUUID} from 'crypto';
 
 export const runtime='nodejs';
 export const dynamic='force-dynamic';
 
 const SUPABASE_URL=process.env.NEXT_PUBLIC_SUPABASE_URL||'https://rifjsvbbhsnpifgooenl.supabase.co';
 const SUPABASE_KEY=process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY||'';
+const MENU_MAGIC_CREDIT_COST=3;
 
 type ButtonStyle='solid'|'gradient'|'glossy'|'metallic';
 
@@ -14,7 +16,6 @@ function cleanJson(raw:string){
   const a=s.indexOf('{'),b=s.lastIndexOf('}');
   return a>=0&&b>a?s.slice(a,b+1):s;
 }
-
 function color(v:any){return typeof v==='string'&&/^#[0-9a-f]{6}$/i.test(v)?v:undefined}
 function enumValue<T extends string>(v:any,values:readonly T[]){return values.includes(v as T)?v as T:undefined}
 function finite(v:any,min:number,max:number){const n=Number(v);return Number.isFinite(n)?Math.min(max,Math.max(min,n)):undefined}
@@ -69,6 +70,7 @@ function sanitizePlan(raw:any,allowedButtonIds:Set<string>,referenceImageUrl:str
 }
 
 export async function POST(req:NextRequest){
+  let charged:{supabase:any,businessId:string,referenceId:string}|null=null;
   try{
     const auth=req.headers.get('authorization')||'';const token=auth.startsWith('Bearer ')?auth.slice(7):'';
     if(!token)return NextResponse.json({error:'Unauthorized'},{status:401});
@@ -99,15 +101,33 @@ export async function POST(req:NextRequest){
     }
 
     if(!prompt)return NextResponse.json({error:'Décrivez les modifications souhaitées.'},{status:400});
-    const falKey=process.env.FAL_KEY;if(!falKey)return NextResponse.json({error:'Service de vibecoding indisponible.'},{status:503});
+    const falKey=process.env.FAL_KEY;if(!falKey)return NextResponse.json({error:'Service Menu magique indisponible.'},{status:503});
+
+    const creditReference=`menu-magic:${catalogId}:${randomUUID()}`;
+    const {data:balanceAfter,error:creditError}=await supabase.rpc('consume_ai_credits',{p_business_id:catalog.business_id,p_kind:'menu_magic',p_reference_id:creditReference,p_cost:MENU_MAGIC_CREDIT_COST,p_metadata:{feature:'menu_magique',catalog_id:catalogId}});
+    if(creditError){
+      const msg=String(creditError.message||'');
+      if(msg.includes('INSUFFICIENT_CREDITS')){
+        const {data:wallet}=await supabase.from('credit_wallets').select('balance').eq('business_id',catalog.business_id).maybeSingle();
+        return NextResponse.json({error:'INSUFFICIENT_CREDITS',message:`Menu magique utilise ${MENU_MAGIC_CREDIT_COST} crédits par demande.`,balance:Number(wallet?.balance||0),required:MENU_MAGIC_CREDIT_COST},{status:402});
+      }
+      throw creditError;
+    }
+    charged={supabase,businessId:String(catalog.business_id),referenceId:creditReference};
+
     const current={catalog:{id:catalog.id,title:catalog.title,type:catalog.catalog_type},business,theme:theme||{},hub:hub||{},buttons:links||[]};
     const instruction=`You are the visual design copilot inside Qatalink. Convert the user's natural-language request into a SAFE VISUAL PATCH for the selected catalogue and its central page. Never change prices, product names, URLs, stock, orders or business data. Only modify visual design settings and existing central-page button styling. Respect mobile readability and strong color contrast. If a reference image is attached, use it as visual inspiration unless the user explicitly asks to use the actual image as the menu background, central-page background, banner, or logo. Do not invent button IDs: only use IDs present in CURRENT_STATE.\n\nCURRENT_STATE:\n${JSON.stringify(current)}\n\nUSER_REQUEST:\n${prompt}\n\nReturn ONLY valid JSON with this exact structure:\n{"summary":"short French summary of what will change","reference_target":"none|menu_background|hub_background|hub_cover|hub_logo","catalog_theme":{},"hub":{},"buttons":[{"id":"existing-id","button_style":"solid|gradient|glossy|metallic","button_color":"#RRGGBB","button_color_2":"#RRGGBB","button_text_color":"#RRGGBB"}]}\n\nAllowed catalog_theme keys: primary_color, secondary_color, background_color, background_mode(solid|gradient), background_gradient, text_color, heading_font, body_font, border_radius, card_style(clean|soft|premium), button_style(square|rounded|pill), layout_style(list|compact|cards|grid|showcase), logo_shape(circle|rounded|square), show_business_name, show_logo, show_prices, header_alignment(left|center|right), background_image_overlay(0..0.8), background_image_blur(0..30), heading_bold, heading_italic, heading_underline, heading_case, body_bold, body_italic, body_underline, body_case.\nAllowed hub keys: button_style(solid|gradient|glossy|metallic), button_color, button_color_2, button_text_color, button_radius(12px|18px|26px|999px), background_color, background_mode(solid|gradient|image), background_gradient, background_overlay.\nOnly include fields that should change. For platform buttons, preserve recognizable brand identity unless the user explicitly asks otherwise.`;
     const payload:any={prompt:instruction,system_prompt:'Return valid JSON only. No markdown. No explanation outside JSON.',model:'google/gemini-2.5-flash',temperature:.18,max_tokens:1800};
     if(referenceImageUrl)payload.image_urls=[referenceImageUrl];
     const r=await fetch('https://fal.run/openrouter/router/vision',{method:'POST',headers:{Authorization:`Key ${falKey}`,'Content-Type':'application/json'},body:JSON.stringify(payload),cache:'no-store'});
-    const d:any=await r.json().catch(()=>null);if(!r.ok)return NextResponse.json({error:d?.error||'Le copilote visuel n’a pas répondu.'},{status:r.status});
-    let rawPlan:any;try{rawPlan=JSON.parse(cleanJson(d?.output||''))}catch{return NextResponse.json({error:'Le copilote a renvoyé une proposition illisible.'},{status:422})}
+    const d:any=await r.json().catch(()=>null);
+    if(!r.ok){await supabase.rpc('refund_ai_credits',{p_business_id:catalog.business_id,p_kind:'menu_magic',p_reference_id:creditReference,p_refund_kind:'menu_magic_refund'}).catch(()=>null);charged=null;return NextResponse.json({error:d?.error||'Menu magique n’a pas répondu.'},{status:r.status});}
+    let rawPlan:any;try{rawPlan=JSON.parse(cleanJson(d?.output||''))}catch{await supabase.rpc('refund_ai_credits',{p_business_id:catalog.business_id,p_kind:'menu_magic',p_reference_id:creditReference,p_refund_kind:'menu_magic_refund'}).catch(()=>null);charged=null;return NextResponse.json({error:'Menu magique a renvoyé une proposition illisible.'},{status:422})}
     const plan=sanitizePlan(rawPlan,allowedButtonIds,referenceImageUrl);
-    return NextResponse.json({success:true,plan,menu_url:`https://qatalink.com/c/${catalog.public_slug}`,hub_url:`https://qatalink.com/h/${catalog.hub_public_slug}`});
-  }catch(e:any){return NextResponse.json({error:e?.message||'Vibecoding impossible'},{status:500})}
+    charged=null;
+    return NextResponse.json({success:true,plan,credit_cost:MENU_MAGIC_CREDIT_COST,balance:Number(balanceAfter),menu_url:`https://qatalink.com/c/${catalog.public_slug}`,hub_url:`https://qatalink.com/h/${catalog.hub_public_slug}`});
+  }catch(e:any){
+    if(charged){await charged.supabase.rpc('refund_ai_credits',{p_business_id:charged.businessId,p_kind:'menu_magic',p_reference_id:charged.referenceId,p_refund_kind:'menu_magic_refund'}).catch(()=>null)}
+    return NextResponse.json({error:e?.message||'Menu magique indisponible'},{status:500})
+  }
 }
