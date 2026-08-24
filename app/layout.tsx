@@ -48,6 +48,7 @@ import './order-ops-v2.css';
 import './ops-color-ui.css';
 import './ops-pos.css';
 import './forecast-beta.css';
+import './forecast-external.css';
 import './delivery-tracking.css';
 import './business-beta-marketing.css';
 import { Plus_Jakarta_Sans, Playfair_Display } from 'next/font/google';
