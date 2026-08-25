@@ -15,7 +15,8 @@ export default async function PublicCatalogPage({params}:{params:Promise<{slug:s
   try{
     const {data,error}=await supabase.rpc('get_public_catalog',{p_slug:slug});
     if(error||!data)return <main className="public-unavailable"><div><div className="eyebrow">QATALINK</div><h1>Catalogue indisponible</h1><p>Ce catalogue n’est pas publié ou son accès a expiré.</p></div></main>;
-    return <><PublicCatalogBoundary><PublicCatalogV2 data={data}/></PublicCatalogBoundary><PublicCatalogBoundary silent><PublicAnalyticsTracker/></PublicCatalogBoundary></>;
+    const hideCover=data?.theme?.show_cover===false;
+    return <><PublicCatalogBoundary>{hideCover&&<style>{'.public-v2-hero{background-image:none!important}'}</style>}<PublicCatalogV2 data={data}/></PublicCatalogBoundary><PublicCatalogBoundary silent><PublicAnalyticsTracker/></PublicCatalogBoundary></>;
   }catch{
     return <main className="public-unavailable"><div><div className="eyebrow">QATALINK</div><h1>Catalogue temporairement indisponible</h1><p>Rechargez la page dans quelques instants.</p></div></main>;
   }
