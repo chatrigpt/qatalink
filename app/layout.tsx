@@ -41,6 +41,7 @@ import './generation-activity.css';
 import './image-generation-controls.css';
 import './business-stock.css';
 import './catalog-completion.css';
+import './catalog-identity.css';
 import './plan-experience.css';
 import './ux-fix.css';
 import './catalog-deletion.css';
@@ -68,6 +69,7 @@ import { ItemImageGenerationControls } from '@/components/item-image-generation-
 import { ItemDescriptionGenerationControls } from '@/components/item-description-generation-controls';
 import { StockManagementCenter } from '@/components/stock-management-center';
 import { CatalogCompletionControls } from '@/components/catalog-completion-controls';
+import { CatalogIdentityControls } from '@/components/catalog-identity-controls';
 import { AutomaticImageAssignment } from '@/components/automatic-image-assignment';
 import { CreateAutoIllustrations } from '@/components/create-auto-illustrations';
 import { DashboardPlanExperience } from '@/components/dashboard-plan-experience';
@@ -103,14 +105,8 @@ const jakarta=Plus_Jakarta_Sans({subsets:['latin'],variable:'--font-jakarta'});
 const playfair=Playfair_Display({subsets:['latin'],style:['normal','italic'],variable:'--font-playfair'});
 const logo='/qatalink-icon.svg';
 
-export const metadata={
-  title:'Qatalink — Catalogue & menu interactif',
-  description:'Transformez une image, un texte ou votre offre en menu/catalogue interactif, modifiable et partageable par QR code.',
-  manifest:'/manifest.webmanifest',
-  icons:{icon:[{url:logo,type:'image/svg+xml'}],shortcut:logo,apple:logo},
-  appleWebApp:{capable:true,statusBarStyle:'default' as const,title:'Qatalink'}
-};
+export const metadata={title:'Qatalink — Catalogue & menu interactif',description:'Transformez une image, un texte ou votre offre en menu/catalogue interactif, modifiable et partageable par QR code.',manifest:'/manifest.webmanifest',icons:{icon:[{url:logo,type:'image/svg+xml'}],shortcut:logo,apple:logo},appleWebApp:{capable:true,statusBarStyle:'default' as const,title:'Qatalink'}};
 
 export default function RootLayout({children}:{children:React.ReactNode}){
-  return <html lang="fr" suppressHydrationWarning><body className={`${jakarta.variable} ${playfair.variable}`}><ThemeProvider>{children}<ProviderNameScrubber/><MobileMoneyPaymentInfo/><LandingSupportExperience/><LandingHeaderExperience/><PlanCopyAlignment/><DashboardPlanExperience/><ItemImageGenerationControls/><ItemDescriptionGenerationControls/><StockManagementCenter/><CatalogCompletionControls/><AutomaticImageAssignment/><CreateAutoIllustrations/><QatalinkUxRefinements/><CatalogDeletionControls/><QrCanonicalControls/><OrderSourceShareControls/><OrderOperationsCenter/><OpsStockAlerts/><OpsPosOrderTaking/><OpsOrderSourceBadges/><OrderSourceAnalytics/><OpsDeliveryTracking/><PublicDeliveryTrackingHandoff/><PublicDeliveryLocationCapture/><DashboardForecastWizard/><ForecastCopyRefinement/><DashboardSettingsExtras/><DashboardPosCenter/><BusinessBetaMarketing/><AiCreditExperience/><GenerationActivityCenter/><DashboardKeyInHandPrompt/><DirectPrintLabelFix/><DashboardVibecoder/><DashboardNavOrder/><PwaInstallButton/><MetaPixel/></ThemeProvider></body></html>;
+  return <html lang="fr" suppressHydrationWarning><body className={`${jakarta.variable} ${playfair.variable}`}><ThemeProvider>{children}<ProviderNameScrubber/><MobileMoneyPaymentInfo/><LandingSupportExperience/><LandingHeaderExperience/><PlanCopyAlignment/><DashboardPlanExperience/><ItemImageGenerationControls/><ItemDescriptionGenerationControls/><StockManagementCenter/><CatalogCompletionControls/><CatalogIdentityControls/><AutomaticImageAssignment/><CreateAutoIllustrations/><QatalinkUxRefinements/><CatalogDeletionControls/><QrCanonicalControls/><OrderSourceShareControls/><OrderOperationsCenter/><OpsStockAlerts/><OpsPosOrderTaking/><OpsOrderSourceBadges/><OrderSourceAnalytics/><OpsDeliveryTracking/><PublicDeliveryTrackingHandoff/><PublicDeliveryLocationCapture/><DashboardForecastWizard/><ForecastCopyRefinement/><DashboardSettingsExtras/><DashboardPosCenter/><BusinessBetaMarketing/><AiCreditExperience/><GenerationActivityCenter/><DashboardKeyInHandPrompt/><DirectPrintLabelFix/><DashboardVibecoder/><DashboardNavOrder/><PwaInstallButton/><MetaPixel/></ThemeProvider></body></html>;
 }
