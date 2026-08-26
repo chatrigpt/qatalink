@@ -8,34 +8,41 @@ function clickHidden(selector:string){const node=document.querySelector<HTMLButt
 
 const ORDER:Record<string,number>={
   'vue d’ensemble':10,
-  'articles':20,
-  'stock':30,
-  'prévisions':40,
-  'point de vente':50,
-  'catalogues':60,
-  'studio avancé':70,
-  'vitrine & médias':80,
-  'parcours client':90,
-  'apparence':100,
-  'qr & partage':110,
-  'statistiques':120,
-  'abonnement':130,
+  'catalogues':20,
+  'articles':30,
+  'apparence':40,
+  'qr & partage':50,
+  'statistiques':60,
+  'stock':70,
+  'point de vente':80,
+  'abonnement':90,
+  'studio avancé':100,
+  'vitrine & médias':110,
+  'parcours client':120,
+  'prévisions':130,
   'paramètres':140,
   'paramètre':140,
   'administration':150,
 };
 
+function clean(value:string){return value.replace(/beta/ig,'').replace(/\s+/g,' ').trim().toLowerCase()}
+function childLabel(node:Element){const button=node.matches('button')?node:node.querySelector('button');return clean(button?.textContent||node.textContent||'')}
+
 function normalizeNav(){
   for(const selector of ['.dash-v3-nav','.dash-v3-mobile-tabs']){
     const container=document.querySelector<HTMLElement>(selector);
     if(!container)continue;
-    const buttons=Array.from(container.querySelectorAll<HTMLButtonElement>('button'));
-    for(const button of buttons){
-      const label=(button.textContent||'').replace(/beta/ig,'').trim().toLowerCase();
-      button.style.removeProperty('display');
-      button.removeAttribute('aria-hidden');
-      if(label==='administration')button.style.display='none';
-      button.style.order=String(ORDER[label]??1000);
+    const children=Array.from(container.children) as HTMLElement[];
+    for(const child of children){
+      const label=childLabel(child);
+      if(label==='administration'){
+        child.style.display='none';
+        child.setAttribute('aria-hidden','true');
+        continue;
+      }
+      child.style.removeProperty('display');
+      child.removeAttribute('aria-hidden');
+      child.style.order=String(ORDER[label]??1000);
     }
   }
 }
