@@ -2,21 +2,21 @@
 
 import {useEffect} from 'react';
 
-// Priorité : créer et maintenir un catalogue d'abord, puis les outils d'exploitation,
-// puis les fonctions avancées/premium. Paramètres reste toujours le dernier écran.
+// Parcours prioritaire : gérer/créer le catalogue d'abord, exploitation ensuite,
+// outils premium avancés en fin de navigation, puis Prévisions et Paramètres.
 const ORDER=[
   'Vue d’ensemble',
   'Catalogues',
   'Articles',
-  'Stock',
-  'Studio avancé',
-  'Vitrine & médias',
-  'Parcours client',
   'Apparence',
   'QR & partage',
   'Statistiques',
+  'Stock',
   'Point de vente',
   'Abonnement',
+  'Studio avancé',
+  'Vitrine & médias',
+  'Parcours client',
   'Prévisions',
   'Paramètres',
   'Administration',
@@ -29,21 +29,48 @@ function rankLabel(label:string){const exact=ORDER.indexOf(label);if(exact>=0)re
 function reorder(container:Element|null){
   if(!container)return;
   const children=Array.from(container.children);
-  for(const node of children){const label=labelOf(node);if(label.toLowerCase().startsWith('administration'))(node as HTMLElement).style.display='none';else (node as HTMLElement).style.removeProperty('display')}
+  for(const node of children){
+    const label=labelOf(node);
+    const el=node as HTMLElement;
+    if(label.toLowerCase().startsWith('administration')){
+      el.style.display='none';
+      el.setAttribute('aria-hidden','true');
+    }else{
+      el.style.removeProperty('display');
+      el.removeAttribute('aria-hidden');
+      // Important : l'ordre doit être appliqué au véritable enfant du flex container,
+      // pas uniquement au bouton interne (Prévisions utilise notamment un wrapper div).
+      el.style.order=String(rankLabel(label));
+    }
+  }
   const sorted=[...children].sort((a,b)=>rankLabel(labelOf(a))-rankLabel(labelOf(b)));
   const changed=sorted.some((node,index)=>node!==children[index]);
   if(!changed)return;
-  const fragment=document.createDocumentFragment();sorted.forEach(node=>fragment.appendChild(node));container.appendChild(fragment);
+  const fragment=document.createDocumentFragment();
+  sorted.forEach(node=>fragment.appendChild(node));
+  container.appendChild(fragment);
 }
 
 export function DashboardNavOrder(){
   useEffect(()=>{
     if(location.pathname!='/dashboard')return;
     let scheduled:ReturnType<typeof setTimeout>|null=null;
-    const apply=()=>{reorder(document.querySelector('.dash-v3-nav'));reorder(document.querySelector('.dash-v3-mobile-tabs'))};
+    const apply=()=>{
+      reorder(document.querySelector('.dash-v3-nav'));
+      reorder(document.querySelector('.dash-v3-mobile-tabs'));
+    };
     const schedule=()=>{if(scheduled)clearTimeout(scheduled);scheduled=setTimeout(apply,30)};
-    apply();const observer=new MutationObserver(schedule);observer.observe(document.body,{childList:true,subtree:true,characterData:true});window.addEventListener('popstate',schedule);document.addEventListener('click',schedule,true);
-    return()=>{if(scheduled)clearTimeout(scheduled);observer.disconnect();window.removeEventListener('popstate',schedule);document.removeEventListener('click',schedule,true)};
+    apply();
+    const observer=new MutationObserver(schedule);
+    observer.observe(document.body,{childList:true,subtree:true,characterData:true});
+    window.addEventListener('popstate',schedule);
+    document.addEventListener('click',schedule,true);
+    return()=>{
+      if(scheduled)clearTimeout(scheduled);
+      observer.disconnect();
+      window.removeEventListener('popstate',schedule);
+      document.removeEventListener('click',schedule,true);
+    };
   },[]);
   return null;
 }
