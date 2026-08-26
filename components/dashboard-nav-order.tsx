@@ -2,20 +2,22 @@
 
 import {useEffect} from 'react';
 
+// Priorité : créer et maintenir un catalogue d'abord, puis les outils d'exploitation,
+// puis les fonctions avancées/premium. Paramètres reste toujours le dernier écran.
 const ORDER=[
   'Vue d’ensemble',
+  'Catalogues',
   'Articles',
   'Stock',
-  'Prévisions',
-  'Point de vente',
-  'Catalogues',
   'Studio avancé',
   'Vitrine & médias',
   'Parcours client',
   'Apparence',
   'QR & partage',
   'Statistiques',
+  'Point de vente',
   'Abonnement',
+  'Prévisions',
   'Paramètres',
   'Administration',
 ];
