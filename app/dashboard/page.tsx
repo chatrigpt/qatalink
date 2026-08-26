@@ -18,6 +18,7 @@ import { DashboardUtilityControls } from '@/components/dashboard-utility-control
 import { TrialLifecycleBanner } from '@/components/trial-lifecycle-banner';
 import { QrCanonicalControls } from '@/components/qr-canonical-controls';
 import { CatalogLinkRenamer } from '@/components/catalog-link-renamer';
+import { DashboardNavOrder } from '@/components/dashboard-nav-order';
 
 export default function DashboardPage(){
   return <>
@@ -36,6 +37,7 @@ export default function DashboardPage(){
     <DashboardSafeBoundary><SupportChat/></DashboardSafeBoundary>
     <DashboardSafeBoundary><DashboardSupportNudge/></DashboardSafeBoundary>
     <DashboardSafeBoundary><DashboardSidebarTools/></DashboardSafeBoundary>
+    <DashboardSafeBoundary><DashboardNavOrder/></DashboardSafeBoundary>
     <DashboardSafeBoundary><DashboardSubscriptionStatus/></DashboardSafeBoundary>
     <DashboardSafeBoundary><TrialCreditAccess/></DashboardSafeBoundary>
     <DashboardSafeBoundary><TrialConversionCoach/></DashboardSafeBoundary>
