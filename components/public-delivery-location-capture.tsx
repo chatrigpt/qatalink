@@ -26,6 +26,16 @@ function setReactInputValue(input:HTMLInputElement|HTMLTextAreaElement,value:str
   input.dispatchEvent(new Event('input',{bubbles:true}));
 }
 
+function gpsMapsUrl(point:GpsPoint){return `https://maps.google.com/?q=${point.lat.toFixed(6)},${point.lng.toFixed(6)}`}
+function mergeAddressWithGps(current:string,point:GpsPoint){
+  const clean=current
+    .replace(/\s*[—|·]?\s*Position GPS exacte\s*:\s*https:\/\/maps\.google\.com\/\?q=[^\s]+/gi,'')
+    .replace(/^Position GPS exacte enregistrée$/i,'')
+    .trim();
+  const gps=`Position GPS exacte : ${gpsMapsUrl(point)}`;
+  return clean?`${clean} — ${gps}`:gps;
+}
+
 export function PublicDeliveryLocationCapture(){
   const [mounted,setMounted]=useState(false);
   const [deliveryActive,setDeliveryActive]=useState(false);
@@ -76,6 +86,9 @@ export function PublicDeliveryLocationCapture(){
             body.flow_fields.gps_lng=String(point.lng);
             body.flow_fields.gps_accuracy=String(point.accuracy);
             body.flow_fields.gps_captured_at=point.capturedAt;
+            body.flow_fields.gps_maps_url=gpsMapsUrl(point);
+            const current=String(body.flow_fields.address||'');
+            body.flow_fields.address=mergeAddressWithGps(current,point);
             init={...init,body:JSON.stringify(body)};
           }
         }catch{}
@@ -94,10 +107,13 @@ export function PublicDeliveryLocationCapture(){
       const submit=target.closest('.public-v2-confirm-order');
       if(!submit)return;
       const phone=findFieldInput('phone')?.value.trim()||'';
-      if(phone)return;
+      const address=findFieldInput('address')?.value.trim()||'';
+      if(phone&&address)return;
       event.preventDefault();
       event.stopImmediatePropagation();
-      alert('Pour une livraison, renseignez votre numéro de téléphone.');
+      if(!phone&&!address)alert('Pour une livraison, le numéro de téléphone et l’adresse sont obligatoires.');
+      else if(!phone)alert('Pour une livraison, renseignez votre numéro de téléphone.');
+      else alert('Pour une livraison, renseignez votre adresse ou utilisez votre position GPS exacte.');
     };
     document.addEventListener('click',clickGuard,true);
     return()=>document.removeEventListener('click',clickGuard,true);
@@ -110,8 +126,8 @@ export function PublicDeliveryLocationCapture(){
       const next={lat:pos.coords.latitude,lng:pos.coords.longitude,accuracy:pos.coords.accuracy,capturedAt:new Date().toISOString()};
       setPoint(next);
       const address=findFieldInput('address');
-      if(address&&!address.value.trim())setReactInputValue(address,'Position GPS exacte enregistrée');
-      setStatus(`Position enregistrée · précision ≈ ${Math.round(pos.coords.accuracy)} m`);
+      if(address)setReactInputValue(address,mergeAddressWithGps(address.value,next));
+      setStatus(`Position enregistrée · précision ≈ ${Math.round(pos.coords.accuracy)} m · le lien GPS sera inclus dans la commande et dans WhatsApp`);
       setStatusType('success');setLocating(false);
     },err=>{
       setStatus(err.code===1?'Autorisez la localisation si vous souhaitez utiliser cette option.':'Impossible de récupérer votre position. Vous pouvez saisir l’adresse manuellement.');
