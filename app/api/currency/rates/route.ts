@@ -1,6 +1,6 @@
 import {NextResponse} from 'next/server';
 
-export const revalidate=3600;
+export const dynamic='force-dynamic';
 
 function csvLine(line:string){
   const out:string[]=[];let cur='';let quoted=false;
