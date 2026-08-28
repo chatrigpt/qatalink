@@ -19,11 +19,13 @@ import { TrialLifecycleBanner } from '@/components/trial-lifecycle-banner';
 import { QrCanonicalControls } from '@/components/qr-canonical-controls';
 import { CatalogLinkRenamer } from '@/components/catalog-link-renamer';
 import { DashboardNavOrder } from '@/components/dashboard-nav-order';
+import { CatalogOrderControls } from '@/components/catalog-order-controls';
 
 export default function DashboardPage(){
   return <>
     <DashboardStorageGuard/>
     <DashboardSafeBoundary critical><DashboardAppV3/></DashboardSafeBoundary>
+    <DashboardSafeBoundary><CatalogOrderControls/></DashboardSafeBoundary>
     <DashboardSafeBoundary><TrialLifecycleBanner/></DashboardSafeBoundary>
     <DashboardSafeBoundary><DashboardUtilityControls/></DashboardSafeBoundary>
     <DashboardSafeBoundary><CatalogLinkRenamer/></DashboardSafeBoundary>
