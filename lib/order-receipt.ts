@@ -21,13 +21,16 @@ type ReceiptOptions={
   width?:'58mm'|'80mm';
 };
 
-const RECEIPT_CATALOG_URL_KEY='qatalink_receipt_catalog_url';
+const RECEIPT_CATALOG_URL_PREFIX='qatalink_receipt_catalog_url:';
 function esc(value:unknown){return String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]||c))}
 export function receiptCatalogUrl(opts:ReceiptOptions){
   const explicit=String(opts.catalogUrl||'').trim();
   if(explicit)return explicit;
   if(typeof window!=='undefined'){
-    try{const cached=String(localStorage.getItem(RECEIPT_CATALOG_URL_KEY)||'').trim();if(/^https:\/\/qatalink\.com\/c\//i.test(cached))return cached}catch{}
+    try{
+      const match=location.pathname.match(/^\/ops\/([^/?#]+)/);
+      if(match){const cached=String(localStorage.getItem(`${RECEIPT_CATALOG_URL_PREFIX}${decodeURIComponent(match[1])}`)||'').trim();if(/^https:\/\/qatalink\.com\/c\//i.test(cached))return cached}
+    }catch{}
   }
   return '';
 }
@@ -38,8 +41,7 @@ export function cleanDeliveryLabel(value:unknown){
 }
 export function orderDeliveryLabel(order:PrintableOrder){
   const typed=cleanDeliveryLabel(order.delivery_address);if(typed)return typed;
-  const area=String(order.flow_fields?.area||order.flow_fields?.zone||order.flow_fields?.quartier||'').trim();
-  return area;
+  return String(order.flow_fields?.area||order.flow_fields?.zone||order.flow_fields?.quartier||'').trim();
 }
 export function orderMoney(value:number|null|undefined,currency='XOF'){
   if(value===null||value===undefined)return'';

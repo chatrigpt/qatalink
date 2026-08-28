@@ -4,7 +4,7 @@ import {useEffect,useMemo,useState} from 'react';
 import {Bike,BriefcaseBusiness,Grid2X2,ShoppingBag,Users,X} from 'lucide-react';
 import {createSupabaseBrowserClient} from '@/lib/supabase';
 
-const RECEIPT_CATALOG_URL_KEY='qatalink_receipt_catalog_url';
+const RECEIPT_CATALOG_URL_PREFIX='qatalink_receipt_catalog_url:';
 
 export function NativeSpaceSwitcher(){
   const supabase=useMemo(()=>createSupabaseBrowserClient(),[]),[native,setNative]=useState(false),[open,setOpen]=useState(false);
@@ -16,7 +16,7 @@ export function NativeSpaceSwitcher(){
     const accessKey=decodeURIComponent(match[1]);let stopped=false;
     const sync=async()=>{
       if(stopped)return;let pin='';try{pin=sessionStorage.getItem(`qatalink_ops_pin_${accessKey}`)||''}catch{}if(!pin)return;
-      try{const r=await fetch('/api/ops/orders',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({access_key:accessKey,pin,action:'list',limit:1}),cache:'no-store'}),d=await r.json();const url=String(d?.catalog?.catalog_url||'').trim();if(r.ok&&/^https:\/\/qatalink\.com\/c\//i.test(url))localStorage.setItem(RECEIPT_CATALOG_URL_KEY,url)}catch{}
+      try{const r=await fetch('/api/ops/orders',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({access_key:accessKey,pin,action:'list',limit:1}),cache:'no-store'}),d=await r.json();const url=String(d?.catalog?.catalog_url||'').trim();if(r.ok&&/^https:\/\/qatalink\.com\/c\//i.test(url))localStorage.setItem(`${RECEIPT_CATALOG_URL_PREFIX}${accessKey}`,url)}catch{}
     };
     void sync();const id=setInterval(()=>void sync(),1800);return()=>{stopped=true;clearInterval(id)};
   },[]);
@@ -36,6 +36,12 @@ export function NativeSpaceSwitcher(){
     if(!native)return;const permissions=(navigator as any).permissions;if(!permissions?.query)return;let original:any;
     try{original=permissions.query.bind(permissions);permissions.query=(descriptor:any)=>descriptor?.name==='geolocation'?Promise.resolve({state:'prompt'}):original(descriptor)}catch{return}
     return()=>{try{permissions.query=original}catch{}};
+  },[native]);
+
+  useEffect(()=>{
+    if(!native||!location.pathname.startsWith('/livreur/'))return;let timer:ReturnType<typeof setTimeout>|null=null;
+    const fixCopy=()=>{if(timer)clearTimeout(timer);timer=setTimeout(()=>{document.querySelectorAll<HTMLElement>('.delivery-driver-status b,.delivery-privacy span').forEach(el=>{const text=el.textContent||'';if(/Safari/i.test(text))el.textContent=text.replace(/Dans Safari, autorisez la localisation précise pour qatalink\.com\./gi,'Autorisez la localisation précise pour Qatalink dans les réglages Android.').replace(/Sur iPhone, privilégiez Safari[^.]*\./gi,'Gardez Qatalink ouvert pendant le trajet.')})},60)};
+    fixCopy();const mo=new MutationObserver(fixCopy);mo.observe(document.body,{subtree:true,childList:true,characterData:true});return()=>{if(timer)clearTimeout(timer);mo.disconnect()};
   },[native]);
 
   if(!native||location.pathname==='/mobile'||location.pathname.startsWith('/login'))return null;
