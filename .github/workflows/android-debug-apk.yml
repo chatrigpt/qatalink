@@ -2,11 +2,19 @@ name: Build Android debug APK
 on:
   workflow_dispatch:
   push:
-    branches: [main, mobile-multirole-preview]
+    branches: [main, mobile-multirole-preview, mobile-receipts-stats-links-preview]
     paths:
       - 'capacitor.config.ts'
       - 'package.json'
       - 'components/capacitor-native-bridge.tsx'
+      - 'components/native-space-switcher.tsx'
+      - 'components/driver-native-open.tsx'
+      - 'app/livreur/**'
+      - 'app/mobile/**'
+      - 'app/mobile-hardening.css'
+      - 'lib/escpos-printer.ts'
+      - 'lib/order-receipt.ts'
+      - 'scripts/patch-android-deeplinks.mjs'
       - '.github/workflows/android-debug-apk.yml'
 jobs:
   apk:
@@ -23,6 +31,7 @@ jobs:
       - run: npm install
       - run: npx cap add android
       - run: npx cap sync android
+      - run: node scripts/patch-android-deeplinks.mjs
       - run: chmod +x android/gradlew && cd android && ./gradlew assembleDebug
       - uses: actions/upload-artifact@v4
         with:
