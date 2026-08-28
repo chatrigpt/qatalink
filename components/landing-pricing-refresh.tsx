@@ -1,40 +1,9 @@
 'use client';
-
-import {useEffect,useState} from 'react';
-import {createPortal} from 'react-dom';
-import {Check} from 'lucide-react';
-
+import {useEffect,useState} from 'react';import {createPortal} from 'react-dom';import {Check} from 'lucide-react';
 const plans=[
-  {name:'Starter',price:'9 900',annual:'108 900',oldAnnual:'118 800',saving:'9 900',description:'Le catalogue interactif simple qui transforme la sélection du client en commande WhatsApp.',features:['1 catalogue/menu interactif','Sélection + quantités + panier','Commande envoyée directement sur WhatsApp','QR permanent','Prix, photos et catégories modifiables','50 crédits image inclus'],featured:false},
-  {name:'Pro',price:'24 900',annual:'273 900',oldAnnual:'298 800',saving:'24 900',description:'Pour centraliser les commandes et donner à votre équipe un vrai espace de travail.',features:['Jusqu’à 5 catalogues/menus','Commandes enregistrées dans Qatalink','WhatsApp activable/désactivable par catalogue','Accès équipe et permissions','Fusion de commandes + addition unique','Tickets 58 mm + impression ESC/POS compatible','150 crédits image inclus'],featured:true},
-  {name:'Business',price:'49 900',annual:'548 900',oldAnnual:'598 800',saving:'49 900',description:'Pour relier plusieurs menus, commandes, équipe et stock dans une même interface.',features:['Jusqu’à 15 catalogues/menus','Tout Pro','Page centrale type Linktree pour regrouper tous les menus/catalogues','Liens sociaux, WhatsApp, carte et liens externes sur la page centrale','Gestion de stock','Liaisons plats/boissons → stock','Déduction automatique des stocks à la commande terminée','Alertes stock bas + historique','250 crédits image inclus'],featured:false},
-];
-
-function setIfDifferent(node:Element|null,value:string){if(node&&(node.textContent||'').trim()!==value)node.textContent=value}
-
-export function LandingPricingRefresh(){
-  const [target,setTarget]=useState<Element|null>(null);
-
-  useEffect(()=>{
-    if(location.pathname!=='/')return;
-    let scheduled:ReturnType<typeof setTimeout>|null=null;
-    const refresh=()=>{
-      const pricing=document.querySelector('#pricing .pricing');
-      setTarget(current=>current===pricing?current:pricing);
-      pricing?.classList.add('q-pricing-host');
-      const section=document.querySelector('#pricing');
-      setIfDifferent(section?.querySelector('.section-head h2')||null,'Trois formules selon la façon dont vous voulez gérer vos commandes.');
-      setIfDifferent(section?.querySelector('.section-head p')||null,'Tous les catalogues sont interactifs. Starter envoie la commande sur WhatsApp ; Pro la centralise dans Qatalink ; Business ajoute la page centrale multi-catalogues et le stock automatique. À l’année : vous payez 11 mois au lieu de 12.');
-      document.querySelectorAll('#faq details').forEach(detail=>{
-        const q=detail.querySelector('summary')?.textContent?.trim();const answer=detail.querySelector('p');if(!answer)return;
-        if(q==='Comment fonctionnent les illustrations ?')setIfDifferent(answer,'Une illustration coûte 5 crédits. Starter inclut 50 crédits, Pro 150 et Business 250. Les abonnés peuvent ajouter des packs de crédits à tout moment.');
-        if(q==='Comment fonctionne la commande WhatsApp ?')setIfDifferent(answer,'Tous les catalogues permettent de sélectionner plusieurs articles et quantités. Starter transmet la commande directement à WhatsApp. Pro et Business peuvent d’abord enregistrer la commande dans l’espace privé Qatalink puis proposer WhatsApp en complément, avec possibilité de désactiver WhatsApp par catalogue.');
-      });
-    };
-    const schedule=()=>{if(scheduled)clearTimeout(scheduled);scheduled=setTimeout(refresh,30)};
-    refresh();const observer=new MutationObserver(schedule);observer.observe(document.body,{childList:true,subtree:true});return()=>{if(scheduled)clearTimeout(scheduled);observer.disconnect()};
-  },[]);
-
-  if(!target)return null;
-  return createPortal(<>{plans.map(plan=><article className={`price-card q-new-plan ${plan.featured?'featured':''}`} key={plan.name}>{plan.featured&&<span className="popular">RECOMMANDÉ POUR LA PLUPART</span>}<h3>{plan.name}</h3><div className="price">{plan.price} F<small>/ mois</small></div><div className="q-plan-annual"><b>{plan.annual} F / an</b><span><s>{plan.oldAnnual} F</s> · 1 mois offert</span><strong>Vous économisez {plan.saving} F / an</strong></div><p>{plan.description}</p><div className="features">{plan.features.map(feature=><div className="feature" key={feature}><Check size={16}/>{feature}</div>)}</div><a className="btn btn-primary q-plan-cta" href="/create">Essayer {plan.name}</a></article>)}</>,target);
-}
+{name:'Free',price:'Gratuit',annual:'',oldAnnual:'',saving:'',description:'Un vrai catalogue Qatalink permanent pour démarrer sans carte bancaire.',features:['1 catalogue','20 articles maximum','5 scans QR / jour','10 commandes WhatsApp / jour','Présence dans Explorer','Designs essentiels'],featured:false},
+{name:'Starter',price:'4 900 F',annual:'53 900 F / an',oldAnnual:'58 800 F',saving:'4 900 F',description:'Pour vendre régulièrement sans limites quotidiennes de scans ou de commandes.',features:['85 articles maximum','Scans QR illimités','Commandes WhatsApp illimitées','QR permanent','Designs supplémentaires','Crédits IA rechargeables'],featured:false},
+{name:'Pro',price:'14 900 F',annual:'163 900 F / an',oldAnnual:'178 800 F',saving:'14 900 F',description:'Pour centraliser commandes, équipe, caisse et opérations dans Qatalink.',features:['250 articles maximum','Tout Starter','Commandes privées Qatalink','Accès équipe et permissions','Caisse + tickets thermiques','Suivi livraison','Meilleure visibilité dans Explorer'],featured:true},
+{name:'Business',price:'29 900 F',annual:'328 900 F / an',oldAnnual:'358 800 F',saving:'29 900 F',description:'Pour les activités structurées qui veulent exploiter Qatalink à plus grande échelle.',features:['Articles illimités','Tout Pro','Jusqu’à 15 catalogues','Stock avancé','Page centrale multi-catalogues','Priorité supérieure dans Explorer','IA et analytics avancés'],featured:false}];
+function setText(node:Element|null,value:string){if(node&&(node.textContent||'').trim()!==value)node.textContent=value}
+export function LandingPricingRefresh(){const [target,setTarget]=useState<Element|null>(null);useEffect(()=>{if(location.pathname!=='/')return;let timer:ReturnType<typeof setTimeout>|null=null;const apply=()=>{const pricing=document.querySelector('#pricing .pricing');setTarget(pricing);pricing?.querySelectorAll<HTMLElement>(':scope > .price-card:not(.q-new-plan)').forEach(x=>x.style.display='none');const section=document.querySelector('#pricing');setText(section?.querySelector('.section-head h2')||null,'Commencez gratuitement. Payez seulement quand votre activité grandit.');setText(section?.querySelector('.section-head p')||null,'Free reste actif sans limite de temps. Starter enlève les limites quotidiennes, Pro ajoute les opérations et l’équipe, Business déploie l’écosystème à plus grande échelle.');const pill=document.querySelector('.hero-conversion .pill');setText(pill,'Gratuit pour commencer · aucune carte requise');document.querySelectorAll('#faq details').forEach(d=>{const q=d.querySelector('summary'),a=d.querySelector('p');if(!q||!a)return;const text=(q.textContent||'').trim();if(text==='Quand commencent les 7 jours gratuits ?'){q.textContent='Existe-t-il une formule gratuite ?';a.textContent='Oui. Free reste actif sans limite de temps : 20 articles, 5 scans QR par jour et 10 commandes WhatsApp par jour.'}if(text==='Que se passe-t-il après l’essai ?'){q.textContent='Puis-je rester gratuitement ?';a.textContent='Oui. Votre catalogue reste en Free aussi longtemps que vous le souhaitez. Vous passez à une formule payante uniquement pour augmenter vos limites et débloquer plus d’outils.'}})};const schedule=()=>{if(timer)clearTimeout(timer);timer=setTimeout(apply,30)};apply();const mo=new MutationObserver(schedule);mo.observe(document.body,{childList:true,subtree:true});return()=>{if(timer)clearTimeout(timer);mo.disconnect()}},[]);if(!target)return null;return createPortal(<>{plans.map(p=><article className={`price-card q-new-plan ${p.featured?'featured':''}`} key={p.name}>{p.featured&&<span className="popular">LE PLUS CHOISI</span>}<h3>{p.name}</h3><div className="price">{p.price}<small>{p.name==='Free'?' pour toujours':'/ mois'}</small></div>{p.annual&&<div className="q-plan-annual"><b>{p.annual}</b><span><s>{p.oldAnnual}</s> · 1 mois offert</span><strong>Vous économisez {p.saving}</strong></div>}<p>{p.description}</p><div className="features">{p.features.map(f=><div className="feature" key={f}><Check size={16}/>{f}</div>)}</div><a className="btn btn-primary q-plan-cta" href="/create">{p.name==='Free'?'Commencer gratuitement':`Choisir ${p.name}`}</a></article>)}</>,target)}

@@ -2,10 +2,11 @@ import type { MetadataRoute } from 'next';
 
 export default function manifest():MetadataRoute.Manifest{
   return {
+    id:'/mobile',
     name:'Qatalink',
     short_name:'Qatalink',
-    description:'Créez et partagez des menus et catalogues interactifs avec QR code.',
-    start_url:'/',
+    description:'Commerce local, catalogues, commandes, caisse et livraisons Qatalink.',
+    start_url:'/mobile',
     display:'standalone',
     background_color:'#ffffff',
     theme_color:'#c7192f',

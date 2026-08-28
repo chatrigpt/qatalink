@@ -1,0 +1,13 @@
+'use client';
+import {useEffect,useMemo,useState} from 'react';
+import {createPortal} from 'react-dom';
+import {Bike,BriefcaseBusiness,ShoppingBag,UsersRound} from 'lucide-react';
+import {createSupabaseBrowserClient} from '@/lib/supabase';
+const MODES=[['client','Client',ShoppingBag],['pro','Pro',BriefcaseBusiness],['team','Équipe',UsersRound],['driver','Livreur',Bike]] as const;
+export function AccessModeSubscriptionControl(){
+ const supabase=useMemo(()=>createSupabaseBrowserClient(),[]);const [host,setHost]=useState<Element|null>(null),[mode,setMode]=useState('client'),[busy,setBusy]=useState(false);
+ useEffect(()=>{if(location.pathname!='/dashboard')return;const resolve=()=>{const h=document.querySelector('.dash-v3-top h1')?.textContent||'';setHost(h.includes('Abonnement')?document.querySelector('.dash-v3-main .dash-section'):null)};resolve();const mo=new MutationObserver(resolve);mo.observe(document.body,{childList:true,subtree:true,characterData:true});document.addEventListener('click',resolve,true);return()=>{mo.disconnect();document.removeEventListener('click',resolve,true)}},[]);
+ useEffect(()=>{if(!host)return;void(async()=>{const {data:{session}}=await supabase.auth.getSession();if(!session)return;const {data}=await supabase.from('profiles').select('access_mode').eq('id',session.user.id).maybeSingle();setMode(String(data?.access_mode||session.user.user_metadata?.access_mode||'client'))})()},[host,supabase]);
+ async function choose(next:string){setBusy(true);const {data:{session}}=await supabase.auth.getSession();if(!session){location.href='/login?next=/dashboard';return}const {data}=await supabase.rpc('set_my_access_mode',{p_mode:next});if(data){setMode(next);try{localStorage.setItem('qatalink_primary_access_mode',next)}catch{}}setBusy(false)}
+ if(!host)return null;return createPortal(<section className="dash-card" style={{marginTop:16}}><div className="eyebrow">ACCÈS PAR DÉFAUT DANS L’APP</div><h3 style={{margin:'7px 0'}}>Quel espace Qatalink ouvrir en priorité ?</h3><p style={{margin:'0 0 14px',opacity:.66,fontSize:13}}>Ce choix ne supprime aucun de vos autres accès. Vous pourrez toujours basculer entre Client, Pro, Équipe et Livreur depuis l’app.</p><div style={{display:'grid',gridTemplateColumns:'repeat(2,minmax(0,1fr))',gap:9}}>{MODES.map(([key,label,Icon])=><button key={key} type="button" disabled={busy} onClick={()=>void choose(key)} style={{padding:12,borderRadius:14,border:mode===key?'2px solid #c7192f':'1px solid #ddd',background:mode===key?'#fff5f6':'#fff',display:'flex',gap:8,alignItems:'center',fontWeight:800}}><Icon size={18}/>{label}</button>)}</div></section>,host)
+}
