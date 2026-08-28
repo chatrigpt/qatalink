@@ -1,0 +1,22 @@
+'use client';
+
+import {useEffect,useMemo,useState} from 'react';
+import {ChevronDown,ChevronUp,GripVertical} from 'lucide-react';
+import {createPortal} from 'react-dom';
+import {createSupabaseBrowserClient} from '@/lib/supabase';
+
+type Cat={id:string;name:string;sort_order:number};
+type Item={id:string;name:string;category_id:string|null;sort_order:number};
+
+export function CatalogOrderControls(){
+  const supabase=useMemo(()=>createSupabaseBrowserClient(),[]);
+  const [host,setHost]=useState<Element|null>(null);const [catalogId,setCatalogId]=useState('');const [cats,setCats]=useState<Cat[]>([]);const [items,setItems]=useState<Item[]>([]);const [busy,setBusy]=useState('');
+  useEffect(()=>{if(location.pathname!='/dashboard')return;const resolve=()=>{const title=document.querySelector('.dash-v3-top h1')?.textContent?.trim();setHost(title==='Articles & catégories'?document.querySelector('.dash-v3-main .dash-section'):null);setCatalogId(new URLSearchParams(location.search).get('catalog')||'')};resolve();const mo=new MutationObserver(resolve);mo.observe(document.body,{subtree:true,childList:true,attributes:true,attributeFilter:['class']});window.addEventListener('popstate',resolve);document.addEventListener('click',resolve,true);return()=>{mo.disconnect();window.removeEventListener('popstate',resolve);document.removeEventListener('click',resolve,true)}},[]);
+  useEffect(()=>{if(!host||!catalogId)return;void load()},[host,catalogId]);
+  async function load(){const [{data:c},{data:i}]=await Promise.all([supabase.from('categories').select('id,name,sort_order').eq('catalog_id',catalogId).order('sort_order'),supabase.from('items').select('id,name,category_id,sort_order').eq('catalog_id',catalogId).order('sort_order')]);setCats((c||[]) as Cat[]);setItems((i||[]) as Item[])}
+  async function moveCat(index:number,delta:number){const target=index+delta;if(target<0||target>=cats.length||busy)return;setBusy('cat');const next=[...cats];[next[index],next[target]]=[next[target],next[index]];setCats(next);await Promise.all(next.map((c,i)=>supabase.from('categories').update({sort_order:i+1}).eq('id',c.id)));setBusy('')}
+  async function moveItem(catId:string|null,index:number,delta:number){const group=items.filter(x=>x.category_id===catId).sort((a,b)=>a.sort_order-b.sort_order);const target=index+delta;if(target<0||target>=group.length||busy)return;setBusy('item');[group[index],group[target]]=[group[target],group[index]];const rank=new Map(group.map((x,i)=>[x.id,i+1]));setItems(v=>v.map(x=>rank.has(x.id)?{...x,sort_order:rank.get(x.id)!}:x));await Promise.all(group.map((x,i)=>supabase.from('items').update({sort_order:i+1}).eq('id',x.id)));setBusy('')}
+  if(!host||!catalogId)return null;
+  const ui=<section style={{marginBottom:18,padding:18,border:'1px solid rgba(0,0,0,.09)',borderRadius:20,background:'var(--card,#fff)'}}><div style={{display:'flex',gap:10,alignItems:'center',marginBottom:14}}><GripVertical size={20}/><div><h3 style={{margin:0}}>Organiser l’affichage</h3><p style={{margin:'4px 0 0',opacity:.65,fontSize:13}}>Modifiez l’ordre public des catégories et des articles.</p></div></div><div style={{display:'grid',gap:12}}>{cats.map((cat,ci)=>{const group=items.filter(x=>x.category_id===cat.id).sort((a,b)=>a.sort_order-b.sort_order);return <article key={cat.id} style={{border:'1px solid rgba(0,0,0,.08)',borderRadius:16,padding:12}}><div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:8}}><b>{cat.name}</b><div style={{display:'flex',gap:6}}><button type="button" disabled={ci===0||!!busy} onClick={()=>void moveCat(ci,-1)} aria-label="Monter la catégorie"><ChevronUp size={16}/></button><button type="button" disabled={ci===cats.length-1||!!busy} onClick={()=>void moveCat(ci,1)} aria-label="Descendre la catégorie"><ChevronDown size={16}/></button></div></div><div style={{display:'grid',gap:6,marginTop:10}}>{group.map((item,ii)=><div key={item.id} style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:8,padding:'8px 10px',borderRadius:12,background:'rgba(127,127,127,.07)'}}><span style={{fontSize:13}}>{item.name}</span><div style={{display:'flex',gap:5}}><button type="button" disabled={ii===0||!!busy} onClick={()=>void moveItem(cat.id,ii,-1)}><ChevronUp size={14}/></button><button type="button" disabled={ii===group.length-1||!!busy} onClick={()=>void moveItem(cat.id,ii,1)}><ChevronDown size={14}/></button></div></div>)}</div></article>})}</div></section>;
+  return createPortal(ui,host);
+}
