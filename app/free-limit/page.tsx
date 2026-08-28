@@ -1,0 +1,6 @@
+import Link from 'next/link';
+import Image from 'next/image';
+
+export default function FreeLimitPage(){
+ return <main style={{minHeight:'100vh',display:'grid',placeItems:'center',padding:22,background:'#f6f6f8',fontFamily:'var(--font-jakarta),sans-serif'}}><section style={{width:'min(520px,100%)',background:'#fff',border:'1px solid #e7e7ea',borderRadius:28,padding:'34px 26px',textAlign:'center',boxShadow:'0 18px 50px rgba(0,0,0,.08)'}}><Image src="/qatalink-icon.svg" alt="Qatalink" width={58} height={58}/><div style={{fontSize:12,fontWeight:900,letterSpacing:'.12em',marginTop:18,color:'#c7192f'}}>LIMITE QUOTIDIENNE</div><h1 style={{fontSize:30,lineHeight:1.08,margin:'10px 0 12px'}}>Ce catalogue a atteint sa limite gratuite aujourd’hui.</h1><p style={{fontSize:15,lineHeight:1.6,opacity:.68,margin:'0 auto 22px'}}>La formule Free autorise jusqu’à <b>5 ouvertures depuis le QR code par jour</b>. Le QR sera de nouveau disponible automatiquement demain.</p><div style={{display:'grid',gap:9}}><Link href="/app" style={{padding:13,borderRadius:14,background:'#111',color:'#fff',textDecoration:'none',fontWeight:800}}>Explorer Qatalink</Link><Link href="/create" style={{padding:13,borderRadius:14,background:'#f0f0f2',color:'#111',textDecoration:'none',fontWeight:800}}>Créer mon catalogue gratuitement</Link></div></section></main>
+}
