@@ -1,0 +1,22 @@
+'use client';
+
+import {useEffect,useMemo,useState} from 'react';
+import {Bike,BadgeCheck,ChevronRight,ShoppingBag,Users} from 'lucide-react';
+import {createSupabaseBrowserClient} from '@/lib/supabase';
+
+type Owned={id:string;name:string};
+
+export default function MobileEntry(){
+  const supabase=useMemo(()=>createSupabaseBrowserClient(),[]);
+  const [owned,setOwned]=useState<Owned[]>([]);const [signed,setSigned]=useState(false);const [ready,setReady]=useState(false);
+  const [teamKey,setTeamKey]=useState('');const [driverToken,setDriverToken]=useState('');
+  useEffect(()=>{try{setTeamKey(localStorage.getItem('qatalink_last_team_key')||'');setDriverToken(localStorage.getItem('qatalink_last_driver_token')||'')}catch{};(async()=>{const {data:{session}}=await supabase.auth.getSession();setSigned(!!session);if(session){const {data}=await supabase.from('businesses').select('id,name').eq('owner_user_id',session.user.id).order('created_at',{ascending:true});setOwned((data||[]) as Owned[])}setReady(true)})()},[supabase]);
+  function team(){const key=teamKey.trim();if(!key)return;try{localStorage.setItem('qatalink_last_team_key',key)}catch{};location.href=`/ops/${encodeURIComponent(key)}`}
+  function driver(){const token=driverToken.trim();if(!token)return;try{localStorage.setItem('qatalink_last_driver_token',token)}catch{};location.href=`/livreur/${encodeURIComponent(token)}`}
+  const card=(icon:React.ReactNode,title:string,text:string,action:React.ReactNode)=><article style={{background:'#fff',border:'1px solid #e7e7ea',borderRadius:22,padding:18,display:'grid',gap:12}}><div style={{width:44,height:44,borderRadius:14,display:'grid',placeItems:'center',background:'#f3f3f5'}}>{icon}</div><div><h2 style={{margin:'0 0 5px',fontSize:20}}>{title}</h2><p style={{margin:0,opacity:.62,lineHeight:1.45,fontSize:14}}>{text}</p></div>{action}</article>;
+  return <main style={{minHeight:'100vh',background:'#f7f7f8',padding:'max(22px,env(safe-area-inset-top)) 16px 32px',fontFamily:'var(--font-jakarta),sans-serif',color:'#111'}}><section style={{maxWidth:620,margin:'0 auto'}}><header style={{display:'flex',alignItems:'center',gap:12,marginBottom:24}}><img src="/qatalink-icon.svg" alt="Qatalink" style={{width:44,height:44}}/><div><b style={{fontSize:20}}>Qatalink</b><div style={{fontSize:13,opacity:.55}}>Choisissez votre espace</div></div></header><div style={{display:'grid',gap:13}}>{card(<ShoppingBag size={22}/>,'Client','Retrouvez vos adresses, explorez les catalogues et recommandez facilement.',<button onClick={()=>location.href='/app'} style={buttonStyle}>Ouvrir mon espace client <ChevronRight size={17}/></button>)}{card(<BadgeCheck size={22}/>,'Pro',owned.length?`${owned.length} activité${owned.length>1?'s':''} reliée${owned.length>1?'s':''} à votre compte.`:'Création de catalogue, commandes, caisse, articles et réglages essentiels.',<button disabled={!ready} onClick={()=>location.href=signed?'/dashboard':'/login?next=/mobile'} style={buttonStyle}>{signed?'Gérer mon activité':'Se connecter comme Pro'} <ChevronRight size={17}/></button>)}{card(<Users size={22}/>,'Équipe','Caisse, commandes et catalogue selon les permissions données par le responsable.',<div style={{display:'flex',gap:8}}><input value={teamKey} onChange={e=>setTeamKey(e.target.value)} placeholder="Clé d’accès équipe" style={inputStyle}/><button onClick={team} disabled={!teamKey.trim()} style={smallButton}>Ouvrir</button></div>)}{card(<Bike size={22}/>,'Livreur','Les liens de livraison Qatalink s’ouvrent directement ici avec GPS natif.',<div style={{display:'flex',gap:8}}><input value={driverToken} onChange={e=>setDriverToken(e.target.value)} placeholder="Token de livraison" style={inputStyle}/><button onClick={driver} disabled={!driverToken.trim()} style={smallButton}>Ouvrir</button></div>)}</div><p style={{fontSize:12,opacity:.48,lineHeight:1.5,marginTop:20}}>Un même téléphone peut utiliser plusieurs espaces. Les liens Qatalink reçus peuvent également ouvrir directement le catalogue, l’espace équipe ou la livraison concernée.</p></section></main>;
+}
+
+const buttonStyle:React.CSSProperties={width:'100%',border:0,borderRadius:15,padding:'12px 14px',background:'#111',color:'#fff',fontWeight:700,display:'flex',alignItems:'center',justifyContent:'space-between'};
+const smallButton:React.CSSProperties={border:0,borderRadius:14,padding:'0 14px',background:'#111',color:'#fff',fontWeight:700};
+const inputStyle:React.CSSProperties={minWidth:0,flex:1,border:'1px solid #dedee2',borderRadius:14,padding:'12px',fontSize:14,outline:0};
