@@ -1,13 +1,17 @@
 {
+  "id": "/mobile",
   "name": "Qatalink",
   "short_name": "Qatalink",
   "description": "Catalogues, commandes, caisse, livraison et espace client Qatalink.",
   "start_url": "/mobile",
   "scope": "/",
   "display": "standalone",
+  "orientation": "any",
   "background_color": "#ffffff",
   "theme_color": "#d20f2f",
   "icons": [
-    {"src":"/qatalink-icon.svg","sizes":"any","type":"image/svg+xml","purpose":"any maskable"}
+    {"src":"/qatalink-icon.svg","sizes":"any","type":"image/svg+xml","purpose":"any"},
+    {"src":"/qatalink-icon.svg","sizes":"any","type":"image/svg+xml","purpose":"maskable"},
+    {"src":"/qatalink-logo.png","sizes":"512x512","type":"image/png","purpose":"any"}
   ]
 }
