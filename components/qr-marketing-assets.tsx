@@ -1,0 +1,162 @@
+'use client';
+
+import {useEffect,useMemo,useRef,useState} from 'react';
+import {createPortal} from 'react-dom';
+import {Download,FileImage,FileText,Loader2,Sparkles} from 'lucide-react';
+import {QRCodeSVG} from 'qrcode.react';
+import {createSupabaseBrowserClient} from '@/lib/supabase';
+
+type CatalogInfo={id:string;business_id:string;title:string;public_slug:string;hub_public_slug:string|null;description:string|null;display_name:string|null;logo_url:string|null};
+type BusinessInfo={name:string;description:string|null;business_type:string;logo_url:string|null};
+type RefItem={id:string;name:string;image_url:string};
+type AssetType='flyer'|'tent_card';
+type Mode='auto'|'custom';
+type QrMode='catalog'|'hub'|'both';
+type FlyerFormat='png'|'jpeg';
+type TentFormat='a4'|'a5';
+
+const PUBLIC_ORIGIN='https://qatalink.com';
+const AUTO_COST=30;
+const CUSTOM_COST=40;
+
+function sleep(ms:number){return new Promise(resolve=>setTimeout(resolve,ms))}
+function clean(value:unknown,max=600){return String(value??'').replace(/\s+/g,' ').trim().slice(0,max)}
+function fallbackBio(type:string){
+  if(type==='restaurant')return 'Découvrez notre carte, nos spécialités et nos offres du moment.';
+  if(type==='hotel')return 'Découvrez nos chambres, services et expériences.';
+  if(type==='spa_beauty')return 'Découvrez nos prestations, nos tarifs et notre univers.';
+  if(type==='real_estate')return 'Découvrez nos biens et opportunités disponibles.';
+  return 'Découvrez notre sélection, nos services et nos offres.';
+}
+function ctaFor(type:string){
+  if(type==='restaurant')return 'Scannez, découvrez la carte et commandez';
+  if(type==='hotel')return 'Scannez pour découvrir chambres et services';
+  if(type==='spa_beauty')return 'Scannez pour découvrir prestations et tarifs';
+  if(type==='real_estate')return 'Scannez pour découvrir les biens disponibles';
+  return 'Scannez pour découvrir nos offres';
+}
+function wrapLines(ctx:CanvasRenderingContext2D,text:string,maxWidth:number,maxLines:number){
+  const words=text.split(/\s+/).filter(Boolean);const lines:string[]=[];let line='';
+  for(const word of words){const next=line?`${line} ${word}`:word;if(ctx.measureText(next).width<=maxWidth){line=next;continue}if(line)lines.push(line);line=word;if(lines.length>=maxLines-1)break}
+  if(line&&lines.length<maxLines)lines.push(line);
+  if(lines.length===maxLines){while(ctx.measureText(lines[maxLines-1]+'…').width>maxWidth&&lines[maxLines-1].length>2)lines[maxLines-1]=lines[maxLines-1].slice(0,-2);lines[maxLines-1]=lines[maxLines-1].replace(/[,. ]+$/,'')+'…'}
+  return lines;
+}
+function loadImage(src:string){return new Promise<HTMLImageElement>((resolve,reject)=>{const img=new Image();img.crossOrigin='anonymous';img.onload=()=>resolve(img);img.onerror=reject;img.src=src})}
+function svgImage(svg:SVGSVGElement){return new Promise<HTMLImageElement>((resolve,reject)=>{const xml=new XMLSerializer().serializeToString(svg);const img=new Image();img.onload=()=>resolve(img);img.onerror=reject;img.src='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(xml)})}
+function drawCover(ctx:CanvasRenderingContext2D,img:CanvasImageSource&{width:number;height:number},x:number,y:number,w:number,h:number){const scale=Math.max(w/img.width,h/img.height);const dw=img.width*scale,dh=img.height*scale;ctx.drawImage(img,x+(w-dw)/2,y+(h-dh)/2,dw,dh)}
+function ascii(value:string){return new TextEncoder().encode(value)}
+function concat(parts:Uint8Array[]){const size=parts.reduce((sum,p)=>sum+p.length,0);const out=new Uint8Array(size);let offset=0;for(const p of parts){out.set(p,offset);offset+=p.length}return out}
+function dataUrlBytes(url:string){const b64=url.split(',')[1]||'';const bin=atob(b64);const out=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)out[i]=bin.charCodeAt(i);return out}
+function canvasPdf(canvas:HTMLCanvasElement,page:'a4'|'a5'){
+  const jpg=dataUrlBytes(canvas.toDataURL('image/jpeg',.94));const pw=page==='a4'?841.89:595.28,ph=page==='a4'?595.28:419.53;
+  const parts:Uint8Array[]=[];const offsets:number[]=[0];let length=0;
+  const push=(part:Uint8Array)=>{parts.push(part);length+=part.length};
+  const obj=(id:number,body:string|Uint8Array)=>{offsets[id]=length;push(ascii(`${id} 0 obj\n`));push(typeof body==='string'?ascii(body):body);push(ascii('\nendobj\n'))};
+  push(ascii('%PDF-1.4\n%QATALINK\n'));
+  obj(1,'<< /Type /Catalog /Pages 2 0 R >>');obj(2,'<< /Type /Pages /Kids [3 0 R] /Count 1 >>');
+  obj(3,`<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${pw} ${ph}] /Resources << /XObject << /Im0 4 0 R >> >> /Contents 5 0 R >>`);
+  offsets[4]=length;push(ascii(`4 0 obj\n<< /Type /XObject /Subtype /Image /Width ${canvas.width} /Height ${canvas.height} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ${jpg.length} >>\nstream\n`));push(jpg);push(ascii('\nendstream\nendobj\n'));
+  const stream=`q\n${pw} 0 0 ${ph} 0 0 cm\n/Im0 Do\nQ`;obj(5,`<< /Length ${stream.length} >>\nstream\n${stream}\nendstream`);
+  const xref=length;push(ascii('xref\n0 6\n0000000000 65535 f \n'));for(let i=1;i<=5;i++)push(ascii(String(offsets[i]).padStart(10,'0')+' 00000 n \n'));push(ascii(`trailer\n<< /Size 6 /Root 1 0 R >>\nstartxref\n${xref}\n%%EOF`));
+  return new Blob([concat(parts) as unknown as BlobPart],{type:'application/pdf'});
+}
+function downloadBlob(blob:Blob,name:string){const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1500)}
+
+export function QrMarketingAssets(){
+  const supabase=useMemo(()=>createSupabaseBrowserClient(),[]);
+  const [host,setHost]=useState<Element|null>(null);const [catalog,setCatalog]=useState<CatalogInfo|null>(null);const [business,setBusiness]=useState<BusinessInfo|null>(null);const [session,setSession]=useState<any>(null);const [wallet,setWallet]=useState(0);const [refs,setRefs]=useState<RefItem[]>([]);
+  const [assetType,setAssetType]=useState<AssetType>('flyer');const [mode,setMode]=useState<Mode>('auto');const [qrMode,setQrMode]=useState<QrMode>('catalog');const [flyerFormat,setFlyerFormat]=useState<FlyerFormat>('png');const [tentFormat,setTentFormat]=useState<TentFormat>('a4');const [customPrompt,setCustomPrompt]=useState('');const [selected,setSelected]=useState<string[]>([]);
+  const [busy,setBusy]=useState(false);const [progress,setProgress]=useState('');const [error,setError]=useState('');const [baseImage,setBaseImage]=useState('');const [jobId,setJobId]=useState('');const [lastCost,setLastCost]=useState(0);const previewRef=useRef<HTMLCanvasElement|null>(null);
+  const catalogUrl=catalog?`${PUBLIC_ORIGIN}/c/${catalog.public_slug}`:'';const hubUrl=catalog?.hub_public_slug?`${PUBLIC_ORIGIN}/h/${catalog.hub_public_slug}`:'';const cost=mode==='custom'?CUSTOM_COST:AUTO_COST;
+
+  useEffect(()=>{
+    let cancelled=false;let current='';
+    const sync=async()=>{
+      const title=document.querySelector('.dash-v3-top h1')?.textContent?.trim()||'';const wrap=document.querySelector('.qr-v3-wrap');
+      if(title!=='QR & partage'||!wrap){setHost(null);return}setHost(wrap);
+      const params=new URLSearchParams(window.location.search);let catalogId=params.get('catalog')||'';
+      if(!catalogId){const src=(wrap.querySelector('.qr-v3-card img') as HTMLImageElement|null)?.getAttribute('src')||'';const match=src.match(/\/api\/qr\/([^?]+)/);if(match){const {data}=await supabase.from('catalogs').select('id').eq('public_slug',decodeURIComponent(match[1])).maybeSingle();catalogId=String(data?.id||'')}}
+      if(!catalogId||catalogId===current)return;current=catalogId;
+      const {data:{session:s}}=await supabase.auth.getSession();if(cancelled||!s)return;setSession(s);
+      const {data:c}=await supabase.from('catalogs').select('id,business_id,title,public_slug,hub_public_slug,description,display_name,logo_url').eq('id',catalogId).maybeSingle();if(cancelled||!c)return;setCatalog(c as CatalogInfo);
+      const [{data:b},{data:w},{data:items}]=await Promise.all([
+        supabase.from('businesses').select('name,description,business_type,logo_url').eq('id',c.business_id).maybeSingle(),
+        supabase.from('credit_wallets').select('balance').eq('business_id',c.business_id).maybeSingle(),
+        supabase.from('items').select('id,name').eq('catalog_id',catalogId).eq('is_available',true).order('sort_order')
+      ]);
+      if(cancelled)return;setBusiness(b as BusinessInfo|null);setWallet(Number(w?.balance||0));
+      const ids=(items||[]).map((item:any)=>item.id);
+      if(ids.length){const {data:images}=await supabase.from('item_images').select('item_id,image_url,is_primary,created_at').in('item_id',ids).order('is_primary',{ascending:false}).order('created_at',{ascending:false});const imageMap=new Map<string,string>();for(const image of images||[])if(image.image_url&&!imageMap.has(String(image.item_id)))imageMap.set(String(image.item_id),String(image.image_url));setRefs((items||[]).filter((item:any)=>imageMap.has(String(item.id))).map((item:any)=>({id:String(item.id),name:String(item.name),image_url:imageMap.get(String(item.id))!})).slice(0,60))}else setRefs([]);
+      setBaseImage('');setSelected([]);setError('');setProgress('');
+    };
+    void sync();const interval=setInterval(()=>void sync(),1200);const onChange=()=>{current='';void sync()};
+    document.addEventListener('click',onChange,true);window.addEventListener('popstate',onChange);window.addEventListener('qatalink:catalog-change',onChange as EventListener);
+    return()=>{cancelled=true;clearInterval(interval);document.removeEventListener('click',onChange,true);window.removeEventListener('popstate',onChange);window.removeEventListener('qatalink:catalog-change',onChange as EventListener)};
+  },[supabase]);
+
+  function toggleRef(id:string){setSelected(current=>current.includes(id)?current.filter(value=>value!==id):current.length<6?[...current,id]:current)}
+
+  async function generate(){
+    if(!catalog||!session||busy)return;
+    if(wallet<cost){setError(`Solde insuffisant : ${cost} crédits requis, ${wallet} disponibles.`);return}
+    if(mode==='custom'&&!customPrompt.trim()){setError('Ajoutez une direction créative pour le mode personnalisé.');return}
+    setBusy(true);setError('');setProgress('Préparation du support…');setBaseImage('');
+    try{
+      const response=await fetch('/api/marketing-assets/generate',{method:'POST',headers:{'Content-Type':'application/json',Authorization:`Bearer ${session.access_token}`},body:JSON.stringify({catalog_id:catalog.id,asset_type:assetType,generation_mode:mode,qr_mode:qrMode,custom_prompt:customPrompt,reference_item_ids:selected})});
+      const data=await response.json().catch(()=>({}));if(!response.ok)throw new Error(data.message||data.error||'Impossible de lancer la génération.');
+      setWallet(Number(data.balance??wallet-cost));setLastCost(Number(data.credit_cost||cost));setJobId(String(data.job_id||''));setProgress('Création du design…');
+      let completed=false;
+      for(let attempt=0;attempt<75;attempt++){
+        await sleep(2200);
+        const statusResponse=await fetch('/api/marketing-assets/status',{method:'POST',headers:{'Content-Type':'application/json',Authorization:`Bearer ${session.access_token}`},body:JSON.stringify({job_id:data.job_id})});
+        const statusData=await statusResponse.json().catch(()=>({}));
+        if(statusData.status==='completed'&&statusData.image_url){setBaseImage(String(statusData.image_url));setProgress('Support prêt.');completed=true;break}
+        if(statusData.status==='failed'||(!statusResponse.ok&&statusResponse.status===409)){if(statusData.balance!==undefined)setWallet(Number(statusData.balance));throw new Error('La génération a échoué. Les crédits ont été recrédités.')}
+        setProgress(statusData.progress?`Création du design… ${Math.round(Number(statusData.progress))}%`:'Création du design…');
+      }
+      if(!completed)throw new Error('La génération prend plus de temps que prévu. Réessayez dans quelques instants.');
+    }catch(e:any){setError(e?.message||'Impossible de générer le support.');setProgress('')}finally{setBusy(false)}
+  }
+
+  async function compose(width=1080,height=1350){
+    if(!baseImage||!catalog||!business)return null;
+    const canvas=document.createElement('canvas');canvas.width=width;canvas.height=height;const ctx=canvas.getContext('2d');if(!ctx)return null;
+    const bg=await loadImage(baseImage);drawCover(ctx,bg,0,0,width,height);
+    const topGradient=ctx.createLinearGradient(0,0,0,height*.34);topGradient.addColorStop(0,'rgba(0,0,0,.72)');topGradient.addColorStop(1,'rgba(0,0,0,0)');ctx.fillStyle=topGradient;ctx.fillRect(0,0,width,height*.38);
+    ctx.fillStyle='#fff';ctx.textAlign='center';ctx.font=`700 ${Math.round(width*.062)}px Arial`;ctx.fillText(clean(catalog.display_name||business.name,50),width/2,height*.105);ctx.font=`500 ${Math.round(width*.025)}px Arial`;ctx.fillStyle='rgba(255,255,255,.92)';ctx.fillText(clean(catalog.title,70),width/2,height*.145);
+    const panelY=Math.round(height*.65),panelH=height-panelY;ctx.fillStyle='rgba(255,255,255,.97)';ctx.fillRect(0,panelY,width,panelH);ctx.fillStyle='#151515';ctx.font=`700 ${Math.round(width*.034)}px Arial`;ctx.fillText(ctaFor(business.business_type),width/2,panelY+Math.round(panelH*.13));
+    const bio=clean(catalog.description||business.description||fallbackBio(business.business_type),380);ctx.font=`400 ${Math.round(width*.022)}px Arial`;ctx.fillStyle='#4a4a4a';wrapLines(ctx,bio,width*.82,2).forEach((line,index)=>ctx.fillText(line,width/2,panelY+Math.round(panelH*.22)+index*Math.round(width*.031)));
+    const targets:{url:string;label:string;kind:'catalog'|'hub'}[]=[];if(qrMode==='catalog'||qrMode==='both')targets.push({url:catalogUrl,label:'Catalogue / menu',kind:'catalog'});if((qrMode==='hub'||qrMode==='both')&&hubUrl)targets.push({url:hubUrl,label:'Page centrale',kind:'hub'});
+    const qrSize=targets.length===2?Math.round(width*.18):Math.round(width*.23),gap=Math.round(width*.09),total=targets.length*qrSize+(targets.length-1)*gap;let x=(width-total)/2;const qrY=panelY+Math.round(panelH*.39);
+    for(const target of targets){const svg=document.querySelector(`.qr-hidden-codes [data-qr-kind="${target.kind}"] svg`) as SVGSVGElement|null;if(svg){const image=await svgImage(svg);ctx.fillStyle='#fff';ctx.fillRect(x-12,qrY-12,qrSize+24,qrSize+24);ctx.drawImage(image,x,qrY,qrSize,qrSize)}ctx.fillStyle='#161616';ctx.font=`700 ${Math.round(width*.019)}px Arial`;ctx.fillText(target.label,x+qrSize/2,qrY+qrSize+Math.round(width*.035));ctx.fillStyle='#666';ctx.font=`400 ${Math.round(width*.013)}px Arial`;ctx.fillText(target.url.replace(/^https?:\/\//,''),x+qrSize/2,qrY+qrSize+Math.round(width*.059));x+=qrSize+gap}
+    ctx.fillStyle='#8f1022';ctx.font=`700 ${Math.round(width*.016)}px Arial`;ctx.fillText('Propulsé par Qatalink',width/2,height-Math.round(width*.025));return canvas;
+  }
+
+  async function refreshPreview(){try{const composed=await compose();if(!composed||!previewRef.current)return;previewRef.current.width=composed.width;previewRef.current.height=composed.height;previewRef.current.getContext('2d')?.drawImage(composed,0,0)}catch{}}
+  useEffect(()=>{if(baseImage)void refreshPreview()},[baseImage,qrMode,catalog,business]);
+
+  async function downloadFlyer(){const composed=await compose();if(!composed)return;const mime=flyerFormat==='png'?'image/png':'image/jpeg';composed.toBlob(blob=>{if(blob)downloadBlob(blob,`qatalink-${catalog?.public_slug||'flyer'}.${flyerFormat==='jpeg'?'jpg':'png'}`)},mime,flyerFormat==='jpeg'?.94:undefined)}
+  async function downloadTent(){
+    const design=await compose(1080,1350);if(!design)return;const width=tentFormat==='a4'?1754:1240,height=tentFormat==='a4'?1240:874;const page=document.createElement('canvas');page.width=width;page.height=height;const ctx=page.getContext('2d');if(!ctx)return;ctx.fillStyle='#fff';ctx.fillRect(0,0,width,height);const half=width/2;
+    ctx.save();ctx.translate(half/2,height/2);ctx.rotate(Math.PI);ctx.translate(-half/2,-height/2);drawCover(ctx,design,0,0,half,height);ctx.restore();drawCover(ctx,design,half,0,half,height);ctx.strokeStyle='#999';ctx.setLineDash([14,12]);ctx.beginPath();ctx.moveTo(half,0);ctx.lineTo(half,height);ctx.stroke();downloadBlob(canvasPdf(page,tentFormat),`qatalink-chevalet-${catalog?.public_slug||'catalogue'}-${tentFormat.toUpperCase()}.pdf`);
+  }
+
+  if(!host||!catalog||!business)return null;
+  return createPortal(<section className="dash-card qr-marketing-studio">
+    <div className="qr-marketing-head"><div><div className="eyebrow">STUDIO QR · V1</div><h2>Créer un support de vente</h2><p>Flyer PNG/JPEG ou chevalet PDF avec vos vrais QR actifs. Le logo est toujours utilisé lorsqu’il existe et le mode automatique sélectionne jusqu’à 6 visuels d’articles.</p></div><div className="qr-credit-pill"><b>{wallet}</b><span>crédits</span></div></div>
+    <div className="qr-marketing-grid">
+      <div className="qr-marketing-controls">
+        <div className="qr-choice-row"><button className={assetType==='flyer'?'active':''} onClick={()=>setAssetType('flyer')}><FileImage size={17}/>Flyer</button><button className={assetType==='tent_card'?'active':''} onClick={()=>setAssetType('tent_card')}><FileText size={17}/>Chevalet</button></div>
+        <div className="field"><label>Mode de création</label><select className="input" value={mode} onChange={event=>setMode(event.target.value as Mode)}><option value="auto">Automatique · {AUTO_COST} crédits</option><option value="custom">Personnalisé · {CUSTOM_COST} crédits</option></select></div>
+        <div className="field"><label>QR à afficher</label><select className="input" value={qrMode} onChange={event=>setQrMode(event.target.value as QrMode)}><option value="catalog">Catalogue direct</option>{hubUrl&&<option value="hub">Page centrale</option>}{hubUrl&&<option value="both">Les deux QR</option>}</select></div>
+        {assetType==='flyer'?<div className="field"><label>Format de téléchargement</label><select className="input" value={flyerFormat} onChange={event=>setFlyerFormat(event.target.value as FlyerFormat)}><option value="png">PNG</option><option value="jpeg">JPEG</option></select></div>:<div className="field"><label>Format du chevalet</label><select className="input" value={tentFormat} onChange={event=>setTentFormat(event.target.value as TentFormat)}><option value="a4">PDF A4</option><option value="a5">PDF A5</option></select></div>}
+        {mode==='custom'&&<><div className="field"><label>Direction créative</label><textarea className="input" rows={4} value={customPrompt} onChange={event=>setCustomPrompt(event.target.value)} placeholder="Ex. ambiance lounge rouge et or, élégante, priorité aux grillades…"/></div><div className="field"><label>Références · {selected.length}/6</label><div className="qr-reference-grid">{refs.slice(0,24).map(ref=><button key={ref.id} className={selected.includes(ref.id)?'selected':''} onClick={()=>toggleRef(ref.id)} title={ref.name}><img src={ref.image_url} alt=""/><span>{ref.name}</span></button>)}</div></div></>}
+        <button className="btn btn-primary qr-generate-btn" onClick={generate} disabled={busy||wallet<cost}>{busy?<Loader2 className="spin" size={17}/>:<Sparkles size={17}/>}Générer · {cost} crédits</button>{wallet<cost&&<small className="qr-credit-warning">Il vous manque {cost-wallet} crédits.</small>}{progress&&<div className="qr-progress">{progress}</div>}{error&&<div className="qr-error">{error}</div>}
+      </div>
+      <div className="qr-marketing-preview">{baseImage?<><canvas ref={previewRef}/><div className="qr-download-row">{assetType==='flyer'?<button className="btn btn-primary" onClick={downloadFlyer}><Download size={16}/>Télécharger {flyerFormat.toUpperCase()}</button>:<button className="btn btn-primary" onClick={downloadTent}><Download size={16}/>Télécharger PDF {tentFormat.toUpperCase()}</button>}<button className="btn btn-ghost" onClick={generate}><Sparkles size={15}/>Créer une variante · {cost}</button></div><small>Le QR est ajouté après la génération du visuel : il encode exactement le lien Qatalink actif et reste scannable.</small></>:<div className="qr-empty-preview"><Sparkles size={34}/><b>Votre support apparaîtra ici</b><span>Bio incluse automatiquement · CTA séparé du QR · {mode==='auto'?'sélection automatique des meilleurs visuels':'références choisies par vous'}</span></div>}</div>
+    </div>
+    <div className="qr-hidden-codes" aria-hidden="true"><div data-qr-kind="catalog"><QRCodeSVG value={catalogUrl} size={360} level="M" marginSize={4}/></div>{hubUrl&&<div data-qr-kind="hub"><QRCodeSVG value={hubUrl} size={360} level="M" marginSize={4}/></div>}</div>
+    {jobId&&lastCost>0&&<div className="qr-job-note">Dernière création : {lastCost} crédits · génération #{jobId.slice(0,8)}</div>}
+  </section>,host);
+}

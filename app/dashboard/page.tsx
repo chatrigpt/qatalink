@@ -17,6 +17,7 @@ import { TrialCreditAccess } from '@/components/trial-credit-access';
 import { DashboardUtilityControls } from '@/components/dashboard-utility-controls';
 import { TrialLifecycleBanner } from '@/components/trial-lifecycle-banner';
 import { QrCanonicalControls } from '@/components/qr-canonical-controls';
+import { QrMarketingAssets } from '@/components/qr-marketing-assets';
 import { CatalogLinkRenamer } from '@/components/catalog-link-renamer';
 import { CatalogOrderControls } from '@/components/catalog-order-controls';
 import { IdentityCtaRefinement } from '@/components/identity-cta-refinement';
@@ -31,6 +32,7 @@ export default function DashboardPage(){
     <DashboardSafeBoundary><DashboardUtilityControls/></DashboardSafeBoundary>
     <DashboardSafeBoundary><CatalogLinkRenamer/></DashboardSafeBoundary>
     <DashboardSafeBoundary><QrCanonicalControls/></DashboardSafeBoundary>
+    <DashboardSafeBoundary><QrMarketingAssets/></DashboardSafeBoundary>
     <DashboardSafeBoundary><DashboardActivationEngine/></DashboardSafeBoundary>
     <DashboardSafeBoundary><DashboardAnalytics/></DashboardSafeBoundary>
     <DashboardSafeBoundary><DashboardAdvancedControls/></DashboardSafeBoundary>
