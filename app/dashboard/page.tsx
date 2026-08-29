@@ -21,6 +21,7 @@ import { QrMarketingAssets } from '@/components/qr-marketing-assets';
 import { CatalogLinkRenamer } from '@/components/catalog-link-renamer';
 import { CatalogOrderControls } from '@/components/catalog-order-controls';
 import { IdentityCtaRefinement } from '@/components/identity-cta-refinement';
+import { OwnerRevenueCenter } from '@/components/owner-revenue-center';
 
 export default function DashboardPage(){
   return <>
@@ -46,6 +47,7 @@ export default function DashboardPage(){
     <DashboardSafeBoundary><TrialCreditAccess/></DashboardSafeBoundary>
     <DashboardSafeBoundary><TrialConversionCoach/></DashboardSafeBoundary>
     <DashboardSafeBoundary><DashboardLogoutButton/></DashboardSafeBoundary>
+    <DashboardSafeBoundary><OwnerRevenueCenter/></DashboardSafeBoundary>
     <DashboardSafeBoundary><NewUserGuide/></DashboardSafeBoundary>
   </>;
 }
