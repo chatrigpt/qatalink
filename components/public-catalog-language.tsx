@@ -3,6 +3,7 @@
 import {useEffect,useMemo,useState} from 'react';
 import {Languages} from 'lucide-react';
 import {PublicCatalogV2} from '@/components/public-catalog-v2';
+import styles from '@/components/public-catalog-premium.module.css';
 
 type Lang='fr'|'en';
 type Currency='XOF'|'EUR'|'USD';
@@ -78,7 +79,7 @@ export function PublicCatalogLanguage({data}:{data:any}){
   }
   function chooseCurrency(next:Currency){setCurrency(next);try{localStorage.setItem('qatalink_public_currency',next)}catch{};requestAnimationFrame(()=>currencyButton(next)?.click())}
 
-  return <div className={`public-catalog-language-shell catalog-button-${texture} catalog-shape-${shape} catalog-activity-${String(shown?.__qatalink_activity_type||'other')}`} data-has-product-images={shown?.__qatalink_has_product_images?'true':'false'}>
+  return <div className={`${styles.root} public-catalog-language-shell catalog-button-${texture} catalog-shape-${shape} catalog-activity-${String(shown?.__qatalink_activity_type||'other')}`} data-has-product-images={shown?.__qatalink_has_product_images?'true':'false'}>
     <div className="public-preference-switch" role="group" aria-label="Langue et monnaie du catalogue">
       {eligible&&<><Languages size={14}/><button className={lang==='fr'?'active':''} onClick={()=>void chooseLanguage('fr')}>FR</button><button className={lang==='en'?'active':''} disabled={busy} onClick={()=>void chooseLanguage('en')}>{busy?'…':'EN'}</button><i aria-hidden="true"/></>}
       <button title="Franc CFA" className={currency==='XOF'?'active':''} onClick={()=>chooseCurrency('XOF')}>F</button><button title="Euro" className={currency==='EUR'?'active':''} onClick={()=>chooseCurrency('EUR')}>€</button><button title="Dollar US" className={currency==='USD'?'active':''} onClick={()=>chooseCurrency('USD')}>$</button>
