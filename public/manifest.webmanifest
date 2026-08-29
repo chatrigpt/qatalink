@@ -8,6 +8,6 @@
   "background_color": "#ffffff",
   "theme_color": "#d20f2f",
   "icons": [
-    {"src":"/qatalink-logo.png","sizes":"512x512","type":"image/png","purpose":"any maskable"}
+    {"src":"/qatalink-icon.svg","sizes":"any","type":"image/svg+xml","purpose":"any maskable"}
   ]
 }
