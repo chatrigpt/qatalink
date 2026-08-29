@@ -2,8 +2,6 @@
 
 import {useEffect} from 'react';
 
-// Parcours prioritaire : gérer/créer le catalogue d'abord, exploitation ensuite,
-// outils premium avancés en fin de navigation, puis Prévisions et Paramètres.
 const ORDER=[
   'Vue d’ensemble',
   'Catalogues',
@@ -11,13 +9,13 @@ const ORDER=[
   'Apparence',
   'QR & partage',
   'Statistiques',
-  'Stock',
   'Point de vente',
-  'Abonnement',
-  'Studio avancé',
+  'Stock',
+  'Prévisions',
   'Vitrine & médias',
   'Parcours client',
-  'Prévisions',
+  'Studio avancé',
+  'Abonnement',
   'Paramètres',
   'Administration',
 ];
@@ -26,29 +24,20 @@ function clean(value:string){return value.replace(/BETA/ig,'').replace(/\s+/g,' 
 function labelOf(node:Element){const button=node.matches('button')?node:node.querySelector('button');return clean(button?.textContent||node.textContent||'')}
 function rankLabel(label:string){const exact=ORDER.indexOf(label);if(exact>=0)return exact;const lowered=label.toLowerCase();const found=ORDER.findIndex(x=>lowered.startsWith(x.toLowerCase()));return found>=0?found:50}
 
-function reorder(container:Element|null){
+function applyOrder(container:Element|null){
   if(!container)return;
-  const children=Array.from(container.children);
-  for(const node of children){
+  for(const node of Array.from(container.children)){
     const label=labelOf(node);
     const el=node as HTMLElement;
     if(label.toLowerCase().startsWith('administration')){
       el.style.display='none';
       el.setAttribute('aria-hidden','true');
-    }else{
-      el.style.removeProperty('display');
-      el.removeAttribute('aria-hidden');
-      // Important : l'ordre doit être appliqué au véritable enfant du flex container,
-      // pas uniquement au bouton interne (Prévisions utilise notamment un wrapper div).
-      el.style.order=String(rankLabel(label));
+      continue;
     }
+    el.style.removeProperty('display');
+    el.removeAttribute('aria-hidden');
+    el.style.order=String(rankLabel(label));
   }
-  const sorted=[...children].sort((a,b)=>rankLabel(labelOf(a))-rankLabel(labelOf(b)));
-  const changed=sorted.some((node,index)=>node!==children[index]);
-  if(!changed)return;
-  const fragment=document.createDocumentFragment();
-  sorted.forEach(node=>fragment.appendChild(node));
-  container.appendChild(fragment);
 }
 
 export function DashboardNavOrder(){
@@ -56,8 +45,8 @@ export function DashboardNavOrder(){
     if(location.pathname!='/dashboard')return;
     let scheduled:ReturnType<typeof setTimeout>|null=null;
     const apply=()=>{
-      reorder(document.querySelector('.dash-v3-nav'));
-      reorder(document.querySelector('.dash-v3-mobile-tabs'));
+      applyOrder(document.querySelector('.dash-v3-nav'));
+      applyOrder(document.querySelector('.dash-v3-mobile-tabs'));
     };
     const schedule=()=>{if(scheduled)clearTimeout(scheduled);scheduled=setTimeout(apply,30)};
     apply();
