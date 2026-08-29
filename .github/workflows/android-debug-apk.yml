@@ -15,6 +15,7 @@ on:
       - 'lib/escpos-printer.ts'
       - 'lib/order-receipt.ts'
       - 'scripts/patch-android-deeplinks.mjs'
+      - 'scripts/fix-android-background-service.mjs'
       - '.github/workflows/android-debug-apk.yml'
 jobs:
   apk:
@@ -32,6 +33,7 @@ jobs:
       - run: npx cap add android
       - run: npx cap sync android
       - run: node scripts/patch-android-deeplinks.mjs
+      - run: node scripts/fix-android-background-service.mjs
       - run: chmod +x android/gradlew && cd android && ./gradlew assembleDebug
       - uses: actions/upload-artifact@v4
         with:
