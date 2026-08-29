@@ -2,7 +2,7 @@ name: Build Android debug APK
 on:
   workflow_dispatch:
   push:
-    branches: [main, mobile-multirole-preview, mobile-receipts-stats-links-preview]
+    branches: [main, mobile-multirole-preview, mobile-receipts-stats-links-preview, android-background-gps-web-print-preview]
     paths:
       - 'capacitor.config.ts'
       - 'package.json'
