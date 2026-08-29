@@ -20,11 +20,13 @@ import { QrCanonicalControls } from '@/components/qr-canonical-controls';
 import { CatalogLinkRenamer } from '@/components/catalog-link-renamer';
 import { DashboardNavOrder } from '@/components/dashboard-nav-order';
 import { CatalogOrderControls } from '@/components/catalog-order-controls';
+import { IdentityCtaRefinement } from '@/components/identity-cta-refinement';
 
 export default function DashboardPage(){
   return <>
     <DashboardStorageGuard/>
     <DashboardSafeBoundary critical><DashboardAppV3/></DashboardSafeBoundary>
+    <DashboardSafeBoundary><IdentityCtaRefinement/></DashboardSafeBoundary>
     <DashboardSafeBoundary><CatalogOrderControls/></DashboardSafeBoundary>
     <DashboardSafeBoundary><TrialLifecycleBanner/></DashboardSafeBoundary>
     <DashboardSafeBoundary><DashboardUtilityControls/></DashboardSafeBoundary>
