@@ -12,7 +12,7 @@ const PROVIDER_KEY=(process.env.POYO_API_KEY||'').replace(/[\u200B-\u200D\u2060\
 const ELIGIBLE_PLANS=new Set(['interactive','linkhub']);
 const MODELS=['gemini-2.5-flash','gemini-3.5-flash'];
 
-type TranslationRow={kind:'catalog'|'page'|'category'|'item'|'flow';id:string;parent_id?:string|null;title?:string;name?:string;description?:string;value?:string};
+type TranslationRow={kind:'catalog'|'business'|'page'|'category'|'item'|'flow';id:string;parent_id?:string|null;title?:string;name?:string;description?:string;value?:string};
 
 function client(key:string){return createClient(SUPABASE_URL,key,{auth:{persistSession:false,autoRefreshToken:false}})}
 function cleanJson(raw:string){const value=raw.trim().replace(/^```(?:json)?/i,'').replace(/```$/,'').trim();const a=value.indexOf('{'),b=value.lastIndexOf('}');if(a<0||b<=a)throw new Error('INVALID_TRANSLATION_JSON');return JSON.parse(value.slice(a,b+1))}
@@ -22,6 +22,7 @@ function sourcePayload(data:any){
   const pages=Array.isArray(data?.pages)?data.pages:[];
   return {
     catalog:{id:data?.catalog?.id,title:data?.catalog?.title||'',display_name:data?.catalog?.display_name||'',description:data?.catalog?.description||''},
+    business:{id:data?.business?.id||data?.catalog?.business_id||'business',name:data?.business?.name||'',description:data?.business?.description||''},
     pages:pages.map((p:any)=>({id:p.id,title:p.title||p.name||'',description:p.description||''})),
     categories:categories.map((c:any)=>({id:c.id,name:c.name||'',description:c.description||'',items:(Array.isArray(c.items)?c.items:[]).map((i:any)=>({id:i.id,name:i.name||'',description:i.description||''}))})),
     flow_labels:(data?.business?.customer_flow_settings?.mode_labels&&typeof data.business.customer_flow_settings.mode_labels==='object')?data.business.customer_flow_settings.mode_labels:{}
@@ -30,6 +31,7 @@ function sourcePayload(data:any){
 function flatten(payload:any):TranslationRow[]{
   const rows:TranslationRow[]=[];
   rows.push({kind:'catalog',id:String(payload.catalog?.id||'catalog'),title:String(payload.catalog?.title||''),name:String(payload.catalog?.display_name||''),description:String(payload.catalog?.description||'')});
+  rows.push({kind:'business',id:String(payload.business?.id||'business'),name:String(payload.business?.name||''),description:String(payload.business?.description||'')});
   for(const p of payload.pages||[])rows.push({kind:'page',id:String(p.id),title:String(p.title||''),description:String(p.description||'')});
   for(const c of payload.categories||[]){rows.push({kind:'category',id:String(c.id),name:String(c.name||''),description:String(c.description||'')});for(const i of c.items||[])rows.push({kind:'item',id:String(i.id),parent_id:String(c.id),name:String(i.name||''),description:String(i.description||'')})}
   for(const [key,value] of Object.entries(payload.flow_labels||{}))rows.push({kind:'flow',id:String(key),value:String(value||'')});
@@ -37,9 +39,10 @@ function flatten(payload:any):TranslationRow[]{
 }
 function rebuild(source:any,rows:TranslationRow[]){
   const byKey=new Map(rows.map(r=>[`${r.kind}:${r.id}`,r]));
-  const catalogRow=byKey.get(`catalog:${String(source.catalog?.id||'catalog')}`);
+  const catalogRow=byKey.get(`catalog:${String(source.catalog?.id||'catalog')}`);const businessRow=byKey.get(`business:${String(source.business?.id||'business')}`);
   return {
     catalog:{...source.catalog,title:catalogRow?.title||source.catalog?.title||'',display_name:catalogRow?.name||source.catalog?.display_name||'',description:catalogRow?.description??source.catalog?.description??''},
+    business:{...source.business,name:source.business?.name||'',description:businessRow?.description??source.business?.description??''},
     pages:(source.pages||[]).map((p:any)=>{const r=byKey.get(`page:${String(p.id)}`);return {...p,title:r?.title||p.title||'',description:r?.description??p.description??''}}),
     categories:(source.categories||[]).map((c:any)=>{const r=byKey.get(`category:${String(c.id)}`);return {...c,name:r?.name||c.name||'',description:r?.description??c.description??'',items:(c.items||[]).map((i:any)=>{const x=byKey.get(`item:${String(i.id)}`);return {...i,name:x?.name||i.name||'',description:x?.description??i.description??''}})}}),
     flow_labels:Object.fromEntries(Object.keys(source.flow_labels||{}).map(key=>[key,byKey.get(`flow:${key}`)?.value||source.flow_labels[key]]))
@@ -49,7 +52,7 @@ function fingerprint(payload:any){return createHash('sha256').update(JSON.string
 
 async function translateBatch(rows:TranslationRow[],batchIndex:number){
   if(!PROVIDER_KEY)throw new Error('TRANSLATION_KEY_MISSING');
-  const system='You translate commerce catalogue copy from French to concise natural English. Return ONLY valid JSON in the shape {"rows":[...]}. Keep every row kind, id and parent_id exactly unchanged and in the same order. Translate only title, name, description and value fields. Never translate business names, brand names, product codes, URLs, prices or IDs. Never invent details.';
+  const system='You translate commerce catalogue copy from French to concise natural English. Return ONLY valid JSON in the shape {"rows":[...]}. Keep every row kind, id and parent_id exactly unchanged and in the same order. Translate only title, name, description and value fields. Business and brand names must stay unchanged. Never translate product codes, URLs, prices or IDs. Never invent details.';
   let lastError='TRANSLATION_UNAVAILABLE';
   for(const model of MODELS){
     try{
@@ -66,8 +69,7 @@ async function translateBatch(rows:TranslationRow[],batchIndex:number){
 }
 
 async function translateToEnglish(payload:any){
-  const rows=flatten(payload);const translated:TranslationRow[]=[];
-  const batches=chunks(rows,18);
+  const rows=flatten(payload);const translated:TranslationRow[]=[];const batches=chunks(rows,18);
   for(let i=0;i<batches.length;i++)translated.push(...await translateBatch(batches[i],i));
   return rebuild(payload,translated);
 }
