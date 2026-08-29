@@ -17,10 +17,15 @@ function bounds(preset:Preset,chosenMonth:string,from:string,to:string){
   else{start=new Date(now.getFullYear(),now.getMonth(),1);end=new Date(now.getTime()+1000)}
   return {start:start.toISOString(),end:end.toISOString()};
 }
-function money(v:number|null|undefined,currency='XOF'){if(v==null)return'—';try{return new Intl.NumberFormat('fr-FR',{style:'currency',currency,maximumFractionDigits:0}).format(Number(v)/100)}catch{return `${Math.round(Number(v)/100)} ${currency}`}}
+function money(v:number|null|undefined,currency='XOF'){
+  if(v==null)return'—';
+  const value=Number(v);
+  if(currency==='XOF')return `${new Intl.NumberFormat('fr-FR',{maximumFractionDigits:0}).format(value).replace(/\u202f/g,' ')} F CFA`;
+  try{return new Intl.NumberFormat('fr-FR',{style:'currency',currency}).format(value)}catch{return `${new Intl.NumberFormat('fr-FR').format(value)} ${currency}`}
+}
 function csvCell(v:any){const s=String(v??'');return /[",\n;]/.test(s)?`"${s.replace(/"/g,'""')}"`:s}
 function downloadBlob(blob:Blob,name:string){const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1500)}
-function ascii(s:string){return s.normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^ u036f]/g,'').replace(/[^\x20-~u036f]/g,'').replace(/[^\x20-\x7E]/g,'?').replace(/([\\()])/g,'\\$1')}
+function ascii(s:string){return s.normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^\x20-\x7E]/g,'?').replace(/([\\()])/g,'\\$1')}
 function simplePdf(lines:string[]){
   const text=lines.slice(0,55).map((line,i)=>`${i===0?'BT /F1 16 Tf 42 800 Td':'0 -14 Td'} (${ascii(line)}) Tj`).join('\n')+'\nET';
   const objects=[
@@ -44,7 +49,7 @@ export function OpsPosStats({accessKey}:{accessKey:string}){
   async function checkPermission(){try{const d=await api('list',{limit:1});const ok=!!d?.access?.can_view_catalog_stats;setAllowed(ok);if(ok)void load()}catch{setAllowed(false)}}
   async function load(){if(pin.length<4)return;setBusy(true);setError('');try{const b=bounds(preset,chosenMonth,from,to);const d=await api('stats',b);setStats(d);setAllowed(true)}catch(e:any){const msg=String(e?.message||'');if(msg.includes('STATS_FORBIDDEN')){setAllowed(false);setError('Cet accès n’a pas l’autorisation de voir les statistiques du catalogue.')}else setError(msg||'Statistiques indisponibles.')}finally{setBusy(false)}}
   useEffect(()=>{if(allowed)void load()},[preset,chosenMonth,from,to]);
-  function exportCsv(){if(!stats)return;const rows=[['Commande','Date','Statut','Source','Total']];for(const o of stats.orders||[])rows.push([o.order_number,new Date(o.created_at).toLocaleString('fr-FR'),o.status,o.source,o.total_minor==null?'':String(Number(o.total_minor)/100)]);const csv='\ufeff'+rows.map(r=>r.map(csvCell).join(';')).join('\r\n');downloadBlob(new Blob([csv],{type:'text/csv;charset=utf-8'}),`qatalink-stats-${new Date().toISOString().slice(0,10)}.csv`)}
+  function exportCsv(){if(!stats)return;const rows=[['Commande','Date','Statut','Source','Total']];for(const o of stats.orders||[])rows.push([o.order_number,new Date(o.created_at).toLocaleString('fr-FR'),o.status,o.source,o.total_minor==null?'':String(Number(o.total_minor))]);const csv='\ufeff'+rows.map(r=>r.map(csvCell).join(';')).join('\r\n');downloadBlob(new Blob([csv],{type:'text/csv;charset=utf-8'}),`qatalink-stats-${new Date().toISOString().slice(0,10)}.csv`)}
   function exportPdf(){if(!stats)return;const s=stats.summary||{},currency=stats.catalog?.currency_code||'XOF';const lines=[`Qatalink - Rapport POS - ${stats.catalog?.title||'Catalogue'}`,`Periode: ${new Date(stats.period?.start||'').toLocaleDateString('fr-FR')} - ${new Date(stats.period?.end||'').toLocaleDateString('fr-FR')}`,`Commandes: ${s.orders_count||0}`,`Chiffre d'affaires: ${money(s.revenue_minor,currency)}`,`Panier moyen: ${money(s.average_order_minor,currency)}`,`Scans QR: ${s.scans||0}`,`Sessions catalogue: ${s.unique_sessions||0}`,`Evenements catalogue: ${s.catalog_events||0}`,'','Top articles:',...(stats.top_items||[]).slice(0,12).map((x:any)=>`- ${x.name}: ${x.quantity} unite(s)${x.revenue_minor==null?'':` - ${money(x.revenue_minor,currency)}`}`),'','Commandes recentes:',...(stats.orders||[]).slice(0,24).map((o:any)=>`${o.order_number} | ${new Date(o.created_at).toLocaleString('fr-FR')} | ${o.status} | ${o.source}${o.total_minor==null?'':` | ${money(o.total_minor,currency)}`}`)];downloadBlob(simplePdf(lines),`qatalink-stats-${new Date().toISOString().slice(0,10)}.pdf`)}
   if(!pin||allowed===null)return null;
   if(!allowed)return null;
