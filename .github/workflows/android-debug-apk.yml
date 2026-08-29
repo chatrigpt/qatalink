@@ -14,6 +14,7 @@ on:
       - 'app/mobile-hardening.css'
       - 'lib/escpos-printer.ts'
       - 'lib/order-receipt.ts'
+      - 'public/qatalink-icon.svg'
       - 'scripts/patch-android-deeplinks.mjs'
       - 'scripts/fix-android-background-service.mjs'
       - '.github/workflows/android-debug-apk.yml'
