@@ -1,0 +1,24 @@
+/* Stable dashboard information architecture.
+   Core DashboardAppV3 navigation remains in source order with Vue d’ensemble first.
+   Portal/injected operational tools are deliberately placed after the core catalogue workflow.
+   No timer or MutationObserver is allowed to reshuffle visible entries. */
+.dash-v3-nav > .dash-tool-nav,
+.dash-v3-mobile-tabs > .dash-tool-nav{order:20}
+.dash-v3-nav > .dash-tool-studio,
+.dash-v3-mobile-tabs > .dash-tool-studio{order:30}
+.dash-v3-nav > .q-stock-nav-slot,
+.dash-v3-mobile-tabs > .q-stock-nav-slot{order:31}
+.dash-v3-nav > [data-qpos],
+.dash-v3-mobile-tabs > [data-qpos]{order:32}
+.dash-v3-nav > [data-qforecast],
+.dash-v3-mobile-tabs > [data-qforecast]{order:33}
+.dash-v3-nav > .owner-revenue-nav,
+.dash-v3-mobile-tabs > .owner-revenue-nav{order:40}
+
+/* Injected wrappers must behave as a single navigation row. */
+.dash-v3-nav > [data-qpos],
+.dash-v3-nav > [data-qforecast],
+.dash-v3-nav > .q-stock-nav-slot{display:block;min-width:0}
+.dash-v3-nav > [data-qpos] > button,
+.dash-v3-nav > [data-qforecast] > button,
+.dash-v3-nav > .q-stock-nav-slot > button{width:100%}
