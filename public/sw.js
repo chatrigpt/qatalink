@@ -1,14 +1,6 @@
-self.addEventListener('install',()=>self.skipWaiting());
-self.addEventListener('activate',event=>event.waitUntil(self.clients.claim()));
-self.addEventListener('fetch',()=>{});
-self.addEventListener('notificationclick',event=>{
-  event.notification.close();
-  const url=event.notification?.data?.url||'/dashboard';
-  event.waitUntil((async()=>{
-    const all=await self.clients.matchAll({type:'window',includeUncontrolled:true});
-    for(const client of all){
-      if('focus'in client){await client.focus();if('navigate'in client)await client.navigate(url);return}
-    }
-    if(self.clients.openWindow)await self.clients.openWindow(url);
-  })());
-});
+const CACHE='qatalink-offline-v3';
+const CORE=['/','/mobile','/manifest.webmanifest','/qatalink-icon.svg','/qatalink-logo.png'];
+self.addEventListener('install',event=>event.waitUntil((async()=>{const cache=await caches.open(CACHE);await Promise.all(CORE.map(url=>cache.add(url).catch(()=>null)));await self.skipWaiting()})()));
+self.addEventListener('activate',event=>event.waitUntil((async()=>{for(const key of await caches.keys())if(key.startsWith('qatalink-offline-')&&key!==CACHE)await caches.delete(key);await self.clients.claim()})()));
+self.addEventListener('fetch',event=>{const req=event.request;if(req.method!=='GET')return;const url=new URL(req.url);if(url.origin!==self.location.origin)return;const isNav=req.mode==='navigate';const asset=/\.(?:js|css|woff2?|png|jpg|jpeg|webp|svg|ico)$/i.test(url.pathname)||url.pathname.startsWith('/_next/static/');if(isNav){event.respondWith((async()=>{const cache=await caches.open(CACHE);try{const fresh=await fetch(req);if(fresh.ok)await cache.put(req,fresh.clone());return fresh}catch{return await cache.match(req)||await cache.match('/mobile')||await cache.match('/')}})());return}if(asset)event.respondWith((async()=>{const cache=await caches.open(CACHE);const hit=await cache.match(req);if(hit){event.waitUntil(fetch(req).then(r=>r.ok?cache.put(req,r.clone()):null).catch(()=>null));return hit}try{const fresh=await fetch(req);if(fresh.ok)await cache.put(req,fresh.clone());return fresh}catch{return new Response('',{status:504,statusText:'Offline'})}})())});
+self.addEventListener('notificationclick',event=>{event.notification.close();const url=event.notification?.data?.url||'/dashboard';event.waitUntil((async()=>{const all=await self.clients.matchAll({type:'window',includeUncontrolled:true});for(const client of all){if('focus'in client){await client.focus();if('navigate'in client)await client.navigate(url);return}}if(self.clients.openWindow)await self.clients.openWindow(url)})())});
