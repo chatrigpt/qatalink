@@ -7,7 +7,7 @@ import {createSupabaseBrowserClient} from '@/lib/supabase';
 
 type Business={id:string;name:string;description:string|null;whatsapp_number:string|null;logo_url:string|null;cover_url:string|null;business_type:string};
 type Catalog={id:string;title:string;public_slug:string;hub_public_slug:string|null;display_name:string|null;description:string|null;whatsapp_number:string|null;logo_url:string|null;cover_url:string|null;business_type:string|null};
-const BUSINESS_TYPES=[['restaurant','Restaurant / bar / maquis'],['hotel','Hôtel / hébergement'],['retail','Boutique / commerce'],['spa_beauty','Beauté / bien-être'],['real_estate','Immobilier'],['services','Services'],['other','Autre']] as const;
+const BUSINESS_TYPES=[['restaurant','Restaurant'],['bar','Bar'],['maquis','Maquis'],['lounge','Lounge'],['hotel','Hôtel / hébergement'],['retail','Boutique / commerce'],['spa_beauty','Beauté / bien-être'],['real_estate','Immobilier'],['services','Services'],['other','Autre']] as const;
 
 function slugify(value:string){return value.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'').slice(0,48)||'catalogue'}
 function suffix(){return Math.random().toString(36).slice(2,8)}
