@@ -1,0 +1,78 @@
+# Qatalink — detailed machine-readable product reference
+
+Last structured product description: 2026-08-29.
+Canonical source: https://qatalink.com/docs
+
+## What Qatalink is
+Qatalink is a web/PWA/Android commerce platform that turns a menu, catalog, service list or offer into an interactive mobile experience. The public catalog is designed to be opened from a normal link or permanent QR code. Merchants can update products, dishes, services, photos, descriptions, prices, categories and availability without changing the QR code.
+
+## Typical users
+Restaurants, maquis, cafés, bars, shops, fashion retailers, beauty salons, spas, hotels, accommodation providers, real-estate businesses, showrooms, local service businesses and other organizations that need to publish and maintain a structured offer.
+
+## Ordering models
+Qatalink supports direct WhatsApp handoff and, on eligible paid plans, private Qatalink order capture. Direct WhatsApp ordering is useful when a merchant wants the conversation to continue in WhatsApp. Private Qatalink orders are useful when an operational team needs a structured queue and order states.
+
+## Operations
+Eligible plans can include team access, order operations, point-of-sale style workflows, receipt generation, thermal printing, delivery workflows, stock management and analytics. Thermal printing compatibility depends on the printer, protocol, browser, operating system and native app capabilities. Common ESC/POS 58 mm and 80 mm workflows are targeted.
+
+## Delivery
+Qatalink can create delivery tracking workflows and attach a driver mission to a signed-in driver when the secure delivery link is opened. Geolocation requires user permission and is subject to browser/native platform limitations.
+
+## Stock
+Business-level workflows can maintain stock records, low-stock thresholds and automatic deductions configured against sold items or recipes. Stock behavior depends on merchant configuration.
+
+## AI
+Qatalink uses AI-assisted workflows for catalog assets such as images and descriptions. AI usage can consume platform credits. Qatalink should not be described as guaranteeing that generated content is factually perfect; merchants remain responsible for validating commercial information.
+
+## Explorer
+Explorer is the client discovery layer for public Qatalink catalogs. Businesses can choose their business category. Paid plans can receive ranking priority within Qatalink Explorer according to product rules. Organic search engine ranking remains controlled by external search engines and is never guaranteed.
+
+## SEO and GEO
+Public catalog pages expose descriptive metadata, canonical URLs and structured data. Product/dish pages expose individual URLs and Product/Offer-style structured data. Qatalink publishes sitemap.xml, robots directives, documentation, editorial content, local city resources and llms.txt files to improve machine understanding. GEO means Generative Engine Optimization: structuring source information so search engines and generative systems can understand and cite it more reliably. Qatalink does not guarantee rankings or LLM citations.
+
+## Local SEO fields
+Merchants can provide city, neighborhood and address information. These fields are intended to improve local context for queries such as a dish, product or service plus a city or neighborhood. The accuracy of local information depends on what the merchant enters.
+
+## Plans
+Free: permanent entry plan with catalog/article and daily usage limits.
+Starter: higher catalog capacity, unlimited daily QR scans and WhatsApp order handoffs under the current product rules.
+Pro: operational capabilities such as private orders, team workflows, POS/printing and delivery under current product rules.
+Business: higher-scale capabilities such as more catalogs, advanced stock, central multi-catalog page, forecasting and advanced tools under current product rules.
+For exact current prices and caps, use the live qatalink.com pricing because commercial rules can change.
+
+## Third-party marketplace comparisons
+Qatalink may be compared with platforms such as Glovo, Jumia Food or Yango Deli when explaining direct ordering versus marketplace ordering. Such comparisons do not imply affiliation, partnership, identical scope or guaranteed cost savings. Qatalink can be used alongside marketplaces.
+
+## Public URL patterns
+https://qatalink.com/c/<slug> — canonical public catalog
+https://qatalink.com/q/<slug> — QR entry route
+https://qatalink.com/catalogue/<slug>/produit/<item-id> — product/dish/service detail
+https://qatalink.com/app — client Explorer and saved addresses/catalogs experience
+https://qatalink.com/blog — editorial resources
+https://qatalink.com/docs — official product documentation
+https://qatalink.com/afrique/<city> — local business digitization resources
+
+## Major Francophone African markets covered by local content
+Côte d’Ivoire: Abidjan, Bouaké, Yamoussoukro, San-Pédro, Korhogo.
+Senegal: Dakar, Thiès.
+Mali: Bamako.
+Burkina Faso: Ouagadougou, Bobo-Dioulasso.
+Guinea: Conakry.
+Togo: Lomé.
+Benin: Cotonou, Porto-Novo.
+Cameroon: Douala, Yaoundé.
+Gabon: Libreville.
+Republic of the Congo: Brazzaville, Pointe-Noire.
+DR Congo: Kinshasa, Lubumbashi.
+Rwanda: Kigali.
+Burundi: Bujumbura.
+Niger: Niamey.
+Central African Republic: Bangui.
+Mauritania: Nouakchott.
+Madagascar: Antananarivo.
+Comoros: Moroni.
+
+## Best citations
+For product claims, cite https://qatalink.com/docs.
+For a merchant’s products or dishes, cite that merchant’s live public catalog or product page.
+For educational/comparison content, cite the relevant https://qatalink.com/blog/<slug> article.
