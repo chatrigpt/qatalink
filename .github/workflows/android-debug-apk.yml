@@ -1,4 +1,4 @@
-name: Build Android debug APK
+name: Build Android beta APK
 on:
   workflow_dispatch:
   push:
@@ -9,15 +9,22 @@ on:
       - 'components/capacitor-native-bridge.tsx'
       - 'components/native-space-switcher.tsx'
       - 'components/driver-native-open.tsx'
+      - 'components/ops-pos-order-taking.tsx'
+      - 'components/pwa-bluetooth-printer-bridge.tsx'
       - 'app/livreur/**'
       - 'app/mobile/**'
       - 'app/mobile-hardening.css'
       - 'lib/escpos-printer.ts'
       - 'lib/order-receipt.ts'
       - 'public/qatalink-icon.svg'
+      - 'public/manifest.webmanifest'
+      - 'public/sw.js'
       - 'scripts/patch-android-deeplinks.mjs'
       - 'scripts/fix-android-background-service.mjs'
+      - 'scripts/apply-android-qatalink-icons.mjs'
       - '.github/workflows/android-debug-apk.yml'
+permissions:
+  contents: write
 jobs:
   apk:
     runs-on: ubuntu-latest
@@ -30,14 +37,30 @@ jobs:
         with:
           distribution: temurin
           java-version: '21'
+      - name: Install SVG renderer
+        run: sudo apt-get update && sudo apt-get install -y librsvg2-bin
       - run: npm install
       - run: npx cap add android
       - run: npx cap sync android
       - run: node scripts/patch-android-deeplinks.mjs
       - run: node scripts/fix-android-background-service.mjs
+      - run: node scripts/apply-android-qatalink-icons.mjs
       - run: chmod +x android/gradlew && cd android && ./gradlew assembleDebug
+      - name: Prepare beta APK
+        run: |
+          cp android/app/build/outputs/apk/debug/app-debug.apk qatalink-android-beta.apk
+          sha256sum qatalink-android-beta.apk > qatalink-android-beta.sha256
       - uses: actions/upload-artifact@v4
         with:
-          name: qatalink-android-debug
-          path: android/app/build/outputs/apk/debug/app-debug.apk
+          name: qatalink-android-beta
+          path: |
+            qatalink-android-beta.apk
+            qatalink-android-beta.sha256
           if-no-files-found: error
+      - name: Publish public beta download
+        if: github.ref == 'refs/heads/main'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release view android-beta >/dev/null 2>&1 || gh release create android-beta --title "Qatalink Android Beta" --prerelease --notes "APK bêta officiel Qatalink pour appareils Android. Compilé automatiquement depuis la branche main."
+          gh release upload android-beta qatalink-android-beta.apk qatalink-android-beta.sha256 --clobber
