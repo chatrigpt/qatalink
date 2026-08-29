@@ -1,0 +1,13 @@
+'use client';
+
+import {BellRing} from 'lucide-react';
+import {useEffect,useRef,useState} from 'react';
+
+export function OpsOrderNotifications({accessKey}:{accessKey:string}){
+ const [permission,setPermission]=useState<string>('default');const [enabled,setEnabled]=useState(false);const known=useRef(new Set<string>()),initialized=useRef(false);
+ useEffect(()=>{setPermission('Notification'in window?Notification.permission:'unsupported');setEnabled(Notification.permission==='granted')},[]);
+ async function ask(){if(!('Notification'in window))return;const p=await Notification.requestPermission();setPermission(p);setEnabled(p==='granted')}
+ async function notify(order:any){if(Notification.permission!=='granted')return;const title=`Nouvelle commande ${order.order_number||''}`.trim(),body=[order.table_number?`Table ${order.table_number}`:'',order.total_minor!=null?`${new Intl.NumberFormat('fr-FR').format(Number(order.total_minor))} ${order.currency_code||'XOF'}`:''].filter(Boolean).join(' · ')||'Une nouvelle commande est à traiter.';const opts:NotificationOptions={body,icon:'/qatalink-icon.svg',badge:'/qatalink-icon.svg',tag:`qatalink-order-${order.id}`,requireInteraction:true,data:{url:`/ops/${encodeURIComponent(accessKey)}`}};try{const r=await navigator.serviceWorker?.ready;if(r){await r.showNotification(title,opts);navigator.vibrate?.([180,80,180]);return}}catch{}try{new Notification(title,opts);navigator.vibrate?.([180,80,180])}catch{}}
+ useEffect(()=>{let stop=false;async function poll(){let pin='';try{pin=sessionStorage.getItem(`qatalink_ops_pin_${accessKey}`)||''}catch{}if(!pin)return;try{const r=await fetch('/api/ops/orders',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({access_key:accessKey,pin,action:'list',limit:40}),cache:'no-store'});const d=await r.json().catch(()=>({}));if(!r.ok)return;const orders=Array.isArray(d.orders)?d.orders:[];if(!initialized.current){orders.forEach((o:any)=>known.current.add(String(o.id)));initialized.current=true;return}for(const o of orders){const id=String(o.id);if(known.current.has(id))continue;known.current.add(id);if(o.status==='new')void notify(o)}}catch{}}void poll();const t=setInterval(()=>{if(!stop)void poll()},5000);return()=>{stop=true;clearInterval(t)}},[accessKey]);
+ if(permission==='granted')return null;if(permission==='unsupported')return null;return <button onClick={ask} style={{position:'fixed',right:14,bottom:'max(14px,env(safe-area-inset-bottom))',zIndex:2147482600,border:0,borderRadius:14,padding:'11px 13px',background:'#111',color:'#fff',fontWeight:850,display:'flex',alignItems:'center',gap:7,boxShadow:'0 12px 35px rgba(0,0,0,.24)'}}><BellRing size={17}/>Activer les notifications de commandes</button>;
+}
