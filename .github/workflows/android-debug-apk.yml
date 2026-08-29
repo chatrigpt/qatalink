@@ -7,6 +7,8 @@ on:
       - 'capacitor.config.ts'
       - 'package.json'
       - 'components/capacitor-native-bridge.tsx'
+      - 'components/native-download-bridge.tsx'
+      - 'components/native-back-button.tsx'
       - 'components/native-space-switcher.tsx'
       - 'components/driver-native-open.tsx'
       - 'components/ops-pos-order-taking.tsx'
@@ -21,6 +23,7 @@ on:
       - 'public/sw.js'
       - 'scripts/patch-android-deeplinks.mjs'
       - 'scripts/fix-android-background-service.mjs'
+      - 'scripts/add-android-downloads-plugin.mjs'
       - 'scripts/apply-android-qatalink-icons.mjs'
       - '.github/workflows/android-debug-apk.yml'
 permissions:
@@ -44,6 +47,7 @@ jobs:
       - run: npx cap sync android
       - run: node scripts/patch-android-deeplinks.mjs
       - run: node scripts/fix-android-background-service.mjs
+      - run: node scripts/add-android-downloads-plugin.mjs
       - run: node scripts/apply-android-qatalink-icons.mjs
       - run: chmod +x android/gradlew && cd android && ./gradlew assembleDebug
       - name: Prepare beta APK
