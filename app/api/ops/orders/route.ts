@@ -44,6 +44,14 @@ export async function POST(req:NextRequest){
       return NextResponse.json({success:true,...data});
     }
 
+    if(action==='stats'){
+      const start=String(body?.start||'');const end=String(body?.end||'');
+      if(!start||!end||Number.isNaN(Date.parse(start))||Number.isNaN(Date.parse(end)))return NextResponse.json({success:false,error:'INVALID_PERIOD'},{status:400});
+      const {data,error}=await supabase.rpc('get_catalog_team_pos_stats',{p_access_key:accessKey,p_pin:pin,p_start:start,p_end:end});
+      if(error)return NextResponse.json({success:false,error:error.message||'STATS_FAILED'},{status:403});
+      return NextResponse.json({success:true,...data});
+    }
+
     if(action==='sources'){
       const {data,error}=await supabase.rpc('get_catalog_team_order_sources',{p_access_key:accessKey,p_pin:pin,p_limit:Math.min(200,Math.max(1,Number(body?.limit||150)))});
       if(error)return NextResponse.json({success:false,error:error.message||'ACCESS_DENIED'},{status:403});
