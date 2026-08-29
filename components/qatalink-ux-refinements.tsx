@@ -2,71 +2,13 @@
 
 import {useEffect} from 'react';
 
-function addCreateClose(){
-  if(window.location.pathname!=='/create')return;
-  const card=document.querySelector<HTMLElement>('.activation-create-card');
-  if(!card||card.querySelector('.qatalink-create-close'))return;
-  const button=document.createElement('button');
-  button.type='button';button.className='qatalink-create-close';button.setAttribute('aria-label','Fermer et revenir au dashboard');
-  button.innerHTML='<span aria-hidden="true">×</span><b>Dashboard</b>';
-  button.onclick=()=>{window.location.href='/dashboard'};
-  card.prepend(button);
-}
-
-function refineOrderButtons(){
-  if(!window.location.pathname.startsWith('/c/'))return;
-  document.querySelectorAll<HTMLElement>('.public-v2-qty').forEach(box=>{
-    const buttons=Array.from(box.querySelectorAll<HTMLButtonElement>('button'));
-    const qty=box.querySelector('span');
-    if(!buttons.length)return;
-    if(!qty){
-      const start=buttons[buttons.length-1];
-      start.classList.add('qatalink-order-start');
-      start.setAttribute('aria-label','Commander cet article');
-      if(start.textContent?.trim()!=='Commander')start.textContent='Commander';
-      return;
-    }
-    buttons.forEach(b=>b.classList.remove('qatalink-order-start'));
-    if(buttons[0])buttons[0].setAttribute('aria-label','Diminuer la quantité ou retirer');
-    if(buttons[buttons.length-1])buttons[buttons.length-1].setAttribute('aria-label','Augmenter la quantité');
-  });
-}
-
-function addCreatedNudge(){
-  if(window.location.pathname!=='/dashboard')return;
-  const params=new URLSearchParams(window.location.search);
-  if(params.get('created')!=='1'||params.get('tab')!=='overview')return;
-  const main=document.querySelector<HTMLElement>('.dash-v3-main');
-  const section=main?.querySelector<HTMLElement>(':scope > .dash-section');
-  if(!section||section.querySelector('.qatalink-qr-next-step'))return;
-  const catalog=params.get('catalog')||'';
-  const qrHref=`/dashboard?tab=qr${catalog?`&catalog=${encodeURIComponent(catalog)}`:''}`;
-  const card=document.createElement('section');
-  card.className='qatalink-qr-next-step';
-  card.innerHTML=`<div class="qatalink-qr-next-icon">▦</div><div class="qatalink-qr-next-copy"><span>PROCHAINE ÉTAPE</span><h2>Votre catalogue est créé. Faites-le maintenant scanner.</h2><p>Téléchargez votre QR, affichez-le là où vos clients peuvent le voir, puis faites un premier scan avec un autre téléphone. C’est ce qui transforme un catalogue créé en catalogue réellement utilisé.</p></div><div class="qatalink-qr-next-actions"><a class="btn btn-primary" href="${qrHref}">Télécharger mon QR</a><a class="btn btn-ghost" href="${qrHref}">Tester le scan</a></div>`;
-  section.prepend(card);
-}
-
-function refineQrSection(){
-  if(window.location.pathname!=='/dashboard')return;
-  const title=document.querySelector('.dash-v3-top h1')?.textContent?.trim();
-  if(title!=='QR & partage')return;
-  const card=document.querySelector<HTMLElement>('.qr-v3-card');
-  if(card&&!card.querySelector('.qatalink-qr-scan-coach')){
-    const coach=document.createElement('div');coach.className='qatalink-qr-scan-coach';
-    coach.innerHTML='<b>1. Téléchargez ce QR</b><span>2. Placez-le là où vos clients peuvent le voir</span><strong>3. Faites-le scanner maintenant avec un autre téléphone</strong>';
-    card.appendChild(coach);
-  }
-  document.querySelectorAll<HTMLElement>('.qr-v2-actions a,.qr-v2-actions button').forEach(el=>{if((el.textContent||'').toLowerCase().includes('télécharger'))el.classList.add('qatalink-primary-download')});
-}
+function addCreateClose(){if(window.location.pathname!=='/create')return;const card=document.querySelector<HTMLElement>('.activation-create-card');if(!card||card.querySelector('.qatalink-create-close'))return;const button=document.createElement('button');button.type='button';button.className='qatalink-create-close';button.setAttribute('aria-label','Fermer et revenir au dashboard');button.innerHTML='<span aria-hidden="true">×</span><b>Dashboard</b>';button.onclick=()=>{window.location.href='/dashboard'};card.prepend(button)}
+function refineOrderButtons(){if(!window.location.pathname.startsWith('/c/'))return;document.querySelectorAll<HTMLElement>('.public-v2-qty').forEach(box=>{const buttons=Array.from(box.querySelectorAll<HTMLButtonElement>('button'));const qty=box.querySelector('span');if(!buttons.length)return;if(!qty){const start=buttons[buttons.length-1];start.classList.add('qatalink-order-start');start.setAttribute('aria-label','Commander cet article');if(start.textContent?.trim()!=='Commander')start.textContent='Commander';return}buttons.forEach(b=>b.classList.remove('qatalink-order-start'));if(buttons[0])buttons[0].setAttribute('aria-label','Diminuer la quantité ou retirer');if(buttons[buttons.length-1])buttons[buttons.length-1].setAttribute('aria-label','Augmenter la quantité')})}
+function addCreatedNudge(){if(window.location.pathname!=='/dashboard')return;const params=new URLSearchParams(window.location.search);if(params.get('created')!=='1'||params.get('tab')!=='overview')return;const main=document.querySelector<HTMLElement>('.dash-v3-main');const section=main?.querySelector<HTMLElement>(':scope > .dash-section');if(!section||section.querySelector('.qatalink-qr-next-step'))return;const catalog=params.get('catalog')||'';const qrHref=`/dashboard?tab=qr${catalog?`&catalog=${encodeURIComponent(catalog)}`:''}`;const card=document.createElement('section');card.className='qatalink-qr-next-step';card.innerHTML=`<div class="qatalink-qr-next-icon">▦</div><div class="qatalink-qr-next-copy"><span>PROCHAINE ÉTAPE</span><h2>Votre catalogue est créé. Faites-le maintenant scanner.</h2><p>Téléchargez votre QR, affichez-le là où vos clients peuvent le voir, puis faites un premier scan avec un autre téléphone. C’est ce qui transforme un catalogue créé en catalogue réellement utilisé.</p></div><div class="qatalink-qr-next-actions"><a class="btn btn-primary" href="${qrHref}">Télécharger mon QR</a><a class="btn btn-ghost" href="${qrHref}">Tester le scan</a></div>`;section.prepend(card)}
+function refineQrSection(){if(window.location.pathname!=='/dashboard')return;const title=document.querySelector('.dash-v3-top h1')?.textContent?.trim();if(title!=='QR & partage')return;const card=document.querySelector<HTMLElement>('.qr-v3-card');if(card&&!card.querySelector('.qatalink-qr-scan-coach')){const coach=document.createElement('div');coach.className='qatalink-qr-scan-coach';coach.innerHTML='<b>1. Téléchargez ce QR</b><span>2. Placez-le là où vos clients peuvent le voir</span><strong>3. Faites-le scanner maintenant avec un autre téléphone</strong>';card.appendChild(coach)}document.querySelectorAll<HTMLElement>('.qr-v2-actions a,.qr-v2-actions button').forEach(el=>{if((el.textContent||'').toLowerCase().includes('télécharger'))el.classList.add('qatalink-primary-download')})}
 
 export function QatalinkUxRefinements(){
   useEffect(()=>{
-    const run=()=>{addCreateClose();refineOrderButtons();addCreatedNudge();refineQrSection()};
-    run();
-    const observer=new MutationObserver(run);observer.observe(document.body,{childList:true,subtree:true,characterData:true});
-    const onPop=()=>setTimeout(run,10);window.addEventListener('popstate',onPop);
-    return()=>{observer.disconnect();window.removeEventListener('popstate',onPop)};
-  },[]);
-  return null;
+    const run=()=>{addCreateClose();refineOrderButtons();addCreatedNudge();refineQrSection()};run();const interval=setInterval(run,850);const onClick=()=>setTimeout(run,60);const onPop=()=>setTimeout(run,60);document.addEventListener('click',onClick,true);window.addEventListener('popstate',onPop);window.addEventListener('qatalink:catalog-change',onPop as EventListener);return()=>{clearInterval(interval);document.removeEventListener('click',onClick,true);window.removeEventListener('popstate',onPop);window.removeEventListener('qatalink:catalog-change',onPop as EventListener)}
+  },[]);return null;
 }
