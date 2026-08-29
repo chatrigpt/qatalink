@@ -85,32 +85,4 @@ import { LandingSupportExperience } from '@/components/landing-support-experienc
 import { PlanCopyAlignment } from '@/components/plan-copy-alignment';
 import { DashboardKeyInHandPrompt } from '@/components/key-in-hand-configurator';
 import { DirectPrintLabelFix } from '@/components/direct-print-label-fix';
-import { OpsStockAlerts } from '@/components/ops-stock-alerts';
-import { DashboardVibecoder } from '@/components/dashboard-vibecoder';
-import { DashboardNavOrder } from '@/components/dashboard-nav-order';
-import { OpsPosOrderTaking } from '@/components/ops-pos-order-taking';
-import { OpsOrderSourceBadges } from '@/components/ops-order-source-badges';
-import { OrderSourceAnalytics } from '@/components/order-source-analytics';
-import { OrderSourceShareControls } from '@/components/order-source-share-controls';
-import { DashboardForecastWizard } from '@/components/dashboard-forecast-wizard';
-import { ForecastCopyRefinement } from '@/components/forecast-copy-refinement';
-import { OpsDeliveryTracking } from '@/components/ops-delivery-tracking';
-import { PublicDeliveryTrackingHandoff } from '@/components/public-delivery-tracking-handoff';
-import { PublicDeliveryLocationCapture } from '@/components/public-delivery-location-capture';
-import { BusinessBetaMarketing } from '@/components/business-beta-marketing';
-import { DashboardPosCenter } from '@/components/dashboard-pos-center';
-import { DashboardSettingsExtras } from '@/components/dashboard-settings-extras';
-import { LandingHeaderExperience } from '@/components/landing-header-experience';
-import { LandingAndroidBetaDownload } from '@/components/landing-android-beta-download';
-import { AiCreditExperience } from '@/components/ai-credit-experience';
-import { CapacitorNativeBridge } from '@/components/capacitor-native-bridge';
-import { CatalogOrderControls } from '@/components/catalog-order-controls';
-import { NativeSpaceSwitcher } from '@/components/native-space-switcher';
-import { SmartNotificationCenter } from '@/components/smart-notification-center';
-
-const jakarta=Plus_Jakarta_Sans({subsets:['latin'],variable:'--font-jakarta'});const playfair=Playfair_Display({subsets:['latin'],style:['normal','italic'],variable:'--font-playfair'});const logo='/qatalink-icon.svg';
-export const metadata:Metadata={metadataBase:new URL('https://qatalink.com'),title:{default:'Qatalink — Catalogue digital, menu QR et gestion de commerce',template:'%s | Qatalink'},description:'Créez un catalogue ou menu interactif par QR code, recevez des commandes, gérez équipe, caisse, stock et livraison avec Qatalink.',applicationName:'Qatalink',category:'business',creator:'Qatalink',publisher:'Qatalink',keywords:['menu QR code','catalogue digital','catalogue interactif','commande WhatsApp','outil gestion restaurant','caisse restaurant','digitalisation commerce Afrique'],manifest:'/manifest.webmanifest',icons:{icon:[{url:logo,type:'image/svg+xml'}],shortcut:logo,apple:logo},appleWebApp:{capable:true,statusBarStyle:'default' as const,title:'Qatalink'},openGraph:{type:'website',locale:'fr_FR',url:'https://qatalink.com',siteName:'Qatalink',title:'Qatalink — Catalogue digital, menu QR et gestion de commerce',description:'Catalogue interactif, QR permanent, commandes, caisse, stock, livraison et outils IA pour commerces.',images:[{url:'/qatalink-icon.svg'}]},twitter:{card:'summary',title:'Qatalink',description:'Catalogues et menus interactifs, QR code, commandes et gestion de commerce.',images:['/qatalink-icon.svg']},robots:{index:true,follow:true}};
-const organization={"@context":"https://schema.org","@type":"Organization",name:'Qatalink',url:'https://qatalink.com',logo:'https://qatalink.com/qatalink-icon.svg',sameAs:[]};
-const website={"@context":"https://schema.org","@type":"WebSite",name:'Qatalink',url:'https://qatalink.com',inLanguage:'fr',publisher:{"@type":"Organization",name:'Qatalink'}};
-const software={"@context":"https://schema.org","@type":"SoftwareApplication",name:'Qatalink',url:'https://qatalink.com',applicationCategory:'BusinessApplication',operatingSystem:'Web, Android, PWA',description:'Plateforme de catalogues et menus interactifs avec QR code, commandes, équipe, caisse, stock, livraison et outils IA.'};
-export default function RootLayout({children}:{children:React.ReactNode}){return <html lang="fr" suppressHydrationWarning><body className={`${jakarta.variable} ${playfair.variable}`}><script type="application/ld+json" dangerouslySetInnerHTML={{__html:JSON.stringify(organization)}}/><script type="application/ld+json" dangerouslySetInnerHTML={{__html:JSON.stringify(website)}}/><script type="application/ld+json" dangerouslySetInnerHTML={{__html:JSON.stringify(software)}}/><ThemeProvider><CapacitorNativeBridge/>{children}<LandingAndroidBetaDownload/><MobileMoneyPaymentInfo/><LandingSupportExperience/><LandingHeaderExperience/><PlanCopyAlignment/><DashboardPlanExperience/><ItemImageGenerationControls/><ItemDescriptionGenerationControls/><StockManagementCenter/><CatalogCompletionControls/><CatalogIdentityControls/><AutomaticImageAssignment/><CreateAutoIllustrations/><QatalinkUxRefinements/><CatalogDeletionControls/><QrCanonicalControls/><OrderSourceShareControls/><OrderOperationsCenter/><OpsStockAlerts/><OpsPosOrderTaking/><OpsOrderSourceBadges/><OrderSourceAnalytics/><OpsDeliveryTracking/><PublicDeliveryTrackingHandoff/><PublicDeliveryLocationCapture/><DashboardForecastWizard/><ForecastCopyRefinement/><DashboardSettingsExtras/><DashboardPosCenter/><BusinessBetaMarketing/><AiCreditExperience/><GenerationActivityCenter/><DashboardKeyInHandPrompt/><DirectPrintLabelFix/><DashboardVibecoder/><DashboardNavOrder/><CatalogOrderControls/><NativeSpaceSwitcher/><SmartNotificationCenter/><PwaInstallButton/><MetaPixel/></ThemeProvider></body></html>}
+import { OpsStockAlerts } from '@/components/ops-stock-alert-alerts';
