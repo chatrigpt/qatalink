@@ -55,35 +55,58 @@
 .root :global(.public-v2.layout-grid .public-v2-price),
 .root :global(.public-v2.layout-showcase .public-v2-price){min-height:46px;font-variant-numeric:tabular-nums}
 .root :global(.public-v2.layout-cards .public-v2-copy),
-.root :global(.public-v2.layout-grid .public-v2-copy){display:flex;flex-direction:column;height:100%}
+.root :global(.public-v2.layout-grid .public-v2-copy){display:flex;flex-direction:column;min-height:0}
 .root :global(.public-v2.layout-cards .public-v2-copy p),
 .root :global(.public-v2.layout-grid .public-v2-copy p){flex:1}
+
+/* Interactive catalogs always expose a clear order action. The first click says Commander;
+   once selected, the existing component naturally becomes - quantity +. */
+.root :global(.public-v2-qty > button:only-child){
+  width:auto;min-width:100px;height:34px;padding:0 14px;border-radius:11px;font-weight:800;font-size:12px;display:flex;align-items:center;justify-content:center
+}
+.root :global(.public-v2-qty > button:only-child svg){display:none}
+.root :global(.public-v2-qty > button:only-child)::after{content:"Commander"}
+
+/* The sticky primary action is a button after an item is selected, so style anchors and buttons identically. */
+.root :global(.public-v2-whatsapp button){
+  display:block;width:min(720px,100%);margin:auto;text-align:center;background:var(--catalog-primary);color:#fff;padding:16px 24px;border-radius:15px;font-weight:800;border:0;cursor:pointer
+}
+.root :global(.public-v2-cart>footer>button){
+  display:block;width:100%;text-align:center;background:var(--catalog-primary);color:#fff;padding:15px 18px;border-radius:14px;font-weight:800;border:0;cursor:pointer
+}
 
 /* Simple / glossy / metallic textures are shared by all important catalog actions. */
 .root :global(.public-v2-tabs button),
 .root :global(.public-v2-qty button),
 .root :global(.public-v2-cart-count),
 .root :global(.public-v2-whatsapp a),
+.root :global(.public-v2-whatsapp button),
 .root :global(.public-v2-cart-qty button),
-.root :global(.public-v2-cart>footer>a){transition:transform .16s ease,box-shadow .16s ease,filter .16s ease}
+.root :global(.public-v2-cart>footer>a),
+.root :global(.public-v2-cart>footer>button){transition:transform .16s ease,box-shadow .16s ease,filter .16s ease}
 .root :global(.public-v2-tabs button:active),
 .root :global(.public-v2-qty button:active),
 .root :global(.public-v2-cart-count:active),
-.root :global(.public-v2-whatsapp a:active){transform:translateY(1px) scale(.985)}
+.root :global(.public-v2-whatsapp a:active),
+.root :global(.public-v2-whatsapp button:active){transform:translateY(1px) scale(.985)}
 
 .root:global(.catalog-button-simple) :global(.public-v2-tabs button.active),
 .root:global(.catalog-button-simple) :global(.public-v2-qty button),
 .root:global(.catalog-button-simple) :global(.public-v2-cart-count),
 .root:global(.catalog-button-simple) :global(.public-v2-whatsapp a),
+.root:global(.catalog-button-simple) :global(.public-v2-whatsapp button),
 .root:global(.catalog-button-simple) :global(.public-v2-cart-qty button),
-.root:global(.catalog-button-simple) :global(.public-v2-cart>footer>a){background:var(--catalog-primary);box-shadow:none}
+.root:global(.catalog-button-simple) :global(.public-v2-cart>footer>a),
+.root:global(.catalog-button-simple) :global(.public-v2-cart>footer>button){background:var(--catalog-primary);box-shadow:none}
 
 .root:global(.catalog-button-glossy) :global(.public-v2-tabs button.active),
 .root:global(.catalog-button-glossy) :global(.public-v2-qty button),
 .root:global(.catalog-button-glossy) :global(.public-v2-cart-count),
 .root:global(.catalog-button-glossy) :global(.public-v2-whatsapp a),
+.root:global(.catalog-button-glossy) :global(.public-v2-whatsapp button),
 .root:global(.catalog-button-glossy) :global(.public-v2-cart-qty button),
-.root:global(.catalog-button-glossy) :global(.public-v2-cart>footer>a){
+.root:global(.catalog-button-glossy) :global(.public-v2-cart>footer>a),
+.root:global(.catalog-button-glossy) :global(.public-v2-cart>footer>button){
   border:1px solid color-mix(in srgb,var(--catalog-primary) 78%,#fff 22%);
   background:linear-gradient(180deg,color-mix(in srgb,var(--catalog-primary) 48%,#fff 52%) 0%,var(--catalog-primary) 42%,color-mix(in srgb,var(--catalog-primary) 78%,#000 22%) 100%);
   box-shadow:inset 0 1px 0 rgba(255,255,255,.72),inset 0 -2px 4px rgba(0,0,0,.18),0 7px 16px color-mix(in srgb,var(--catalog-primary) 20%,transparent);
@@ -95,8 +118,10 @@
 .root:global(.catalog-button-metallic) :global(.public-v2-qty button),
 .root:global(.catalog-button-metallic) :global(.public-v2-cart-count),
 .root:global(.catalog-button-metallic) :global(.public-v2-whatsapp a),
+.root:global(.catalog-button-metallic) :global(.public-v2-whatsapp button),
 .root:global(.catalog-button-metallic) :global(.public-v2-cart-qty button),
-.root:global(.catalog-button-metallic) :global(.public-v2-cart>footer>a){
+.root:global(.catalog-button-metallic) :global(.public-v2-cart>footer>a),
+.root:global(.catalog-button-metallic) :global(.public-v2-cart>footer>button){
   color:#17130a;
   border:1px solid color-mix(in srgb,var(--catalog-primary) 58%,#fff 42%);
   background:linear-gradient(112deg,color-mix(in srgb,var(--catalog-primary) 72%,#5d4a1d 28%) 0%,#fff5bd 22%,color-mix(in srgb,var(--catalog-primary) 82%,#fff 18%) 42%,color-mix(in srgb,var(--catalog-primary) 70%,#5b4511 30%) 63%,#f8e8a4 82%,var(--catalog-primary) 100%);
@@ -107,9 +132,11 @@
 
 .root:global(.catalog-shape-pill) :global(.public-v2-tabs button),
 .root:global(.catalog-shape-pill) :global(.public-v2-whatsapp a),
+.root:global(.catalog-shape-pill) :global(.public-v2-whatsapp button),
 .root:global(.catalog-shape-pill) :global(.public-v2-cart-count){border-radius:999px}
 .root:global(.catalog-shape-square) :global(.public-v2-tabs button),
 .root:global(.catalog-shape-square) :global(.public-v2-whatsapp a),
+.root:global(.catalog-shape-square) :global(.public-v2-whatsapp button),
 .root:global(.catalog-shape-square) :global(.public-v2-cart-count){border-radius:6px}
 
 @media(max-width:760px){
