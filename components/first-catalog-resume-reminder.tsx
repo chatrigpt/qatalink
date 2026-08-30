@@ -38,6 +38,7 @@ export function FirstCatalogResumeReminder(){
 
     const loadState=async():Promise<ResumeState|null>=>{
       const {data:{session}}=await supabase.auth.getSession();if(!session)return null;
+      void supabase.rpc('refresh_my_first_catalog_resume_notification');
       const {data:profile}=await supabase.from('profiles').select('access_mode').eq('id',session.user.id).maybeSingle();
       if(profile?.access_mode&&profile.access_mode!=='pro')return null;
       const {data:businesses}=await supabase.from('businesses').select('id,published').eq('owner_user_id',session.user.id).order('created_at',{ascending:true}).limit(1);
@@ -67,12 +68,12 @@ export function FirstCatalogResumeReminder(){
 
     const refresh=async(reset=false)=>{const state=await loadState();if(disposed)return;if(!state){await cancelAll();return}await arm(state,reset)};
     const activity=()=>{if(activityTimer)window.clearTimeout(activityTimer);activityTimer=window.setTimeout(()=>{if(current&&!current.done)void arm(current,true)},15000)};
+    const visibility=()=>{if(document.visibilityState==='visible')void refresh(false)};
 
     void refresh(false);
     checkTimer=window.setInterval(()=>void refresh(false),60000);
-    document.addEventListener('pointerdown',activity,true);document.addEventListener('keydown',activity,true);
-    document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')void refresh(false)});
-    return()=>{disposed=true;clearBrowserTimer();if(checkTimer)clearInterval(checkTimer);if(activityTimer)clearTimeout(activityTimer);document.removeEventListener('pointerdown',activity,true);document.removeEventListener('keydown',activity,true)};
+    document.addEventListener('pointerdown',activity,true);document.addEventListener('keydown',activity,true);document.addEventListener('visibilitychange',visibility);
+    return()=>{disposed=true;clearBrowserTimer();if(checkTimer)clearInterval(checkTimer);if(activityTimer)clearTimeout(activityTimer);document.removeEventListener('pointerdown',activity,true);document.removeEventListener('keydown',activity,true);document.removeEventListener('visibilitychange',visibility)};
   },[supabase]);
 
   return null;
