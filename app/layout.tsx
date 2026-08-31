@@ -50,6 +50,7 @@ import './order-ops.css';
 import './order-ops-v2.css';
 import './ops-color-ui.css';
 import './ops-pos.css';
+import './stock-availability.css';
 import './order-source-analytics.css';
 import './forecast-beta.css';
 import './forecast-wizard.css';
