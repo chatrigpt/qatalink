@@ -1,0 +1,18 @@
+'use client';
+
+import {useEffect,useMemo,useState} from 'react';
+import {createPortal} from 'react-dom';
+import {Boxes,ShieldCheck} from 'lucide-react';
+import {createSupabaseBrowserClient} from '@/lib/supabase';
+
+type Access={id:string;label:string;enabled:boolean;can_manage_stock:boolean;can_edit_items:boolean;can_edit_prices:boolean};
+
+export function StockPermissionControl(){
+  const supabase=useMemo(()=>createSupabaseBrowserClient(),[]);
+  const [host,setHost]=useState<Element|null>(null),[catalogId,setCatalogId]=useState(''),[rows,setRows]=useState<Access[]>([]),[busy,setBusy]=useState(''),[notice,setNotice]=useState('');
+  useEffect(()=>{let timer:any;const sync=async()=>{const p=new URLSearchParams(location.search);const settings=p.get('tab')==='settings'||document.querySelector('.dash-v3-top h1')?.textContent?.trim()==='Paramètres';const main=document.querySelector('.dash-v3-main');setHost(settings?main:null);if(!settings)return;let cid=p.get('catalog')||'';if(!cid){const {data:{session}}=await supabase.auth.getSession();if(!session)return;const {data:b}=await supabase.from('businesses').select('id').eq('owner_user_id',session.user.id).order('created_at',{ascending:true}).limit(1).maybeSingle();if(b){const {data:c}=await supabase.from('catalogs').select('id').eq('business_id',b.id).order('created_at',{ascending:false}).limit(1).maybeSingle();cid=String(c?.id||'')}}if(cid&&cid!==catalogId){setCatalogId(cid);void load(cid)}};void sync();timer=setInterval(()=>void sync(),900);return()=>clearInterval(timer)},[supabase,catalogId]);
+  async function load(cid=catalogId){if(!cid)return;const {data,error}=await supabase.from('catalog_team_access').select('id,label,enabled,can_manage_stock,can_edit_items,can_edit_prices').eq('catalog_id',cid).order('created_at');if(!error)setRows((data||[]) as Access[])}
+  async function toggle(row:Access){setBusy(row.id);setNotice('');const next=!row.can_manage_stock;const {error}=await supabase.from('catalog_team_access').update({can_manage_stock:next,updated_at:new Date().toISOString()}).eq('id',row.id);if(error)setNotice(error.message);else{setRows(current=>current.map(r=>r.id===row.id?{...r,can_manage_stock:next}:r));setNotice(next?`Gestion du stock autorisée pour « ${row.label} ».`:`Gestion du stock retirée pour « ${row.label} ».`)}setBusy('')}
+  if(!host)return null;
+  return createPortal(<section className="dash-card" style={{marginTop:18}}><div style={{display:'flex',gap:12,alignItems:'flex-start',justifyContent:'space-between',flexWrap:'wrap'}}><div><div className="eyebrow"><ShieldCheck size={14}/> PERMISSIONS ÉQUIPE</div><h3 style={{margin:'5px 0'}}>Gestion du stock</h3><p style={{margin:0,opacity:.7,maxWidth:620}}>Autorisez uniquement les accès équipe qui doivent pouvoir gérer les quantités, réapprovisionnements et liaisons entre stock et produits.</p></div><Boxes size={24}/></div>{notice&&<div style={{marginTop:12,fontSize:13,fontWeight:700}}>{notice}</div>}<div style={{display:'grid',gap:9,marginTop:14}}>{rows.length?rows.map(row=><label key={row.id} style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:12,padding:'12px 14px',border:'1px solid color-mix(in srgb,currentColor 14%,transparent)',borderRadius:14}}><span style={{display:'grid',gap:2}}><b>{row.label||'Accès équipe'}</b><small style={{opacity:.65}}>{row.enabled?'Accès actif':'Accès désactivé'}{row.can_edit_items||row.can_edit_prices?' · peut déjà modifier le catalogue':''}</small></span><input type="checkbox" checked={!!row.can_manage_stock} disabled={busy===row.id} onChange={()=>void toggle(row)} style={{width:20,height:20}}/></label>):<p style={{margin:'8px 0 0',opacity:.65}}>Aucun accès équipe configuré pour ce catalogue.</p>}</div></section>,host);
+}
