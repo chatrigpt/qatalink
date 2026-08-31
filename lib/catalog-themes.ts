@@ -21,6 +21,7 @@ export type CatalogVisualTheme={
 
 export const QATALINK_THEMES:CatalogVisualTheme[]=[
   {id:'ruby-light',label:'Rubis éditorial',mode:'light',preview:'linear-gradient(135deg,#fff8f8,#d54256,#981923)',primary_color:'#A71E2B',secondary_color:'#F1D7D9',background_color:'#FFF9F8',background_mode:'gradient',background_gradient:'linear-gradient(160deg,#FFFDFB 0%,#FFF4F1 52%,#F2DDDA 100%)',text_color:'#2A1416',heading_font:'Playfair Display',body_font:'Plus Jakarta Sans',border_radius:'12px',card_style:'clean',button_style:'simple',layout_style:'editorial'},
+  {id:'ruby-dark',label:'Rubis sombre',mode:'dark',preview:'linear-gradient(135deg,#080709,#3b0d17,#a71e2b)',primary_color:'#D12B42',secondary_color:'#34151C',background_color:'#0B090B',background_mode:'gradient',background_gradient:'linear-gradient(155deg,#080709 0%,#130C0F 52%,#2A0D14 100%)',text_color:'#FFF7F8',heading_font:'Playfair Display',body_font:'Plus Jakarta Sans',border_radius:'14px',card_style:'premium',button_style:'glossy',layout_style:'editorial'},
   {id:'deloria-gold',label:'Deloria doré',mode:'light',preview:'linear-gradient(135deg,#fffdf4,#5a2f12,#d3a51f)',primary_color:'#B88A17',secondary_color:'#F3E5B8',background_color:'#FFF9E9',background_mode:'gradient',background_gradient:'linear-gradient(160deg,#FFFDF5 0%,#FFF8E5 50%,#F4E5BD 100%)',text_color:'#583218',heading_font:'DM Serif Display',body_font:'Plus Jakarta Sans',border_radius:'16px',card_style:'premium',button_style:'glossy',layout_style:'compact'},
   {id:'night-gold',label:'Night club or',mode:'dark',preview:'linear-gradient(135deg,#050506,#2a2416,#e5c34b)',primary_color:'#D2AC2C',secondary_color:'#2B271C',background_color:'#08080A',background_mode:'gradient',background_gradient:'linear-gradient(155deg,#050506 0%,#0E0E0F 55%,#201B0E 100%)',text_color:'#FFF6CF',heading_font:'DM Serif Display',body_font:'Plus Jakarta Sans',border_radius:'14px',card_style:'premium',button_style:'metallic',layout_style:'ledger'},
   {id:'maquis-amber',label:'Maquis ambré',mode:'light',preview:'linear-gradient(135deg,#fff9ed,#c44a19,#eaa548)',primary_color:'#C44A19',secondary_color:'#F1D2A6',background_color:'#FFF8ED',background_mode:'gradient',background_gradient:'linear-gradient(160deg,#FFFDF8 0%,#FFF1DB 52%,#F5D4AA 100%)',text_color:'#31170D',heading_font:'Plus Jakarta Sans',body_font:'Plus Jakarta Sans',border_radius:'16px',card_style:'clean',button_style:'glossy',layout_style:'compact'},
@@ -39,10 +40,10 @@ export const QATALINK_THEMES:CatalogVisualTheme[]=[
 
 export function themeLimitForPlan(plan:QatalinkPlan){
   const p=String(plan||'trial').toLowerCase();
-  if(p==='trial'||p==='linkhub')return 15;
-  if(p==='interactive')return 7;
-  if(p==='static')return 3;
-  return 3;
+  if(p==='trial'||p==='linkhub')return 16;
+  if(p==='interactive')return 8;
+  if(p==='static')return 4;
+  return 4;
 }
 
 export function allowedThemesForPlan(plan:QatalinkPlan){return QATALINK_THEMES.slice(0,themeLimitForPlan(plan));}
