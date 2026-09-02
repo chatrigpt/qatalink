@@ -22,6 +22,11 @@ import { CatalogLinkRenamer } from '@/components/catalog-link-renamer';
 import { CatalogOrderControls } from '@/components/catalog-order-controls';
 import { IdentityCtaRefinement } from '@/components/identity-cta-refinement';
 import { OwnerRevenueCenter } from '@/components/owner-revenue-center';
+import { FreeHubManager } from '@/components/free-hub-manager';
+import { BusinessCardStudio } from '@/components/business-card-studio';
+import { ArticlePromotionInline } from '@/components/article-promotion-inline';
+import { TeamPromotionPermission } from '@/components/team-promotion-permission';
+import { StockCsvAndMatching } from '@/components/stock-csv-and-matching';
 
 export default function DashboardPage(){
   return <>
@@ -34,6 +39,11 @@ export default function DashboardPage(){
     <DashboardSafeBoundary><CatalogLinkRenamer/></DashboardSafeBoundary>
     <DashboardSafeBoundary><QrCanonicalControls/></DashboardSafeBoundary>
     <DashboardSafeBoundary><QrMarketingAssets/></DashboardSafeBoundary>
+    <DashboardSafeBoundary><FreeHubManager/></DashboardSafeBoundary>
+    <DashboardSafeBoundary><BusinessCardStudio/></DashboardSafeBoundary>
+    <DashboardSafeBoundary><ArticlePromotionInline/></DashboardSafeBoundary>
+    <DashboardSafeBoundary><TeamPromotionPermission/></DashboardSafeBoundary>
+    <DashboardSafeBoundary><StockCsvAndMatching/></DashboardSafeBoundary>
     <DashboardSafeBoundary><DashboardActivationEngine/></DashboardSafeBoundary>
     <DashboardSafeBoundary><DashboardAnalytics/></DashboardSafeBoundary>
     <DashboardSafeBoundary><DashboardAdvancedControls/></DashboardSafeBoundary>
