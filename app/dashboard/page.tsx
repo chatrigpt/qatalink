@@ -27,6 +27,9 @@ import { BusinessCardStudio } from '@/components/business-card-studio';
 import { ArticlePromotionInline } from '@/components/article-promotion-inline';
 import { TeamPromotionPermission } from '@/components/team-promotion-permission';
 import { StockCsvAndMatching } from '@/components/stock-csv-and-matching';
+import { CatalogHubShortcut } from '@/components/catalog-hub-shortcut';
+import { StockMobileAndCompletion } from '@/components/stock-mobile-and-completion';
+import { SpecializedToolOnboarding } from '@/components/specialized-tool-onboarding';
 
 export default function DashboardPage(){
   return <>
@@ -41,9 +44,11 @@ export default function DashboardPage(){
     <DashboardSafeBoundary><QrMarketingAssets/></DashboardSafeBoundary>
     <DashboardSafeBoundary><FreeHubManager/></DashboardSafeBoundary>
     <DashboardSafeBoundary><BusinessCardStudio/></DashboardSafeBoundary>
+    <DashboardSafeBoundary><CatalogHubShortcut/></DashboardSafeBoundary>
     <DashboardSafeBoundary><ArticlePromotionInline/></DashboardSafeBoundary>
     <DashboardSafeBoundary><TeamPromotionPermission/></DashboardSafeBoundary>
     <DashboardSafeBoundary><StockCsvAndMatching/></DashboardSafeBoundary>
+    <DashboardSafeBoundary><StockMobileAndCompletion/></DashboardSafeBoundary>
     <DashboardSafeBoundary><DashboardActivationEngine/></DashboardSafeBoundary>
     <DashboardSafeBoundary><DashboardAnalytics/></DashboardSafeBoundary>
     <DashboardSafeBoundary><DashboardAdvancedControls/></DashboardSafeBoundary>
@@ -59,5 +64,6 @@ export default function DashboardPage(){
     <DashboardSafeBoundary><DashboardLogoutButton/></DashboardSafeBoundary>
     <DashboardSafeBoundary><OwnerRevenueCenter/></DashboardSafeBoundary>
     <DashboardSafeBoundary><NewUserGuide/></DashboardSafeBoundary>
+    <DashboardSafeBoundary><SpecializedToolOnboarding/></DashboardSafeBoundary>
   </>;
 }
