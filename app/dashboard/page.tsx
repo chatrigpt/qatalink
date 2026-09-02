@@ -29,6 +29,7 @@ import { TeamPromotionPermission } from '@/components/team-promotion-permission'
 import { StockCsvAndMatching } from '@/components/stock-csv-and-matching';
 import { CatalogHubShortcut } from '@/components/catalog-hub-shortcut';
 import { StockMobileAndCompletion } from '@/components/stock-mobile-and-completion';
+import { StockWasteTracking } from '@/components/stock-waste-tracking';
 import { SpecializedToolOnboarding } from '@/components/specialized-tool-onboarding';
 
 export default function DashboardPage(){
@@ -49,6 +50,7 @@ export default function DashboardPage(){
     <DashboardSafeBoundary><TeamPromotionPermission/></DashboardSafeBoundary>
     <DashboardSafeBoundary><StockCsvAndMatching/></DashboardSafeBoundary>
     <DashboardSafeBoundary><StockMobileAndCompletion/></DashboardSafeBoundary>
+    <DashboardSafeBoundary><StockWasteTracking/></DashboardSafeBoundary>
     <DashboardSafeBoundary><DashboardActivationEngine/></DashboardSafeBoundary>
     <DashboardSafeBoundary><DashboardAnalytics/></DashboardSafeBoundary>
     <DashboardSafeBoundary><DashboardAdvancedControls/></DashboardSafeBoundary>
