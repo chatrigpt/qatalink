@@ -31,11 +31,15 @@ import { CatalogHubShortcut } from '@/components/catalog-hub-shortcut';
 import { StockMobileAndCompletion } from '@/components/stock-mobile-and-completion';
 import { StockWasteTracking } from '@/components/stock-waste-tracking';
 import { SpecializedToolOnboarding } from '@/components/specialized-tool-onboarding';
+import { SubscriptionPageTracker } from '@/components/subscription-page-tracker';
+import { SharedCatalogAccessNotice } from '@/components/shared-catalog-access-notice';
 
 export default function DashboardPage(){
   return <>
     <DashboardStorageGuard/>
     <DashboardSafeBoundary critical><DashboardAppV3/></DashboardSafeBoundary>
+    <DashboardSafeBoundary><SubscriptionPageTracker/></DashboardSafeBoundary>
+    <DashboardSafeBoundary><SharedCatalogAccessNotice/></DashboardSafeBoundary>
     <DashboardSafeBoundary><IdentityCtaRefinement/></DashboardSafeBoundary>
     <DashboardSafeBoundary><CatalogOrderControls/></DashboardSafeBoundary>
     <DashboardSafeBoundary><TrialLifecycleBanner/></DashboardSafeBoundary>
