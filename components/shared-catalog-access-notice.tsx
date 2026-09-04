@@ -1,0 +1,12 @@
+'use client';
+import {useEffect,useMemo,useState} from 'react';
+import {BookOpen,ExternalLink} from 'lucide-react';
+import {createSupabaseBrowserClient} from '@/lib/supabase';
+
+type Access={access_id:string;business_id:string;business_name:string;catalog_id:string;catalog_title:string;role:string;active:boolean};
+export function SharedCatalogAccessNotice(){
+ const supabase=useMemo(()=>createSupabaseBrowserClient(),[]);const [rows,setRows]=useState<Access[]>([]);const [visible,setVisible]=useState(false);
+ useEffect(()=>{let dead=false;(async()=>{const {data:{session}}=await supabase.auth.getSession();if(!session)return;const {data}=await supabase.rpc('my_catalog_account_access');if(dead)return;const list=(data||[]) as Access[];setRows(list);if(list.length){const key=`qatalink-shared-access-${session.user.id}-${new Date().toISOString().slice(0,10)}`;if(!sessionStorage.getItem(key)){setVisible(true);sessionStorage.setItem(key,'1')}}})();return()=>{dead=true}},[supabase]);
+ if(!visible||!rows.length)return null;
+ return <div className="shared-access-toast"><button className="shared-close" onClick={()=>setVisible(false)}>×</button><div className="shared-head"><BookOpen size={18}/><div><b>Catalogue partagé avec vous</b><span>Vous avez reçu un accès Qatalink.</span></div></div><div className="shared-list">{rows.slice(0,4).map(r=><a key={r.access_id} href={`/dashboard?tab=overview&catalog=${encodeURIComponent(r.catalog_id)}`}><span><b>{r.catalog_title}</b><small>{r.business_name} · {r.role}</small></span><ExternalLink size={15}/></a>)}</div><style jsx>{`.shared-access-toast{position:fixed;right:18px;bottom:18px;z-index:1200;width:min(390px,calc(100vw - 28px));padding:15px;background:#fff;color:#18181b;border:1px solid #ead6da;border-radius:18px;box-shadow:0 18px 55px rgba(25,0,5,.18);font-family:var(--font-jakarta),Arial,sans-serif}.shared-close{position:absolute;right:10px;top:8px;border:0;background:transparent;font-size:22px;cursor:pointer}.shared-head{display:flex;gap:10px;align-items:flex-start}.shared-head div{display:grid;gap:2px}.shared-head span{font-size:12px;color:#71717a}.shared-list{display:grid;gap:7px;margin-top:12px}.shared-list a{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:10px;border-radius:12px;border:1px solid #eee;color:inherit;text-decoration:none}.shared-list a span{display:grid}.shared-list small{color:#777;font-size:11px}@media(max-width:600px){.shared-access-toast{right:14px;bottom:14px}}`}</style></div>;
+}
