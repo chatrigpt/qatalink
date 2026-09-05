@@ -6,11 +6,12 @@ export const runtime='nodejs';
 export const maxDuration=60;
 
 const SUPABASE_URL=process.env.NEXT_PUBLIC_SUPABASE_URL||'https://rifjsvbbhsnpifgooenl.supabase.co';
-const PUBLIC_KEY=process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY||'';
+const PUBLIC_KEY=process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY||'sb_publishable_5A_EpEK4Jrwh-3-NT43RxA_0iIP9Tdl';
 const SERVICE_KEY=process.env.SUPABASE_SERVICE_ROLE_KEY||process.env.SUPABASE_SECRET_KEY||'';
-const PROVIDER_KEY=(process.env.POYO_API_KEY||'').replace(/[\u200B-\u200D\u2060\uFEFF]/g,'').replace(/^Bearer\s+/i,'').trim();
+const FAL_KEY=String(process.env.FAL_KEY||'').trim();
+const FAL_OPENAI_URL='https://fal.run/openrouter/router/openai/v1/chat/completions';
 const ELIGIBLE_PLANS=new Set(['interactive','linkhub']);
-const MODELS=['gemini-2.5-flash','gemini-3.5-flash'];
+const MODELS=['google/gemini-2.5-flash','google/gemini-2.5-flash-lite'];
 
 type TranslationRow={kind:'catalog'|'business'|'page'|'category'|'item'|'flow';id:string;parent_id?:string|null;title?:string;name?:string;description?:string;value?:string};
 
@@ -44,19 +45,19 @@ function rebuild(source:any,rows:TranslationRow[]){
     catalog:{...source.catalog,title:catalogRow?.title||source.catalog?.title||'',display_name:catalogRow?.name||source.catalog?.display_name||'',description:catalogRow?.description??source.catalog?.description??''},
     business:{...source.business,name:source.business?.name||'',description:businessRow?.description??source.business?.description??''},
     pages:(source.pages||[]).map((p:any)=>{const r=byKey.get(`page:${String(p.id)}`);return {...p,title:r?.title||p.title||'',description:r?.description??p.description??''}}),
-    categories:(source.categories||[]).map((c:any)=>{const r=byKey.get(`category:${String(c.id)}`);return {...c,name:r?.name||c.name||'',description:r?.description??c.description??'',items:(c.items||[]).map((i:any)=>{const x=byKey.get(`item:${String(i.id)}`);return {...i,name:x?.name||i.name||'',description:x?.description??i.description??''}})}}),
+    categories:(source.categories||[]).map((c:any)=>{const r=byKey.get(`category:${String(c.id)}`);return {...c,name:r?.name||c.name,description:r?.description??c.description??'',items:(c.items||[]).map((i:any)=>{const x=byKey.get(`item:${String(i.id)}`);return {...i,name:x?.name||i.name||'',description:x?.description??i.description??''}})}}),
     flow_labels:Object.fromEntries(Object.keys(source.flow_labels||{}).map(key=>[key,byKey.get(`flow:${key}`)?.value||source.flow_labels[key]]))
   };
 }
 function fingerprint(payload:any){return createHash('sha256').update(JSON.stringify(payload)).digest('hex')}
 
 async function translateBatch(rows:TranslationRow[],batchIndex:number){
-  if(!PROVIDER_KEY)throw new Error('TRANSLATION_KEY_MISSING');
+  if(!FAL_KEY)throw new Error('TRANSLATION_KEY_MISSING');
   const system='You translate commerce catalogue copy from French to concise natural English. Return ONLY valid JSON in the shape {"rows":[...]}. Keep every row kind, id and parent_id exactly unchanged and in the same order. Translate only title, name, description and value fields. Business and brand names must stay unchanged. Never translate product codes, URLs, prices or IDs. Never invent details.';
   let lastError='TRANSLATION_UNAVAILABLE';
   for(const model of MODELS){
     try{
-      const response=await fetch('https://api.poyo.ai/v1/chat/completions',{method:'POST',headers:{Authorization:`Bearer ${PROVIDER_KEY}`,'Content-Type':'application/json'},body:JSON.stringify({model,temperature:.1,max_tokens:3200,messages:[{role:'system',content:system},{role:'user',content:JSON.stringify({rows})}]}),cache:'no-store'});
+      const response=await fetch(FAL_OPENAI_URL,{method:'POST',headers:{Authorization:`Key ${FAL_KEY}`,'Content-Type':'application/json'},body:JSON.stringify({model,temperature:.1,max_tokens:3200,messages:[{role:'system',content:system},{role:'user',content:JSON.stringify({rows})}]}),cache:'no-store'});
       const raw=await response.text();let data:any=null;try{data=raw?JSON.parse(raw):null}catch{data={raw:raw.slice(0,800)}}
       if(!response.ok){lastError=`${model}:${response.status}:${String(data?.error?.message||data?.message||'provider error').slice(0,180)}`;continue}
       const content=data?.choices?.[0]?.message?.content;if(!content){lastError=`${model}:empty`;continue}
@@ -78,7 +79,7 @@ export async function POST(req:NextRequest){
   try{
     const {slug,target='en'}=await req.json();
     if(!slug||target!=='en')return NextResponse.json({error:'INVALID_REQUEST'},{status:400});
-    if(!PUBLIC_KEY)return NextResponse.json({error:'TRANSLATION_UNAVAILABLE'},{status:503});
+    if(!FAL_KEY)return NextResponse.json({error:'TRANSLATION_UNAVAILABLE',message:'Le service de traduction IA n’est pas configuré.'},{status:503});
     const pub=client(PUBLIC_KEY);const {data,error}=await pub.rpc('get_public_catalog',{p_slug:String(slug)});if(error||!data)return NextResponse.json({error:'CATALOG_NOT_FOUND'},{status:404});
     if(!ELIGIBLE_PLANS.has(String(data?.plan_code||'')))return NextResponse.json({error:'TRANSLATION_REQUIRES_PRO'},{status:403});
     const catalogId=String(data?.catalog?.id||'');if(!catalogId)return NextResponse.json({error:'CATALOG_NOT_FOUND'},{status:404});
