@@ -88,14 +88,10 @@ export function GlobalPopupNavigationCloser(){
       const target=event.target as Element|null;if(!target)return;
       const nav=target.closest(NAV_SELECTOR);if(!nav)return;
 
-      // Point de vente du dashboard est désormais une vue normale. Toute autre navigation
-      // la quitte automatiquement, sans imposer un bouton Fermer à l'utilisateur.
       if(document.body.classList.contains('qpos-inline-active')&&!target.closest('.qpos-modal')&&!target.closest('.qpos-nav')){
         closeDashboardPos();
       }
 
-      // Prise de commande dans /ops suit exactement la logique des autres onglets.
-      // Cliquer Commandes ou Catalogue désactive immédiatement la caisse.
       if(document.body.classList.contains('ops-pos-active')){
         const opsTab=target.closest('.ops-tabs button');
         if(opsTab&&!opsTab.classList.contains('ops-pos-tab'))closeOpsPos();
@@ -122,5 +118,9 @@ export function GlobalPopupNavigationCloser(){
       window.removeEventListener('popstate',onPop);
     };
   },[]);
-  return null;
+
+  return <style>{`
+    .ops-pos-active .ops-pos-head-actions button[aria-label="Fermer"]{display:none!important}
+    .ops-pos-active .ops-pos-panel{animation:none!important}
+  `}</style>;
 }
