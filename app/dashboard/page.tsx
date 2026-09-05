@@ -36,12 +36,14 @@ import { SharedCatalogAccessNotice } from '@/components/shared-catalog-access-no
 import { DirectSubscriptionSync } from '@/components/direct-subscription-sync';
 import { DashboardOperationalShell } from '@/components/dashboard-operational-shell';
 import { DashboardMobilePlanPill } from '@/components/dashboard-mobile-plan-pill';
+import { DashboardReferenceInsights } from '@/components/dashboard-reference-insights';
 
 export default function DashboardPage(){
   return <>
     <DashboardStorageGuard/>
     <DashboardSafeBoundary critical><DashboardAppV3/></DashboardSafeBoundary>
     <DashboardSafeBoundary><DashboardOperationalShell/></DashboardSafeBoundary>
+    <DashboardSafeBoundary><DashboardReferenceInsights/></DashboardSafeBoundary>
     <DashboardSafeBoundary><DashboardMobilePlanPill/></DashboardSafeBoundary>
     <DashboardSafeBoundary><DirectSubscriptionSync/></DashboardSafeBoundary>
     <DashboardSafeBoundary><SubscriptionPageTracker/></DashboardSafeBoundary>
