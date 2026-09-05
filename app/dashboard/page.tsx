@@ -37,10 +37,12 @@ import { DirectSubscriptionSync } from '@/components/direct-subscription-sync';
 import { DashboardOperationalShell } from '@/components/dashboard-operational-shell';
 import { DashboardMobilePlanPill } from '@/components/dashboard-mobile-plan-pill';
 import { DashboardReferenceInsights } from '@/components/dashboard-reference-insights';
+import { DashboardReferenceCss } from '@/components/dashboard-reference-css';
 
 export default function DashboardPage(){
   return <>
     <DashboardStorageGuard/>
+    <DashboardReferenceCss/>
     <DashboardSafeBoundary critical><DashboardAppV3/></DashboardSafeBoundary>
     <DashboardSafeBoundary><DashboardOperationalShell/></DashboardSafeBoundary>
     <DashboardSafeBoundary><DashboardReferenceInsights/></DashboardSafeBoundary>
