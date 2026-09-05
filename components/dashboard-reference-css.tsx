@@ -6,6 +6,20 @@ body.q-operational-dashboard .q-home-period button{border:0;background:transpare
 body.q-operational-dashboard .q-home-period button.active{background:var(--text-primary);color:var(--bg-surface);box-shadow:0 5px 14px rgba(18,20,25,.1)}
 .dark body.q-operational-dashboard .q-home-period button.active{background:#F2F4F7;color:#11151A}
 body.q-operational-dashboard .q-mobile-theme-toggle{display:none}
+
+/* Command shortcut: never allow white icon strokes on a white tile. */
+body.q-operational-dashboard .q-ops-shortcuts button:first-child>svg:first-child{background:#fff!important;color:var(--brand-primary)!important;stroke:var(--brand-primary)!important;box-shadow:0 3px 12px rgba(0,0,0,.08)!important}
+body.q-operational-dashboard .q-ops-shortcuts button:first-child>svg:first-child *{stroke:var(--brand-primary)!important}
+
+/* Priority markers: compatible two-tone pairs with enough contrast in light and dark themes. */
+body.q-operational-dashboard .q-ops-attention-list button>i{display:grid!important;place-items:center!important;width:36px!important;height:36px!important;border-radius:999px!important;box-shadow:none!important;position:relative!important}
+body.q-operational-dashboard .q-ops-attention-list button>i:after{content:"";width:13px;height:13px;border-radius:999px;background:currentColor;box-shadow:0 0 0 4px rgba(255,255,255,.68)}
+body.q-operational-dashboard .q-ops-attention-list button.tone-danger>i{background:#FFE3E8!important;color:#D8173E!important;border:1px solid #F8B7C4!important}
+body.q-operational-dashboard .q-ops-attention-list button.tone-warning>i{background:#FFF0DA!important;color:#D87500!important;border:1px solid #F5C982!important}
+.dark body.q-operational-dashboard .q-ops-attention-list button.tone-danger>i{background:#421720!important;color:#FF718E!important;border-color:#6D2637!important}
+.dark body.q-operational-dashboard .q-ops-attention-list button.tone-warning>i{background:#3C2A12!important;color:#FFB34D!important;border-color:#684719!important}
+.dark body.q-operational-dashboard .q-ops-attention-list button>i:after{box-shadow:0 0 0 4px rgba(10,12,16,.66)}
+
 @media(min-width:981px){
  body.q-operational-dashboard .q-ops-shortcuts{display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:10px!important;width:100%!important}
  body.q-operational-dashboard .q-ops-shortcuts button{width:100%!important;height:108px!important;min-height:108px!important;max-height:108px!important;padding:14px!important;font-size:13px!important;box-sizing:border-box!important}
