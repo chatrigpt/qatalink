@@ -4,10 +4,12 @@ import {notFound} from 'next/navigation';
 import {createClient} from '@supabase/supabase-js';
 import {SeoMarkdown} from '@/components/seo-markdown';
 
-export const revalidate=300;
-const SUPABASE_URL=process.env.NEXT_PUBLIC_SUPABASE_URL||'https://rifjsvbbhsnpifgooenl.supabase.co';const SUPABASE_KEY=process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY||'';
+export const dynamic='force-dynamic';
+export const revalidate=0;
+const SUPABASE_URL=process.env.NEXT_PUBLIC_SUPABASE_URL||'https://rifjsvbbhsnpifgooenl.supabase.co';
+const SUPABASE_KEY=process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY||'sb_publishable_5A_EpEK4Jrwh-3-NT43RxA_0iIP9Tdl';
 function db(){return createClient(SUPABASE_URL,SUPABASE_KEY,{auth:{persistSession:false,autoRefreshToken:false}})}
-async function getPost(slug:string){const {data}=await db().from('seo_blog_posts').select('*').eq('slug',slug).eq('status','published').maybeSingle();return data}
+async function getPost(slug:string){const {data,error}=await db().from('seo_blog_posts').select('*').eq('slug',slug).eq('status','published').maybeSingle();if(error)console.error('[Qatalink:BlogPost]',error.message);return data}
 function externalField(p:any,key:'cover_image'|'link'){const v=String(p?.generation_context?.[key]||'').trim();return /^(https?:\/\/|\/)/i.test(v)?v:''}
 
 export async function generateMetadata({params}:{params:Promise<{slug:string}>}):Promise<Metadata>{const {slug}=await params;const p=await getPost(slug);if(!p)return {title:{absolute:'Article introuvable | Qatalink'}};const url=`https://qatalink.com/blog/${p.slug}`;const metaTitle=String(p.meta_title||p.title).replace(/\s*\|\s*Qatalink\s*$/i,'').trim();const absoluteTitle=`${metaTitle} | Qatalink`;const cover=externalField(p,'cover_image');return {title:{absolute:absoluteTitle},description:p.meta_description||p.excerpt,keywords:p.keywords||[],alternates:{canonical:url},openGraph:{title:absoluteTitle,description:p.meta_description||p.excerpt,url,type:'article',publishedTime:p.published_at||undefined,authors:['Christelle Bagrou'],siteName:'Qatalink',images:cover?[{url:cover}]:undefined},twitter:{card:cover?'summary_large_image':'summary',title:absoluteTitle,description:p.meta_description||p.excerpt,images:cover?[cover]:undefined}}}
