@@ -1,17 +1,27 @@
 {
   "id": "/mobile",
-  "name": "Qatalink",
+  "name": "Qatalink — Pilotage PME",
   "short_name": "Qatalink",
-  "description": "Catalogues, commandes, caisse, livraison et espace client Qatalink.",
-  "start_url": "/mobile",
+  "description": "Pilotez commandes, catalogue, stock, caisse et activité depuis votre téléphone avec Qatalink.",
+  "start_url": "/mobile?source=pwa",
   "scope": "/",
   "display": "standalone",
+  "display_override": ["window-controls-overlay", "standalone", "minimal-ui"],
   "orientation": "any",
-  "background_color": "#ffffff",
-  "theme_color": "#d20f2f",
+  "background_color": "#F7F7F8",
+  "theme_color": "#D3163C",
+  "categories": ["business", "productivity"],
+  "lang": "fr",
+  "dir": "ltr",
   "icons": [
     {"src":"/qatalink-icon.svg","sizes":"any","type":"image/svg+xml","purpose":"any"},
     {"src":"/qatalink-icon.svg","sizes":"any","type":"image/svg+xml","purpose":"maskable"},
     {"src":"/qatalink-logo.png","sizes":"512x512","type":"image/png","purpose":"any"}
+  ],
+  "shortcuts": [
+    {"name":"Piloter mon activité","short_name":"Accueil","url":"/dashboard?tab=overview&source=pwa-shortcut","icons":[{"src":"/qatalink-icon.svg","sizes":"any","type":"image/svg+xml"}]},
+    {"name":"Voir les commandes","short_name":"Commandes","url":"/dashboard?tab=stats&source=pwa-shortcut","icons":[{"src":"/qatalink-icon.svg","sizes":"any","type":"image/svg+xml"}]},
+    {"name":"Ouvrir le catalogue","short_name":"Catalogue","url":"/dashboard?tab=catalogs&source=pwa-shortcut","icons":[{"src":"/qatalink-icon.svg","sizes":"any","type":"image/svg+xml"}]},
+    {"name":"Gérer le stock","short_name":"Stock","url":"/dashboard?tab=items&view=stock&source=pwa-shortcut","icons":[{"src":"/qatalink-icon.svg","sizes":"any","type":"image/svg+xml"}]}
   ]
 }
