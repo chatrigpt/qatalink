@@ -1,6 +1,7 @@
 import type {Metadata} from 'next';
 import Link from 'next/link';
 import {createClient} from '@supabase/supabase-js';
+import {getPublicBlogSheetPosts} from '@/lib/public-blog-sheet';
 
 export const dynamic='force-dynamic';
 export const revalidate=0;
@@ -8,6 +9,20 @@ const SUPABASE_URL=process.env.NEXT_PUBLIC_SUPABASE_URL||'https://rifjsvbbhsnpif
 const SUPABASE_KEY=process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY||'sb_publishable_5A_EpEK4Jrwh-3-NT43RxA_0iIP9Tdl';
 export const metadata:Metadata={title:'Blog Qatalink — QR code, commerce digital et gestion',description:'Guides pratiques sur les menus QR, catalogues digitaux, commandes directes, gestion restaurant, stock, caisse et digitalisation en Afrique francophone.',alternates:{canonical:'https://qatalink.com/blog'},openGraph:{title:'Blog Qatalink',description:'Guides pratiques pour digitaliser restaurants, boutiques et services en Afrique francophone.',url:'https://qatalink.com/blog',type:'website'}};
 
-function coverOf(p:any){const v=String(p?.generation_context?.cover_image||'').trim();return /^https?:\/\//i.test(v)?v:''}
+function coverOf(p:any){const v=String(p?.generation_context?.cover_image||p?.cover_image||'').trim();return /^https?:\/\//i.test(v)?v:''}
 
-export default async function BlogPage(){const supabase=createClient(SUPABASE_URL,SUPABASE_KEY,{auth:{persistSession:false,autoRefreshToken:false}});const {data:posts,error}=await supabase.from('seo_blog_posts').select('slug,title,excerpt,keywords,city,country,published_at,quality_score,generation_context').eq('status','published').order('published_at',{ascending:false}).limit(60);if(error)console.error('[Qatalink:BlogIndex]',error.message);return <main className="seo-shell"><section className="seo-hero"><div className="eyebrow">RESSOURCES QATALINK</div><h1>Le blog du commerce digital en Afrique francophone</h1><p>QR code, catalogues interactifs, commandes directes, caisse, stock, livraison, SEO local et digitalisation : des guides conçus pour être utiles aux commerçants, équipes et décideurs.</p><div className="seo-actions"><Link href="/docs" className="btn btn-primary">Voir la documentation Qatalink</Link><Link href="/create" className="btn btn-ghost">Créer un catalogue</Link></div></section><section className="seo-grid">{(posts||[]).map((p:any)=>{const cover=coverOf(p);return <article className="seo-card" key={p.slug}>{cover&&<img src={cover} alt="" loading="lazy" style={{width:'100%',aspectRatio:'16/9',objectFit:'cover',borderRadius:'18px',marginBottom:'16px'}}/>}<div className="seo-card-meta"><span>{p.city?`${p.city}${p.country?`, ${p.country}`:''}`:'Qatalink'}</span><span>{p.published_at?new Intl.DateTimeFormat('fr-FR',{dateStyle:'medium'}).format(new Date(p.published_at)):''}</span></div><h2><Link href={`/blog/${p.slug}`}>{p.title}</Link></h2><p>{p.excerpt}</p>{(p.keywords||[]).length>0&&<div className="seo-tags">{(p.keywords||[]).slice(0,4).map((k:string)=><span key={k}>{k}</span>)}</div>}<Link className="seo-read" href={`/blog/${p.slug}`}>Lire l’article →</Link></article>})}{!posts?.length&&<article className="seo-card"><h2>Les premiers guides arrivent</h2><p>Qatalink publie régulièrement des ressources approfondies sur la digitalisation des commerces et restaurants.</p></article>}</section></main>}
+export default async function BlogPage(){
+  const supabase=createClient(SUPABASE_URL,SUPABASE_KEY,{auth:{persistSession:false,autoRefreshToken:false}});
+  const [sheetResult,dbResult]=await Promise.allSettled([
+    getPublicBlogSheetPosts(),
+    supabase.from('seo_blog_posts').select('slug,title,excerpt,keywords,city,country,published_at,quality_score,generation_context,source_provider').eq('status','published').order('published_at',{ascending:false}).limit(60),
+  ]);
+  const livePosts=sheetResult.status==='fulfilled'?sheetResult.value:[];
+  if(sheetResult.status==='rejected')console.error('[Qatalink:BlogSheetLive]',sheetResult.reason);
+  const dbPayload=dbResult.status==='fulfilled'?dbResult.value:{data:[],error:null};
+  if(dbPayload.error)console.error('[Qatalink:BlogIndex]',dbPayload.error.message);
+  const liveSlugs=new Set(livePosts.map(p=>p.slug));
+  const dbPosts=(dbPayload.data||[]).filter((p:any)=>p.source_provider!=='google_sheets'&&!liveSlugs.has(p.slug));
+  const posts=[...livePosts,...dbPosts];
+  return <main className="seo-shell"><section className="seo-hero"><div className="eyebrow">RESSOURCES QATALINK</div><h1>Le blog du commerce digital en Afrique francophone</h1><p>QR code, catalogues interactifs, commandes directes, caisse, stock, livraison, SEO local et digitalisation : des guides conçus pour être utiles aux commerçants, équipes et décideurs.</p><div className="seo-actions"><Link href="/docs" className="btn btn-primary">Voir la documentation Qatalink</Link><Link href="/create" className="btn btn-ghost">Créer un catalogue</Link></div></section><section className="seo-grid">{posts.map((p:any)=>{const cover=coverOf(p);return <article className="seo-card" key={p.slug}>{cover&&<img src={cover} alt="" loading="lazy" style={{width:'100%',aspectRatio:'16/9',objectFit:'cover',borderRadius:'18px',marginBottom:'16px'}}/>}<div className="seo-card-meta"><span>{p.city?`${p.city}${p.country?`, ${p.country}`:''}`:p.source_provider==='google_sheets_live'?'NOUVEAU · FEUILLE EN DIRECT':'Qatalink'}</span><span>{p.published_at?new Intl.DateTimeFormat('fr-FR',{dateStyle:'medium'}).format(new Date(p.published_at)):''}</span></div><h2><Link href={`/blog/${p.slug}`}>{p.title}</Link></h2><p>{p.excerpt}</p>{(p.keywords||[]).length>0&&<div className="seo-tags">{(p.keywords||[]).slice(0,4).map((k:string)=><span key={k}>{k}</span>)}</div>}<Link className="seo-read" href={`/blog/${p.slug}`}>Lire l’article →</Link></article>})}{!posts.length&&<article className="seo-card"><h2>Les premiers guides arrivent</h2><p>Qatalink publie régulièrement des ressources approfondies sur la digitalisation des commerces et restaurants.</p></article>}</section></main>
+}
