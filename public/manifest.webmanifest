@@ -15,8 +15,7 @@
   "dir": "ltr",
   "icons": [
     {"src":"/qatalink-icon.svg","sizes":"any","type":"image/svg+xml","purpose":"any"},
-    {"src":"/qatalink-icon.svg","sizes":"any","type":"image/svg+xml","purpose":"maskable"},
-    {"src":"/qatalink-logo.png","sizes":"512x512","type":"image/png","purpose":"any"}
+    {"src":"/qatalink-icon.svg","sizes":"any","type":"image/svg+xml","purpose":"maskable"}
   ],
   "shortcuts": [
     {"name":"Piloter mon activité","short_name":"Accueil","url":"/dashboard?tab=overview&source=pwa-shortcut","icons":[{"src":"/qatalink-icon.svg","sizes":"any","type":"image/svg+xml"}]},
