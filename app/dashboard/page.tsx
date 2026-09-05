@@ -34,15 +34,13 @@ import { SpecializedToolOnboarding } from '@/components/specialized-tool-onboard
 import { SubscriptionPageTracker } from '@/components/subscription-page-tracker';
 import { SharedCatalogAccessNotice } from '@/components/shared-catalog-access-notice';
 import { DirectSubscriptionSync } from '@/components/direct-subscription-sync';
-import { DashboardObjectiveNavigation } from '@/components/dashboard-objective-navigation';
-import { DashboardPlanExperience } from '@/components/dashboard-plan-experience';
+import { DashboardOperationalShell } from '@/components/dashboard-operational-shell';
 
 export default function DashboardPage(){
   return <>
     <DashboardStorageGuard/>
     <DashboardSafeBoundary critical><DashboardAppV3/></DashboardSafeBoundary>
-    <DashboardSafeBoundary><DashboardPlanExperience/></DashboardSafeBoundary>
-    <DashboardSafeBoundary><DashboardObjectiveNavigation/></DashboardSafeBoundary>
+    <DashboardSafeBoundary><DashboardOperationalShell/></DashboardSafeBoundary>
     <DashboardSafeBoundary><DirectSubscriptionSync/></DashboardSafeBoundary>
     <DashboardSafeBoundary><SubscriptionPageTracker/></DashboardSafeBoundary>
     <DashboardSafeBoundary><SharedCatalogAccessNotice/></DashboardSafeBoundary>
